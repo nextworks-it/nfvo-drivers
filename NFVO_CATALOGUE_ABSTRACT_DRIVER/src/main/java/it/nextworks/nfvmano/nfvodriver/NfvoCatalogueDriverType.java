@@ -21,6 +21,7 @@ public enum NfvoCatalogueDriverType {
     OSM,
     CLOUDIFY,
     DUMMY,
-    LOGGING
+    LOGGING,
+    SOL_005
 
 }

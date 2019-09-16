@@ -18,6 +18,8 @@ package it.nextworks.nfvmano.nfvodriver;
 
 
 import it.nextworks.nfvmano.nfvodriver.logging.NfvoCatalogueLoggingDriver;
+import it.nextworks.nfvmano.nfvodriver.osm.OsmCatalogueDriver;
+import it.nextworks.nfvmano.nfvodriver.sol.SolCatalogueDriver;
 import it.nextworks.nfvmano.nfvodriver.timeo.TimeoCatalogueDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +40,15 @@ public class NfvoCatalogueServiceUtils {
     @Value("${nfvo.catalogue.address}")
     private String nfvoCatalogueAddress;
 
+    
+    @Value("${nfvo.catalogue.username}")
+    private String nfvoCatalogueUsername;
+    
+    @Value("${nfvo.catalogue.password}")
+    private String nfvoCataloguePassword;
+    
+    @Value("${nfvo.catalogue.project}")
+    private String nfvoCatalogueProject;
 
     @Autowired
     NfvoCatalogueService nfvoCatalogueService;
@@ -49,13 +60,19 @@ public class NfvoCatalogueServiceUtils {
 
             log.debug("Configured for type:" + nfvoCatalogueType);
             nfvoCatalogueService.setNfvoCatalogueDriver(new NfvoCatalogueLoggingDriver());
-        }else if (nfvoCatalogueType.equals("TIMEO")) {
+        } else if (nfvoCatalogueType.equals("TIMEO")) {
             log.debug("Configured for type:" + nfvoCatalogueType);
             nfvoCatalogueService.setNfvoCatalogueDriver(new TimeoCatalogueDriver(nfvoCatalogueAddress, null));
-        }else if(nfvoCatalogueType.equals("DUMMY")){
+        } else if(nfvoCatalogueType.equals("DUMMY")){
             log.debug("Configured for type:" + nfvoCatalogueType);
             nfvoCatalogueService.setNfvoCatalogueDriver(new DummyNfvoCatalogueDriver(nfvoCatalogueAddress));
-        }else {
+        } else if(nfvoCatalogueType.equals("OSM")){
+            log.debug("Configured for type:" + nfvoCatalogueType);
+            nfvoCatalogueService.setNfvoCatalogueDriver(new OsmCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null));
+        } else if(nfvoCatalogueType.equals("SOL_005")){
+            log.debug("Configured for type:" + nfvoCatalogueType);
+            nfvoCatalogueService.setNfvoCatalogueDriver(new SolCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null));
+        } else {
             log.error("NFVO not configured!");
         }
     }
