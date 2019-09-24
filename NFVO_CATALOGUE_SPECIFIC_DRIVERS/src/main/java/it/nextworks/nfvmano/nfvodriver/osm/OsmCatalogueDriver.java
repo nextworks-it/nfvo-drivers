@@ -21,39 +21,38 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import it.nextworks.nfvmano.libs.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.NsdManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.VnfPackageManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.DeleteNsdRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.DeleteNsdResponse;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.DeletePnfdRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.DeletePnfdResponse;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.DeleteVnfPackageRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.DisableNsdRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.DisableVnfPackageRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.EnableNsdRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.EnableVnfPackageRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.FetchOnboardedVnfPackageArtifactsRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.OnBoardVnfPackageRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.OnBoardVnfPackageResponse;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.OnboardAppPackageRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.OnboardAppPackageResponse;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.OnboardNsdRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.OnboardPnfdRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.QueryNsdResponse;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.QueryOnBoadedAppPkgInfoResponse;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.QueryOnBoardedVnfPkgInfoResponse;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.QueryPnfdResponse;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.UpdateNsdRequest;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.UpdatePnfdRequest;
-import it.nextworks.nfvmano.libs.common.exceptions.AlreadyExistingEntityException;
-import it.nextworks.nfvmano.libs.common.exceptions.FailedOperationException;
-import it.nextworks.nfvmano.libs.common.exceptions.MalformattedElementException;
-import it.nextworks.nfvmano.libs.common.exceptions.MethodNotImplementedException;
-import it.nextworks.nfvmano.libs.common.exceptions.NotExistingEntityException;
-import it.nextworks.nfvmano.libs.common.messages.GeneralizedQueryRequest;
-import it.nextworks.nfvmano.libs.common.messages.SubscribeRequest;
-import it.nextworks.nfvmano.libs.osmr4Client.OSMr4Client;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.NsdManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.VnfPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeleteNsdRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeleteNsdResponse;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeletePnfdRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeletePnfdResponse;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeleteVnfPackageRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DisableNsdRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DisableVnfPackageRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.EnableNsdRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.EnableVnfPackageRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.FetchOnboardedVnfPackageArtifactsRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnBoardVnfPackageRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnBoardVnfPackageResponse;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardAppPackageRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardAppPackageResponse;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardNsdRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardPnfdRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryNsdResponse;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryOnBoadedAppPkgInfoResponse;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryOnBoardedVnfPkgInfoResponse;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryPnfdResponse;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.UpdateNsdRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.UpdatePnfdRequest;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.AlreadyExistingEntityException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
+import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
+import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueAbstractDriver;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueDriverType;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueNotificationInterface;
@@ -62,16 +61,13 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	
 	private static final Logger log = LoggerFactory.getLogger(OsmCatalogueDriver.class);
 	
-	private OSMr4Client restClient;
-
 	public OsmCatalogueDriver(String nfvoAddress,
 			String user,
 			String password,
 			String project,
 			NfvoCatalogueNotificationInterface nfvoCatalogueNotificationManager) {
 		super(NfvoCatalogueDriverType.OSM, nfvoAddress, nfvoCatalogueNotificationManager);
-		restClient = new OSMr4Client(nfvoAddress, user, password, project);
-	}
+			}
 
 	@Override
 	public File fetchOnboardedApplicationPackage(String onboardedAppPkgId)

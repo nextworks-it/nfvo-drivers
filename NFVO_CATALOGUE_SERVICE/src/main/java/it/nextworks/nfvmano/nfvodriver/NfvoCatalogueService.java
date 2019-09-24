@@ -15,14 +15,19 @@
 */
 package it.nextworks.nfvmano.nfvodriver;
 
-import it.nextworks.nfvmano.libs.catalogues.interfaces.*;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.elements.NsdInfo;
-import it.nextworks.nfvmano.libs.catalogues.interfaces.messages.*;
-import it.nextworks.nfvmano.libs.common.elements.Filter;
-import it.nextworks.nfvmano.libs.common.exceptions.*;
-import it.nextworks.nfvmano.libs.common.messages.GeneralizedQueryRequest;
-import it.nextworks.nfvmano.libs.common.messages.SubscribeRequest;
-import it.nextworks.nfvmano.libs.descriptors.nsd.Nsd;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.AlreadyExistingEntityException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.*;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.*;
+import it.nextworks.nfvmano.libs.ifa.common.elements.Filter;
+import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
+import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
+import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.Nsd;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
