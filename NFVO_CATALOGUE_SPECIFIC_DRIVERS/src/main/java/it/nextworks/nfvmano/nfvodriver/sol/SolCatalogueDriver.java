@@ -53,6 +53,11 @@ import it.nextworks.nfvmano.libs.common.exceptions.MethodNotImplementedException
 import it.nextworks.nfvmano.libs.common.exceptions.NotExistingEntityException;
 import it.nextworks.nfvmano.libs.common.messages.GeneralizedQueryRequest;
 import it.nextworks.nfvmano.libs.common.messages.SubscribeRequest;
+import it.nextworks.nfvmano.libs.descriptors.nsd.NsDf;
+import it.nextworks.nfvmano.libs.descriptors.nsd.NsLevel;
+import it.nextworks.nfvmano.libs.descriptors.nsd.NsProfile;
+import it.nextworks.nfvmano.libs.descriptors.nsd.Nsd;
+import it.nextworks.nfvmano.libs.descriptors.templates.DescriptorTemplate;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueAbstractDriver;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueDriverType;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueNotificationInterface;
@@ -130,7 +135,14 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	public String onboardNsd(OnboardNsdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
 		log.debug("Processig request to onboard a new NSD.");
-		// TODO Auto-generated method stub
+		Nsd nsd = request.getNsd();
+		if (nsd == null) throw new MalformattedElementException("NSD for onboarding is null");
+		for (NsDf df : nsd.getNsDf()) { // need to generate a sol nsd for each ns Profilein ifa descriptor
+			for (NsLevel nsIl : df.getNsInstantiationLevel()) {
+			    DescriptorTemplate dt = IfaToSolTranslator.translateIfaToSolNsd(nsd, df, nsIl);
+			    }
+			}
+		// TODO decide where to return the descriptor 
 		return null;
 	}
 
@@ -165,7 +177,7 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	public QueryNsdResponse queryNsd(GeneralizedQueryRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
 		// TODO Auto-generated method stub
-		return null;
+		return null;0
 	}
 
 	@Override
