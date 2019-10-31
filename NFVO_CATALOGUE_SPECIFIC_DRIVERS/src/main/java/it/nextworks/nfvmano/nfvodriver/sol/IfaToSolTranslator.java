@@ -120,7 +120,7 @@ public class IfaToSolTranslator {
         }
     	for (String vlProfileId : virtualLinkProfileId) { 
     		for (VirtualLinkProfile virtualLinkProfile : nsDf.getVirtualLinkProfile()) {
-    			if (vlProfileId == virtualLinkProfile.getVirtualLinkProfileId()) {
+    			if (vlProfileId.equals(virtualLinkProfile.getVirtualLinkProfileId())) {
     				nsVirtualLink.add(virtualLinkProfile.getVirtualLinkDescId());
     			}
         	}
@@ -158,7 +158,7 @@ public class IfaToSolTranslator {
         }
         for (String vProfileId : vnfProfileId) { 
         	for (VnfProfile vnfProfile : nsDf.getVnfProfile()) {
-        		if (vProfileId == vnfProfile.getVnfProfileId()) {
+        		if (vProfileId.equals(vnfProfile.getVnfProfileId())) {
         			VNFProperties vnfProperties = new VNFProperties();
         			vnfProperties.setDescriptorId(vnfProfile.getVnfProfileId());
         			vnfProperties.setDescriptorVersion(nsd.getVersion());
@@ -172,7 +172,7 @@ public class IfaToSolTranslator {
         			List<String> vnfVirtualLink= new ArrayList<>();
         			for (String vnfVLPI : vnfVirtualLinkProfileId) {
         				for (VirtualLinkProfile virtualLinkProfile : nsDf.getVirtualLinkProfile()) {
-        					if (virtualLinkProfile.getVirtualLinkProfileId() == vnfVLPI) {
+        					if (virtualLinkProfile.getVirtualLinkProfileId().equals(vnfVLPI)) {
         						vnfVirtualLink.add(virtualLinkProfile.getVirtualLinkDescId());
         					}
         				}
@@ -209,15 +209,15 @@ public class IfaToSolTranslator {
         //List<String> virtualLinkDescId = new ArrayList<>();
         for (String vlProfileId : virtualLinkProfileId) { 
         	for (VirtualLinkProfile virtualLinkProfile : nsDf.getVirtualLinkProfile()) {
-        		if (vlProfileId == virtualLinkProfile.getVirtualLinkProfileId()) {
+        		if (vlProfileId.equals( virtualLinkProfile.getVirtualLinkProfileId())) {
         			for (NsVirtualLinkDesc virtualLinkDesc : nsd.getVirtualLinkDesc()) {
-        				if (virtualLinkDesc.getVirtualLinkDescId() == virtualLinkProfile.getVirtualLinkDescId()) {
+        				if (virtualLinkDesc.getVirtualLinkDescId().equals( virtualLinkProfile.getVirtualLinkDescId()) ){
         					NsVirtualLinkNode vlNode = new 	NsVirtualLinkNode();
         					NsVirtualLinkProperties nsVirtualLinkProperties = new NsVirtualLinkProperties();
         					nsVirtualLinkProperties.setDescription(virtualLinkDesc.getDescription());
         					VlProfile vlProfile = new VlProfile();
         					for (VirtualLinkDf virtualLinkDf : virtualLinkDesc.getVirtualLinkDf()) {
-        						if (virtualLinkDf.getFlavourId() == virtualLinkProfile.getFlavourId()) {
+        						if (virtualLinkDf.getFlavourId().equals(virtualLinkProfile.getFlavourId())) {
         						//LinkBitrateRequirements maxBitrateRequirements = new LinkBitrateRequirements();
         						//LinkBitrateRequirements minBitrateRequirements = new LinkBitrateRequirements();      									
         						}
@@ -233,6 +233,6 @@ public class IfaToSolTranslator {
         	}
         }
         DescriptorTemplate descriptorTemplate = new DescriptorTemplate(toscaDefinitionsVersion, toscaDefaultNamespace, description, metadata, topologyTemplate);
-        return null;
+        return descriptorTemplate;
 	}
 }

@@ -179,17 +179,23 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 				for (NsLevel nsIl : df.getNsInstantiationLevel()) {
 
 					DescriptorTemplate dt = IfaToSolTranslator.translateIfaToSolNsd(nsd, df, nsIl);
-					try {
-						File nsFile = this.getNsdFile(dt);
-						String nsId = nsdApi.uploadNetworkService(nsFile.getAbsolutePath(), this.project, contentType, keyValuePair, authorization );
-						NsdDfIlKey nsdDfIlKey = new NsdDfIlKey(nsd.getNsdIdentifier(),df.getNsDfId(), nsIl.getNsLevelId() );
-						nsdDfIlKeys.add(nsdDfIlKey);
-						tripletToSolNs.put(nsdDfIlKey, nsId);
-					} catch (IOException e) {
-						log.error(e.getMessage());
-						log.error(e.getStackTrace().toString());
-						throw new FailedOperationException(e.getMessage());
+					if(dt!=null){
+						try {
+							File nsFile = this.getNsdFile(dt);
+							String nsId = nsdApi.uploadNetworkService(nsFile.getAbsolutePath(), this.project, contentType, keyValuePair, authorization );
+							NsdDfIlKey nsdDfIlKey = new NsdDfIlKey(nsd.getNsdIdentifier(),df.getNsDfId(), nsIl.getNsLevelId() );
+							nsdDfIlKeys.add(nsdDfIlKey);
+							tripletToSolNs.put(nsdDfIlKey, nsId);
+						} catch (IOException e) {
+							log.error(e.getMessage());
+							log.error(e.getStackTrace().toString());
+							throw new FailedOperationException(e.getMessage());
+						}
+					}else{
+						log.error("Error during IFA to SOL translation");
+						throw  new FailedOperationException("Error during IFA to SOL translation");
 					}
+
 
 				}
 			}
