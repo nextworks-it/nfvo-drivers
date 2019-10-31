@@ -232,6 +232,7 @@ public class IfaToSolTranslator {
         		}
         	}
         }
+        topologyTemplate.setNodeTemplates(nodeTemplates);
         DescriptorTemplate descriptorTemplate = new DescriptorTemplate(toscaDefinitionsVersion, toscaDefaultNamespace, description, metadata, topologyTemplate);
         return descriptorTemplate;
 	}

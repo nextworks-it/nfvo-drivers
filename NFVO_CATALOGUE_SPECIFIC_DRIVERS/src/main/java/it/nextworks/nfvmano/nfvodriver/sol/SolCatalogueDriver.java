@@ -15,10 +15,13 @@
 */
 package it.nextworks.nfvmano.nfvodriver.sol;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
@@ -181,7 +184,7 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 					DescriptorTemplate dt = IfaToSolTranslator.translateIfaToSolNsd(nsd, df, nsIl);
 					if(dt!=null){
 						try {
-							File nsFile = this.getNsdFile(dt);
+							File nsFile = new File(this.getNsdFile(dt));
 							String nsId = nsdApi.uploadNetworkService(nsFile.getAbsolutePath(), this.project, contentType, keyValuePair, authorization );
 							NsdDfIlKey nsdDfIlKey = new NsdDfIlKey(nsd.getNsdIdentifier(),df.getNsDfId(), nsIl.getNsLevelId() );
 							nsdDfIlKeys.add(nsdDfIlKey);
@@ -344,12 +347,19 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	}
 
 
-	private File getNsdFile (DescriptorTemplate template) throws IOException {
+	private String getNsdFile (DescriptorTemplate template) throws IOException {
 		File nsdFile = File.createTempFile("nsd", null);
 		log.debug("Using file: "+nsdFile.getAbsolutePath()+" to store NSD: "+template.getId());
 		ObjectMapper mapper = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
-		mapper.writeValue(nsdFile, template);
-		return nsdFile;
+
+		String obtainedNsd = mapper.writeValueAsString(template);
+		log.debug("Obtained NSD:"+obtainedNsd);
+		BufferedWriter writer = new BufferedWriter(new FileWriter(nsdFile));
+		writer.write(obtainedNsd);
+
+		writer.close();
+
+		return nsdFile.getAbsolutePath();
 
 
 	}
