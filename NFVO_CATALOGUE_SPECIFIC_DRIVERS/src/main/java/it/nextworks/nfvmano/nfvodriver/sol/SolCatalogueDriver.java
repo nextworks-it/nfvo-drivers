@@ -16,8 +16,17 @@
 package it.nextworks.nfvmano.nfvodriver.sol;
 
 import java.io.File;
-import java.util.List;
+import java.io.IOException;
+import java.util.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import it.nextworks.nfvmano.libs.fivegcatalogueclient.Catalogue;
+import it.nextworks.nfvmano.libs.fivegcatalogueclient.CatalogueType;
+import it.nextworks.nfvmano.libs.fivegcatalogueclient.FiveGCatalogueClient;
+import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.nsdmanagement.elements.KeyValuePairs;
+import it.nextworks.nfvmano.libs.ifa.common.elements.KeyValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,13 +74,38 @@ import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueNotificationInterface;
 public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	
 	private static final Logger log = LoggerFactory.getLogger(SolCatalogueDriver.class);
-	
+
+	private String user;
+	private String password;
+	private String project;
+	private String catalogueId;
+	private FiveGCatalogueClient nsdApi;
+
+	//Map with the return nsd id and the list of triplets used as key for the SOL underneath
+	private Map<String, List<NsdDfIlKey>> nsIdToTriplet = new HashMap<>();
+	private Map<NsdDfIlKey, String> tripletToSolNs = new HashMap<>();
+
 	public SolCatalogueDriver(String nfvoAddress,
 			String user,
 			String password,
 			String project,
+			String catalogueId,
 			NfvoCatalogueNotificationInterface nfvoCatalogueNotificationManager) {
 		super(NfvoCatalogueDriverType.SOL_005, nfvoAddress, nfvoCatalogueNotificationManager);
+		this.catalogueId = catalogueId;
+		this.user = user;
+		this.password = password;
+		this.project = project;
+
+		Catalogue catalogue = new Catalogue(
+				catalogueId,
+				nfvoAddress,
+				false,
+				user,
+				password);
+
+		this.nsdApi=new FiveGCatalogueClient(CatalogueType.FIVEG_CATALOGUE, catalogue);
+
 		
 	}
 
@@ -135,15 +169,34 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	public String onboardNsd(OnboardNsdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
 		log.debug("Processig request to onboard a new NSD.");
+		String contentType = "multipart/form-data";
+		KeyValuePairs keyValuePair = new KeyValuePairs();
+		String authorization = null;
 		Nsd nsd = request.getNsd();
 		if (nsd == null) throw new MalformattedElementException("NSD for onboarding is null");
-		for (NsDf df : nsd.getNsDf()) { // need to generate a sol nsd for each ns Profilein ifa descriptor
-			for (NsLevel nsIl : df.getNsInstantiationLevel()) {
-			    DescriptorTemplate dt = IfaToSolTranslator.translateIfaToSolNsd(nsd, df, nsIl);
-			    }
+		ArrayList<NsdDfIlKey> nsdDfIlKeys = new ArrayList<>();
+		for (NsDf df : nsd.getNsDf()) { // need to generate a sol nsd for each ns Profile in ifa descriptor
+				for (NsLevel nsIl : df.getNsInstantiationLevel()) {
+
+					DescriptorTemplate dt = IfaToSolTranslator.translateIfaToSolNsd(nsd, df, nsIl);
+					try {
+						File nsFile = this.getNsdFile(dt);
+						String nsId = nsdApi.uploadNetworkService(nsFile.getAbsolutePath(), this.project, contentType, keyValuePair, authorization );
+						NsdDfIlKey nsdDfIlKey = new NsdDfIlKey(nsd.getNsdIdentifier(),df.getNsDfId(), nsIl.getNsLevelId() );
+						nsdDfIlKeys.add(nsdDfIlKey);
+						tripletToSolNs.put(nsdDfIlKey, nsId);
+					} catch (IOException e) {
+						log.error(e.getMessage());
+						log.error(e.getStackTrace().toString());
+						throw new FailedOperationException(e.getMessage());
+					}
+
+				}
 			}
-		// TODO decide where to return the descriptor 
-		return null;
+		UUID uuid = UUID.randomUUID();
+		String randomUUIDString = uuid.toString();
+		nsIdToTriplet.put(randomUUIDString, nsdDfIlKeys);
+		return randomUUIDString;
 	}
 
 	@Override
@@ -284,4 +337,48 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 		throw new MethodNotImplementedException();
 	}
 
+
+	private File getNsdFile (DescriptorTemplate template) throws IOException {
+		File nsdFile = File.createTempFile("nsd", null);
+		log.debug("Using file: "+nsdFile.getAbsolutePath()+" to store NSD: "+template.getId());
+		ObjectMapper mapper = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
+		mapper.writeValue(nsdFile, template);
+		return nsdFile;
+
+
+	}
+}
+
+class NsdDfIlKey{
+
+
+	private String nsdId;
+	private String instantiationLevel;
+	private String deploymentFlavor;
+
+	public NsdDfIlKey(String nsdId, String instantiationLevel, String deploymentFlavor) {
+		this.nsdId = nsdId;
+		this.instantiationLevel = instantiationLevel;
+		this.deploymentFlavor = deploymentFlavor;
+	}
+
+	public String getNsdId() {
+		return nsdId;
+	}
+
+	public String getInstantiationLevel() {
+		return instantiationLevel;
+	}
+
+	public String getDeploymentFlavor() {
+		return deploymentFlavor;
+	}
+
+	@Override
+	public boolean equals(Object o){
+		if(o instanceof NsdDfIlKey){
+			NsdDfIlKey key = (NsdDfIlKey)o;
+			return nsdId.equals(key.getNsdId())&&instantiationLevel.equals(key.getInstantiationLevel())&&deploymentFlavor.equals(key.getDeploymentFlavor());
+		}else return false;
+	}
 }

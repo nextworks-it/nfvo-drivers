@@ -8,6 +8,7 @@
     <packaging>pom</packaging>
 
     <modules>
+      <module>5G_CATALOGUE_REST_CLIENT</module>
       <module>NFVO_CATALOGUE_ABSTRACT_DRIVER</module>
       <module>NFVO_CATALOGUE_SPECIFIC_DRIVERS</module>
       <module>NFVO_CATALOGUE_SERVICE</module>

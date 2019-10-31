@@ -177,7 +177,8 @@ public class IfaToSolTranslator {
         					}
         				}
         			}
-        			vnfRequirements.setVirtualLink(vnfVirtualLink);
+        			//TODO: Fix this with lorenzo
+        			//vnfRequirements.setVirtualLink(vnfVirtualLink);
         			VNFNode vnfNode = new VNFNode();
         			vnfNode.setProperties(vnfProperties);
         			vnfNode.setRequirements(vnfRequirements);
