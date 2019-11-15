@@ -348,7 +348,7 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 
 
 	private String getNsdFile (DescriptorTemplate template) throws IOException {
-		File nsdFile = File.createTempFile("nsd", null);
+		File nsdFile = File.createTempFile("nsd", ".yaml");
 		log.debug("Using file: "+nsdFile.getAbsolutePath()+" to store NSD: "+template.getId());
 		ObjectMapper mapper = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
 
