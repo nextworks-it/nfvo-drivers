@@ -110,7 +110,7 @@ public class IfaToSolTranslator {
         Map<String, Node> nodeTemplates = new HashMap<>();    
         //Set NS Node
         NSNode nsNode = new NSNode();
-        NSProperties nsProperties = new NSProperties(( nsd.getNsdInvariantId() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ));
+        NSProperties nsProperties = new NSProperties(( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ));
         nsNode.setProperties(nsProperties);
         
         List<String> nsVirtualLink = new ArrayList<>();

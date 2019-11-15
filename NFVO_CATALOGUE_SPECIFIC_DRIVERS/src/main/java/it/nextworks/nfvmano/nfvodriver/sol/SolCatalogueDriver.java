@@ -174,6 +174,7 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 		log.debug("Processig request to onboard a new NSD.");
 		String contentType = "multipart/form-data";
 		KeyValuePairs keyValuePair = new KeyValuePairs();
+		keyValuePair.putAll(request.getUserDefinedData());
 		String authorization = null;
 		Nsd nsd = request.getNsd();
 		if (nsd == null) throw new MalformattedElementException("NSD for onboarding is null");
