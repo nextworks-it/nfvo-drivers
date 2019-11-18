@@ -132,7 +132,7 @@ public class NfvoLcmService implements NsLcmProviderInterface {
 
 	public void setNfvoLcmDriver(NfvoLcmAbstractDriver driver){
 
-		log.debug("The Vertical Slicer is configured to operate over the "+driver.getNfvoDriverType()+" Catalogue driver");
+		log.debug("The system is configured to operate over the "+driver.getNfvoDriverType()+" NFVO LCM driver");
 
 		this.nfvoLcmDriver =driver;
 		this.nfvoLcmDriver.setNfvoLcmNotificationManager(nfvoLcmNotificationManager);

@@ -46,7 +46,7 @@ public class NfvoLcmOperationPollingManager implements SchedulingConfigurer {
 
 	private static final Logger log = LoggerFactory.getLogger(NfvoLcmOperationPollingManager.class);
 	
-	@Value("${sebastian.nfvo.timeo.polling}")
+	@Value("${nfvo.lcm.polling}")
 	private int timeoPollingPeriod;
 	
 	//map of active polled operations on TIMEO NFVO. The key is the operation ID. The value provides the info to poll the operation.
@@ -59,7 +59,7 @@ public class NfvoLcmOperationPollingManager implements SchedulingConfigurer {
 	NfvoLcmNotificationInterface nfvoNotificationManager;
 	
 	public NfvoLcmOperationPollingManager() {
-		log.debug("Initializing TIMEO NFVO operations polling manager");
+		log.debug("Initializing NFVO operations polling manager");
 	}
 	
 	/**
@@ -106,7 +106,7 @@ public class NfvoLcmOperationPollingManager implements SchedulingConfigurer {
 	public synchronized void addOperation(String operationId, OperationStatus expectedStatus, String nfvNsiId, String operationType) {
 		PolledNfvoLcmOperation operation = new PolledNfvoLcmOperation(operationId, expectedStatus, nfvNsiId, operationType);
 		this.polledOperations.put(operationId, operation);
-		log.debug("Added operation " + operationId + " to the list of TIMEO NFVO operations in polling. Expected status: " + expectedStatus.toString());
+		log.debug("Added operation " + operationId + " to the list of NFVO operations in polling. Expected status: " + expectedStatus.toString());
 	}
 	
 	/**
