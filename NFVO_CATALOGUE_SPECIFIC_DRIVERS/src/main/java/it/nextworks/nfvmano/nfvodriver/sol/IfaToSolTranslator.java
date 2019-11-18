@@ -1,9 +1,6 @@
 package it.nextworks.nfvmano.nfvodriver.sol;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.VirtualLinkDf;
@@ -57,7 +54,8 @@ public class IfaToSolTranslator {
 		 * 		vendor : designer
 		 * 		version : version
 		 */
-        Metadata metadata = new Metadata( ( nsd.getNsdInvariantId() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ) , nsd.getDesigner(), nsd.getVersion());
+        String nsDescriptorId = getNsDescriptorId(nsd, nsDf, nsIl);
+        Metadata metadata = new Metadata( nsDescriptorId , nsd.getDesigner(), nsd.getVersion());
         
         /*
          * dataTypes : -
@@ -110,7 +108,8 @@ public class IfaToSolTranslator {
         Map<String, Node> nodeTemplates = new HashMap<>();    
         //Set NS Node
         NSNode nsNode = new NSNode();
-        NSProperties nsProperties = new NSProperties(( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ));
+
+        NSProperties nsProperties = new NSProperties(nsDescriptorId, nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ));
         nsNode.setProperties(nsProperties);
         
         List<String> nsVirtualLink = new ArrayList<>();
@@ -129,7 +128,7 @@ public class IfaToSolTranslator {
     	NSRequirements nsRequirements = new NSRequirements(nsVirtualLink);
         nsNode.setRequirements(nsRequirements);
         Node node = nsNode;
-        nodeTemplates.put(( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), node);	
+        nodeTemplates.put(( nsd.getNsdIdentifier() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ), node);
         /*
          * tolopogyTemplate
          * 		nodeTemplates
@@ -160,7 +159,7 @@ public class IfaToSolTranslator {
         	for (VnfProfile vnfProfile : nsDf.getVnfProfile()) {
         		if (vProfileId.equals(vnfProfile.getVnfProfileId())) {
         			VNFProperties vnfProperties = new VNFProperties();
-        			vnfProperties.setDescriptorId(vnfProfile.getVnfProfileId());
+        			vnfProperties.setDescriptorId(getVnfDescriptorId(vnfProfile));
         			vnfProperties.setDescriptorVersion(nsd.getVersion());
         			vnfProperties.setProvider(nsd.getDesigner());
         			vnfProperties.setProductName(vnfProfile.getVnfdId());
@@ -236,4 +235,15 @@ public class IfaToSolTranslator {
         DescriptorTemplate descriptorTemplate = new DescriptorTemplate(toscaDefinitionsVersion, toscaDefaultNamespace, description, metadata, topologyTemplate);
         return descriptorTemplate;
 	}
+
+
+	private static String getVnfDescriptorId(VnfProfile vnfProfile){
+	    String seed = vnfProfile.getVnfdId();
+        return UUID.nameUUIDFromBytes(seed.getBytes()).toString();
+    }
+
+    private static String getNsDescriptorId(Nsd nsd, NsDf nsDf, NsLevel nsIl){
+        String seed = nsd.getNsdIdentifier() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId();
+        return UUID.nameUUIDFromBytes(seed.getBytes()).toString();
+    }
 }
