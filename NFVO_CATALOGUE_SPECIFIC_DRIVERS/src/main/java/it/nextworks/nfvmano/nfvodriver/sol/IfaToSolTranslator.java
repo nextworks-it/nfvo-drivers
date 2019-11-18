@@ -54,7 +54,7 @@ public class IfaToSolTranslator {
 		 * 		vendor : designer
 		 * 		version : version
 		 */
-        Metadata metadata = new Metadata( ( nsd.getNsdInvariantId() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ) , nsd.getDesigner(), nsd.getVersion());
+        Metadata metadata = new Metadata( ( nsd.getNsdInvariantId() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ) , nsd.getDesigner(), nsd.getVersion());
         
         /*
          * dataTypes : -
@@ -107,7 +107,7 @@ public class IfaToSolTranslator {
         Map<String, Node> nodeTemplates = new HashMap<>();    
         //Set NS Node
         NSNode nsNode = new NSNode();
-        NSProperties nsProperties = new NSProperties(( nsd.getNsdIdentifier() + "_" + nsd.getNsDf(). + "_" + nsIl.getNsLevelId() ), nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ));
+        NSProperties nsProperties = new NSProperties(( nsd.getNsdIdentifier() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ), nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ));
         nsNode.setProperties(nsProperties);
         
         List<String> nsVirtualLink = new ArrayList<>();
@@ -126,7 +126,7 @@ public class IfaToSolTranslator {
     	NSRequirements nsRequirements = new NSRequirements(nsVirtualLink);
         nsNode.setRequirements(nsRequirements);
         Node node = nsNode;
-        nodeTemplates.put(( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), node);	
+        nodeTemplates.put(( nsd.getNsdIdentifier() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ), node);
         /*
          * tolopogyTemplate
          * 		nodeTemplates
