@@ -54,7 +54,8 @@ public class IfaToSolTranslator {
 		 * 		vendor : designer
 		 * 		version : version
 		 */
-        Metadata metadata = new Metadata( ( nsd.getNsdInvariantId() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ) , nsd.getDesigner(), nsd.getVersion());
+        String nsDescriptorId = getNsDescriptorId(nsd, nsDf, nsIl);
+        Metadata metadata = new Metadata( nsDescriptorId , nsd.getDesigner(), nsd.getVersion());
         
         /*
          * dataTypes : -
@@ -107,7 +108,7 @@ public class IfaToSolTranslator {
         Map<String, Node> nodeTemplates = new HashMap<>();    
         //Set NS Node
         NSNode nsNode = new NSNode();
-        String nsDescriptorId = getNsDescriptorId(nsd, nsDf, nsIl);
+
         NSProperties nsProperties = new NSProperties(nsDescriptorId, nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ));
         nsNode.setProperties(nsProperties);
         
