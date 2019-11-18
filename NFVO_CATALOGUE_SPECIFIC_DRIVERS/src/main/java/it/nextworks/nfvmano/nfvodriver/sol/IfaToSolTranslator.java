@@ -107,7 +107,8 @@ public class IfaToSolTranslator {
         Map<String, Node> nodeTemplates = new HashMap<>();    
         //Set NS Node
         NSNode nsNode = new NSNode();
-        NSProperties nsProperties = new NSProperties(( nsd.getNsdIdentifier() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ), nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ));
+        String nsDescriptorId = getNsDescriptorId(nsd, nsDf, nsIl);
+        NSProperties nsProperties = new NSProperties(nsDescriptorId, nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ));
         nsNode.setProperties(nsProperties);
         
         List<String> nsVirtualLink = new ArrayList<>();
@@ -237,6 +238,11 @@ public class IfaToSolTranslator {
 
 	private static String getVnfDescriptorId(VnfProfile vnfProfile){
 	    String seed = vnfProfile.getVnfdId();
+        return UUID.nameUUIDFromBytes(seed.getBytes()).toString();
+    }
+
+    private static String getNsDescriptorId(Nsd nsd, NsDf nsDf, NsLevel nsIl){
+        String seed = nsd.getNsdIdentifier() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId();
         return UUID.nameUUIDFromBytes(seed.getBytes()).toString();
     }
 }
