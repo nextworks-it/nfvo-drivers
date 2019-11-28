@@ -44,6 +44,7 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 	
 	private Map<String, NsInfo> nsInstances = new HashMap<>();
 	private Map<String, OperationStatus> operations = new HashMap<>();
+	private List<String> subscriptions = new ArrayList<>();
 	
 	private NfvoLcmOperationPollingManager nfvoOperationPollingManager;
 	
@@ -194,13 +195,20 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 	@Override
 	public String subscribeNsLcmEvents(SubscribeRequest request, NsLcmConsumerInterface consumer)
 			throws MethodNotImplementedException, MalformattedElementException, FailedOperationException {
-		throw new MethodNotImplementedException("Subscriptions not supported");
+		log.debug("Generating new subscription identifier");
+		UUID subscriptionUuid = UUID.randomUUID();
+		String subscriptionId = subscriptionUuid.toString();
+		log.debug("Generated subscription identifier " + subscriptionId);
+		subscriptions.add(subscriptionId);
+		return subscriptionId;
 	}
 
 	@Override
 	public void unsubscribeNsLcmEvents(String subscriptionId) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
-		throw new MethodNotImplementedException("Subscriptions not supported");
+		if (subscriptions.contains(subscriptionId)) {
+			subscriptions.remove(subscriptionId);
+		} else throw new NotExistingEntityException("Subscription not found");
 
 	}
 

@@ -20,6 +20,7 @@ public enum NfvoLcmDriverType {
     TIMEO,
     OSM,
     CLOUDIFY,
+    SOL_5,
     DUMMY,
     LOGGING
 

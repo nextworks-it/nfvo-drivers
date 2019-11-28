@@ -2,6 +2,7 @@ package it.nextworks.nfvmano.nfvodriver;
 
 
 import it.nextworks.nfvmano.nfvodriver.logging.NfvoLcmLoggingDriver;
+import it.nextworks.nfvmano.nfvodriver.sol5.Sol5NfvoLcmDriver;
 import it.nextworks.nfvmano.nfvodriver.timeo.TimeoLcmDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,9 @@ public class NfvoLcmServiceUtils {
 
     @Value("${nfvo.lcm.address}")
     private String nfvoLcmAddress;
+    
+    @Value("${nfvo.lcm.notification.url}")
+    private String nfvoLcmNotificationUrl;
 
     @Autowired
     NfvoLcmOperationPollingManager nfvoLcmOperationPollingManager;
@@ -42,6 +46,10 @@ public class NfvoLcmServiceUtils {
         }else if(nfvoLcmType.equals("DUMMY")){
             log.debug("Configured for type:" + nfvoLcmType);
             nfvoLcmService.setNfvoLcmDriver(new DummyNfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager));
+
+        }else if(nfvoLcmType.equals("SOL5")){
+            log.debug("Configured for type:" + nfvoLcmType);
+            nfvoLcmService.setNfvoLcmDriver(new Sol5NfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager, nfvoLcmNotificationUrl));
 
         } else {
             log.error("NFVO not configured!");
