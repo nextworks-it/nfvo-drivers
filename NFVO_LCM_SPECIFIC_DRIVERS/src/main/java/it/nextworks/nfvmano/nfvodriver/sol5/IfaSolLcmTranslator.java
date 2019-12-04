@@ -18,7 +18,7 @@ import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsVirtualLinkInfo;
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.PnfInfo;
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo;
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.VnffgInfo;
-import it.nextworks.nfvmano.nfvodriver.sol5.im.KeyValuePairsString;
+import it.nextworks.nfvmano.nfvodriver.sol5.im.*;
 import it.nextworks.openapi.msno.model.AddPnfData;
 import it.nextworks.openapi.msno.model.AffinityOrAntiAffinityRule;
 import it.nextworks.openapi.msno.model.CpProtocolData;
