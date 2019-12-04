@@ -31,6 +31,7 @@ import it.nextworks.openapi.msno.model.IpOverEthernetAddressDataIpAddresses;
 import it.nextworks.openapi.msno.model.IpOverEthernetAddressDataIpAddresses.TypeEnum;
 import it.nextworks.openapi.msno.model.LocationConstraints;
 import it.nextworks.openapi.msno.model.NestedNsInstanceData;
+import it.nextworks.openapi.msno.model.NsInstance.NsStateEnum;
 import it.nextworks.openapi.msno.model.ParamsForNestedNs;
 import it.nextworks.openapi.msno.model.PnfExtCpData;
 import it.nextworks.openapi.msno.model.PnfExtCpInfo;
@@ -148,11 +149,27 @@ public class IfaSolLcmTranslator {
 					inp.getPnfId(), inp.getPnfName(), inp.getPnfdId(), inp.getPnfdInfoId(), inp.getPnfProfileId(), cpInfos);
 			pnfInfos.add(pnfInfo);
 		}
+		//TODO:
+		List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsVirtualLinkInfo> virtualLinkInfo = new ArrayList<>();
+		List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.VnffgInfo> vnffgInfo = new ArrayList<>();
+		List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo> sapInfo = new ArrayList<>();
+		List<String> nestedNsInfoId = new ArrayList<>();
+		it.nextworks.nfvmano.libs.ifa.common.enums.InstantiationState nsState = translateNsState(nsInstance.getNsState());
+		List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsScaleInfo> nsScaleStatus = new ArrayList<>();
+		List<it.nextworks.nfvmano.libs.ifa.common.elements.AffinityRule> additionalAffinityOrAntiAffinityRule = new ArrayList<>();
+		String monitoringDashboardUrl = null;	//this is not standard
 		NsInfo nsInfo = new NsInfo(nsInstanceId, nsName, description, nsdId, null,
 				configurationParameters, flavourId, vnfInfoId, pnfInfos,
-				List<NsVirtualLinkInfo> virtualLinkInfo, List<VnffgInfo> vnffgInfo, List<SapInfo> sapInfo,
-				List<String> nestedNsInfoId, InstantiationState nsState, List<NsScaleInfo> nsScaleStatus,
-				List<AffinityRule> additionalAffinityOrAntiAffinityRule, String monitoringDashboardUrl);
+				virtualLinkInfo, vnffgInfo, sapInfo,
+				nestedNsInfoId, nsState, nsScaleStatus,
+				additionalAffinityOrAntiAffinityRule, monitoringDashboardUrl);
+		return nsInfo;
+	}
+	
+	private static it.nextworks.nfvmano.libs.ifa.common.enums.InstantiationState translateNsState(it.nextworks.openapi.msno.model.NsInstance.NsStateEnum input) {
+		it.nextworks.nfvmano.libs.ifa.common.enums.InstantiationState nsState = it.nextworks.nfvmano.libs.ifa.common.enums.InstantiationState.NOT_INSTANTIATED;
+		if (input.equals(it.nextworks.openapi.msno.model.NsInstance.NsStateEnum.INSTANTIATED)) nsState = it.nextworks.nfvmano.libs.ifa.common.enums.InstantiationState.INSTANTIATED;
+		return nsState;	
 	}
 	
 	private static AffinityOrAntiAffinityRule translateAffinityRule(AffinityRule ar) {
