@@ -1,11 +1,15 @@
 package it.nextworks.nfvmano.nfvodriver.sol5;
 
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 import it.nextworks.nfvmano.libs.ifa.common.enums.OperationStatus;
+import it.nextworks.nfvmano.libs.ifa.common.enums.ResponseCode;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
@@ -21,6 +25,7 @@ import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.ScaleNsR
 import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.TerminateNsRequest;
 import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.UpdateNsRequest;
 import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.UpdateNsResponse;
+import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsInfo;
 import it.nextworks.nfvmano.nfvodriver.NfvoLcmAbstractDriver;
 import it.nextworks.nfvmano.nfvodriver.NfvoLcmDriverType;
 import it.nextworks.nfvmano.nfvodriver.NfvoLcmNotificationInterface;
@@ -97,11 +102,25 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 	}
 	
 	public QueryNsResponse queryNs(GeneralizedQueryRequest request) throws MethodNotImplementedException, NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		throw new MethodNotImplementedException();
+		if (request == null) throw new MalformattedElementException("Query NS request is null.");
+		request.isValid();
+		try {
+			String nsInstanceId = request.getFilter().getParameters().get("NS_ID");
+			log.debug("Building terminate NS request in SOL 005 format");
+			it.nextworks.openapi.msno.model.NsInstance nsInstance = restClient.nsInstancesNsInstanceIdGet(nsInstanceId, version, accept, contentType, authorization);
+			if (nsInstance == null) throw new NotExistingEntityException("NS instance not found");
+			List<NsInfo> queryNsResult = new ArrayList<NsInfo>();
+			NsInfo nsInfo = IfaSolLcmTranslator.buildIfaNsInfo(nsInstance);
+			queryNsResult.add(nsInfo);
+			QueryNsResponse response = new QueryNsResponse(ResponseCode.OK, queryNsResult);
+			return response;
+		} catch (Exception e) {
+			throw new FailedOperationException("Failure when interacting with NFVO: " + e.getMessage());
+		}
 	}
 
 	public String terminateNs(TerminateNsRequest request) throws MethodNotImplementedException, NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		if (request == null) throw new MalformattedElementException("Instantiate NS request is null.");
+		if (request == null) throw new MalformattedElementException("Terminate NS request is null.");
 		request.isValid();
 		log.debug("Building terminate NS request in SOL 005 format");
 		it.nextworks.openapi.msno.model.TerminateNsRequest body = IfaSolLcmTranslator.buildSolTerminateNsRequest(request);
@@ -115,7 +134,13 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 	}
 	
 	public void deleteNsIdentifier(String nsInstanceIdentifier) throws MethodNotImplementedException, NotExistingEntityException, FailedOperationException {
-		throw new MethodNotImplementedException();
+		if (nsInstanceIdentifier == null) throw new FailedOperationException("Delete NS ID request with null ID.");
+		log.debug("Building SOL 005 request to remove NS ID.");
+		try {
+			restClient.nsInstancesNsInstanceIdDelete(nsInstanceIdentifier, version, authorization);
+		} catch (ApiException e) {
+			throw new FailedOperationException("Failure when interacting with NFVO: " + e.getMessage());
+		}
 	}
 	
 	public String healNs(HealNsRequest request) throws MethodNotImplementedException, NotExistingEntityException, FailedOperationException, MalformattedElementException {

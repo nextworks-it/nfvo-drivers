@@ -2,15 +2,22 @@ package it.nextworks.nfvmano.nfvodriver.sol5;
 
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import it.nextworks.nfvmano.libs.ifa.common.elements.AffinityRule;
 import it.nextworks.nfvmano.libs.ifa.common.enums.AffinityScope;
 import it.nextworks.nfvmano.libs.ifa.common.enums.AffinityType;
+import it.nextworks.nfvmano.libs.ifa.common.enums.InstantiationState;
 import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.CreateNsIdentifierRequest;
 import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.InstantiateNsRequest;
+import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsInfo;
+import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsScaleInfo;
+import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsVirtualLinkInfo;
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.PnfInfo;
+import it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo;
+import it.nextworks.nfvmano.libs.ifa.records.nsinfo.VnffgInfo;
 import it.nextworks.nfvmano.nfvodriver.sol5.im.KeyValuePairsString;
 import it.nextworks.openapi.msno.model.AddPnfData;
 import it.nextworks.openapi.msno.model.AffinityOrAntiAffinityRule;
@@ -26,6 +33,8 @@ import it.nextworks.openapi.msno.model.LocationConstraints;
 import it.nextworks.openapi.msno.model.NestedNsInstanceData;
 import it.nextworks.openapi.msno.model.ParamsForNestedNs;
 import it.nextworks.openapi.msno.model.PnfExtCpData;
+import it.nextworks.openapi.msno.model.PnfExtCpInfo;
+import it.nextworks.openapi.msno.model.VnfInstance;
 
 
 public class IfaSolLcmTranslator {
@@ -114,6 +123,36 @@ public class IfaSolLcmTranslator {
 		if (request.getTerminateTime() != null)
 			body.setTerminationTime(request.getTerminateTime().toString());
 		return body;
+	}
+	
+	public static NsInfo buildIfaNsInfo(it.nextworks.openapi.msno.model.NsInstance nsInstance) {
+		String nsInstanceId = nsInstance.getId();
+		String nsName = nsInstance.getNsInstanceName();
+		String description  = nsInstance.getNsInstanceDescription();
+		String nsdId = nsInstance.getNsdId();
+		Map<String, String> configurationParameters = new HashMap<String, String>();	//not available in SOL
+		String flavourId = nsInstance.getFlavourId();
+		List<String> vnfInfoId = new ArrayList<>();
+		List<VnfInstance> vnfis = nsInstance.getVnfInstance();
+		for (VnfInstance vnfi : vnfis) {
+			vnfInfoId.add(vnfi.getId());					//TODO: shall we keep this aligned with SOL instead of IFA? Otherwise no way to get info about VNFs
+		}
+		List<PnfInfo> pnfInfos = new ArrayList<>();
+		List<it.nextworks.openapi.msno.model.PnfInfo> inPnfInfo = nsInstance.getPnfInfo();
+		for (it.nextworks.openapi.msno.model.PnfInfo inp : inPnfInfo) {
+			List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.PnfExtCpInfo> cpInfos = new ArrayList<>();
+			it.nextworks.nfvmano.libs.ifa.records.nsinfo.PnfExtCpInfo cpInfo = new it.nextworks.nfvmano.libs.ifa.records.nsinfo.PnfExtCpInfo(inp.getCpInfo().getCpdId(), 
+					inp.getCpInfo().getCpProtocolData().get(0).getIpOverEthernet().getIpAddresses().get(0).getFixedAddresses().get(0));
+			cpInfos.add(cpInfo);
+			it.nextworks.nfvmano.libs.ifa.records.nsinfo.PnfInfo pnfInfo = new it.nextworks.nfvmano.libs.ifa.records.nsinfo.PnfInfo(null, 
+					inp.getPnfId(), inp.getPnfName(), inp.getPnfdId(), inp.getPnfdInfoId(), inp.getPnfProfileId(), cpInfos);
+			pnfInfos.add(pnfInfo);
+		}
+		NsInfo nsInfo = new NsInfo(nsInstanceId, nsName, description, nsdId, null,
+				configurationParameters, flavourId, vnfInfoId, pnfInfos,
+				List<NsVirtualLinkInfo> virtualLinkInfo, List<VnffgInfo> vnffgInfo, List<SapInfo> sapInfo,
+				List<String> nestedNsInfoId, InstantiationState nsState, List<NsScaleInfo> nsScaleStatus,
+				List<AffinityRule> additionalAffinityOrAntiAffinityRule, String monitoringDashboardUrl);
 	}
 	
 	private static AffinityOrAntiAffinityRule translateAffinityRule(AffinityRule ar) {
