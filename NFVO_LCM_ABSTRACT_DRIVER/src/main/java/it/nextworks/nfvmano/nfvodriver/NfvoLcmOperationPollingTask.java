@@ -59,7 +59,7 @@ public class NfvoLcmOperationPollingTask implements Runnable {
 
 	@Override
 	public void run() {
-		log.trace("Running TIMEO NFVO operation polling task");
+		log.trace("Running NFVO operation polling task");
 		Map<String, PolledNfvoLcmOperation> polledOperations = pollingManager.getPolledOperationsCopy();
 		List<String> verifiedOperationIds = new ArrayList<>();
 		synchronized (polledOperations) {
@@ -83,7 +83,7 @@ public class NfvoLcmOperationPollingTask implements Runnable {
 			pollingManager.removeOperation(opId);
 			log.debug("Operation " + opId + " removed from polling processing.");
 		}
-		log.trace("TIMEO NFVO polling task terminated");
+		log.trace("NFVO polling task terminated");
 	}
 	
 	private boolean checkOperationSuccessfulResult(PolledNfvoLcmOperation operation) {
