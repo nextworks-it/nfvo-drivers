@@ -14,8 +14,9 @@ public class IfaToOsmTranslator {
 
     public static CreateNSinstanceContentRequest getCreateNSinstanceContentRequest(CreateNsIdentifierRequest request){
 
-        Nsd nsd = request.get
-        CreateNSinstanceContentRequest translation = new CreateNSinstanceContentRequest(request.getNsdId());
+        /*Nsd nsd = request.get
+        CreateNSinstanceContentRequest translation = new CreateNSinstanceContentRequest(request.getNsdId());*/
+        return null;
     }
 
 

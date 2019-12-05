@@ -59,7 +59,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 	public String createNsIdentifier(CreateNsIdentifierRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
 
-		return nsInstancesApi.c;
+		return null;
 	}
 
 	@Override
