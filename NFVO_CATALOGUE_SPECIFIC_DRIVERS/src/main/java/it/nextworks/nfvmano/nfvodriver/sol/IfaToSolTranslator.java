@@ -2,6 +2,7 @@ package it.nextworks.nfvmano.nfvodriver.sol;
 
 import java.util.*;
 
+import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.vnfpackagemanagement.elements.VnfPkgInfo;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.VirtualLinkDf;
 import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.VirtualLinkProfile;
@@ -38,7 +39,7 @@ import it.nextworks.nfvmano.libs.descriptors.vnfd.nodes.VNF.VNFRequirements;
 
 public class IfaToSolTranslator {
         //SOL : IFA 
-	public static DescriptorTemplate translateIfaToSolNsd(Nsd nsd, NsDf nsDf, NsLevel nsIl) throws FailedOperationException {
+	public static DescriptorTemplate translateIfaToSolNsd(Nsd nsd, NsDf nsDf, NsLevel nsIl, SolCatalogueDriver solCatalogueDriver) throws FailedOperationException {
 		/*
 		 * toscaDefinitionVersion : - (constant)
 		 * toscaDefaultNamespace  : - (constant)
@@ -107,11 +108,11 @@ public class IfaToSolTranslator {
          */
         Map<String, Node> nodeTemplates = new HashMap<>();    
         //Set NS Node
-        NSNode nsNode = new NSNode();
+        NSNode nsNode = new NSNode("tosca.nodes.nfv.NS", null, null);
 
-        NSProperties nsProperties = new NSProperties(nsDescriptorId, nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ));
+        NSProperties nsProperties = new NSProperties(nsDescriptorId, nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf().get(0).getNsDfId() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ));
         nsNode.setProperties(nsProperties);
-        
+
         List<String> nsVirtualLink = new ArrayList<>();
         List<String> virtualLinkProfileId = new ArrayList<>();
         for (VirtualLinkToLevelMapping virtualLinkToLevelMapping : nsIl.getVirtualLinkToLevelMapping() ) {
@@ -128,6 +129,7 @@ public class IfaToSolTranslator {
     	NSRequirements nsRequirements = new NSRequirements(nsVirtualLink);
         nsNode.setRequirements(nsRequirements);
         Node node = nsNode;
+
         nodeTemplates.put(( nsd.getNsdIdentifier() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ), node);
         /*
          * tolopogyTemplate
@@ -155,7 +157,8 @@ public class IfaToSolTranslator {
    		for (VnfToLevelMapping vnfToLevelMapping : nsIl.getVnfToLevelMapping() ) {
         	vnfProfileId.add(vnfToLevelMapping.getVnfProfileId());
         }
-        for (String vProfileId : vnfProfileId) { 
+        for (String vProfileId : vnfProfileId) {
+            int interfaceCounter = 0;
         	for (VnfProfile vnfProfile : nsDf.getVnfProfile()) {
         		if (vProfileId.equals(vnfProfile.getVnfProfileId())) {
         			VNFProperties vnfProperties = new VNFProperties();
@@ -163,22 +166,32 @@ public class IfaToSolTranslator {
         			vnfProperties.setDescriptorVersion(nsd.getVersion());
         			vnfProperties.setProvider(nsd.getDesigner());
         			vnfProperties.setProductName(vnfProfile.getVnfdId());
-        			VNFRequirements vnfRequirements = new VNFRequirements();
+
         			List<String> vnfVirtualLinkProfileId= new ArrayList<>();
         			for (NsVirtualLinkConnectivity nsVirtualLinkConnectivity : vnfProfile.getNsVirtualLinkConnectivity()) {
         				vnfVirtualLinkProfileId.add(nsVirtualLinkConnectivity.getVirtualLinkProfileId());
         			}
-        			List<String> vnfVirtualLink= new ArrayList<>();
-        			for (String vnfVLPI : vnfVirtualLinkProfileId) {
-        				for (VirtualLinkProfile virtualLinkProfile : nsDf.getVirtualLinkProfile()) {
-        					if (virtualLinkProfile.getVirtualLinkProfileId().equals(vnfVLPI)) {
-        						vnfVirtualLink.add(virtualLinkProfile.getVirtualLinkDescId());
-        					}
-        				}
-        			}
+        			Map<String, String> vnfVirtualLink= new HashMap<>();
+        			//VnfPkgInfo currentPackage =  solCatalogueDriver.getVnfdIdPackageInfo(vnfProfile.getVnfdId());
+                    //DescriptorTemplate vnfTemplate = solCatalogueDriver.getVNFD(currentPackage.getId().toString());
+        			//List<VirtualLinkPair> vnfLinks = vnfTemplate.getTopologyTemplate().getSubstituitionMappings().getRequirements().getVirtualLink();
+                    /*for(VirtualLinkPair vPair : vnfLinks){
+                        vnfVirtualLink.put(vPair.getVl(), vPair.getCp());
+                    }*/
+
+                    for (NsVirtualLinkConnectivity nsVirtualLinkConnectivity:vnfProfile.getNsVirtualLinkConnectivity()){
+
+                        String vlId = nsVirtualLinkConnectivity.getVirtualLinkProfileId();
+                        for (String cpId : nsVirtualLinkConnectivity.getCpdId()){
+                            vnfVirtualLink.put(cpId, vlId);
+
+                        }
+                    }
+
         			//TODO: Fix this with lorenzo
         			//vnfRequirements.setVirtualLink(vnfVirtualLink);
-        			VNFNode vnfNode = new VNFNode();
+                    VNFRequirements vnfRequirements = new VNFRequirements(vnfVirtualLink);
+        			VNFNode vnfNode = new VNFNode("tosca.nodes.nfv.VNF", null, null,null, null, null);
         			vnfNode.setProperties(vnfProperties);
         			vnfNode.setRequirements(vnfRequirements);
         			nodeTemplates.put(vnfProfile.getVnfdId(), vnfNode);
@@ -211,7 +224,7 @@ public class IfaToSolTranslator {
         		if (vlProfileId.equals( virtualLinkProfile.getVirtualLinkProfileId())) {
         			for (NsVirtualLinkDesc virtualLinkDesc : nsd.getVirtualLinkDesc()) {
         				if (virtualLinkDesc.getVirtualLinkDescId().equals( virtualLinkProfile.getVirtualLinkDescId()) ){
-        					NsVirtualLinkNode vlNode = new 	NsVirtualLinkNode();
+        					NsVirtualLinkNode vlNode = new 	NsVirtualLinkNode("tosca.nodes.nfv.NsVirtualLink",null, null);
         					NsVirtualLinkProperties nsVirtualLinkProperties = new NsVirtualLinkProperties();
         					nsVirtualLinkProperties.setDescription(virtualLinkDesc.getDescription());
         					VlProfile vlProfile = new VlProfile();
@@ -238,8 +251,10 @@ public class IfaToSolTranslator {
 
 
 	private static String getVnfDescriptorId(VnfProfile vnfProfile){
-	    String seed = vnfProfile.getVnfdId();
-        return UUID.nameUUIDFromBytes(seed.getBytes()).toString();
+	    //String seed = vnfProfile.getVnfdId();
+        //return UUID.nameUUIDFromBytes(seed.getBytes()).toString();
+		return vnfProfile.getVnfdId();
+
     }
 
     private static String getNsDescriptorId(Nsd nsd, NsDf nsDf, NsLevel nsIl){

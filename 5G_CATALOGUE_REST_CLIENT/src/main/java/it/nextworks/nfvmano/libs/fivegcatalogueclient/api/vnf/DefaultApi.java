@@ -213,6 +213,35 @@ public class DefaultApi {
         return apiClient.invokeAPI(path, HttpMethod.GET, queryParams, postBody, headerParams, formParams, accept, contentType, authNames, returnType);
     }
 
+    public List<VnfPkgInfo> getVNFPkgsInfo(String project, String authorization, String vnfdId) throws RestClientException {
+        Object postBody = null;
+
+        String path = UriComponentsBuilder.fromPath("/vnfpkgm/v1/vnf_packages").build().toUriString();
+
+        final MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<String, String>();
+        if(project != null)
+            queryParams.add("project", project);
+
+        queryParams.add("vnfdId", vnfdId);
+        final HttpHeaders headerParams = new HttpHeaders();
+        //adding fake Authorization header for bypassing security check on it.nextworks.nfvmano.libs.catalogue
+        headerParams.add("Authorization", authorization);
+        final MultiValueMap<String, Object> formParams = new LinkedMultiValueMap<String, Object>();
+
+        final String[] accepts = {
+                "application/json", "application/yaml"
+        };
+        final List<MediaType> accept = apiClient.selectHeaderAccept(accepts);
+        final String[] contentTypes = {};
+        final MediaType contentType = apiClient.selectHeaderContentType(contentTypes);
+
+        String[] authNames = new String[]{};
+
+        ParameterizedTypeReference<List<VnfPkgInfo>> returnType = new ParameterizedTypeReference<List<VnfPkgInfo>>() {
+        };
+        return apiClient.invokeAPI(path, HttpMethod.GET, queryParams, postBody, headerParams, formParams, accept, contentType, authNames, returnType);
+    }
+
     public Object queryVNFPkgArtifact(String vnfPkgId, String project, String artifactPath, String range, String authorization) throws RestClientException {
         Object postBody = null;
 

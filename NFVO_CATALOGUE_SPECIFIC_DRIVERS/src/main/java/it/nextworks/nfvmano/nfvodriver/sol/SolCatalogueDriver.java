@@ -29,6 +29,7 @@ import it.nextworks.nfvmano.libs.fivegcatalogueclient.Catalogue;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.CatalogueType;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.FiveGCatalogueClient;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.nsdmanagement.elements.KeyValuePairs;
+import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.vnfpackagemanagement.elements.VnfPkgInfo;
 import it.nextworks.nfvmano.libs.ifa.common.elements.KeyValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,7 +183,7 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 		for (NsDf df : nsd.getNsDf()) { // need to generate a sol nsd for each ns Profile in ifa descriptor
 				for (NsLevel nsIl : df.getNsInstantiationLevel()) {
 
-					DescriptorTemplate dt = IfaToSolTranslator.translateIfaToSolNsd(nsd, df, nsIl);
+					DescriptorTemplate dt = IfaToSolTranslator.translateIfaToSolNsd(nsd, df, nsIl, this);
 					if(dt!=null){
 						try {
 							File nsFile = new File(this.getNsdFile(dt));
@@ -363,6 +364,17 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 
 
 	}
+
+	public VnfPkgInfo getVnfdIdPackageInfo(String vnfdId){
+        String authorization = null;
+	    return nsdApi.getVnfPackageInfoList(this.project,authorization,vnfdId).get(0);
+    }
+
+    public DescriptorTemplate getVNFD(String vnfPkgId){
+	    return nsdApi.getVNFD(vnfPkgId, this.project, null);
+    }
+
+
 }
 
 class NsdDfIlKey{

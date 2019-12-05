@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package it.nextworks.nfvmano.nfvodriver;
+package it.nextworks.nfvmano.nfvodriver.osm;
 
 
 import it.nextworks.nfvmano.libs.ifa.common.enums.OperationStatus;
@@ -36,20 +36,30 @@ import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.UpdateNs
 import it.nextworks.nfvmano.nfvodriver.NfvoLcmAbstractDriver;
 import it.nextworks.nfvmano.nfvodriver.NfvoLcmDriverType;
 import it.nextworks.nfvmano.nfvodriver.NfvoLcmNotificationInterface;
+import it.nextworks.osm.ApiClient;
+import it.nextworks.osm.openapi.NsInstancesApi;
 
 
 public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 
-	public OsmLcmDriver(String nfvoAddress, NfvoLcmNotificationInterface nfvoNotificationsManager) {
+	private NsInstancesApi nsInstancesApi;
+
+	public OsmLcmDriver(String nfvoAddress, String username, String password, NfvoLcmNotificationInterface nfvoNotificationsManager) {
 		super(NfvoLcmDriverType.OSM, nfvoAddress, nfvoNotificationsManager);
+		ApiClient apiClient = new ApiClient();
+		apiClient.setBasePath(nfvoAddress);
+		apiClient.setUsername(username);
+		apiClient.setPassword(password);
+		nsInstancesApi= new NsInstancesApi(apiClient);
+
 		// TODO Auto-generated constructor stub
 	}
 
 	@Override
 	public String createNsIdentifier(CreateNsIdentifierRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		// TODO Auto-generated method stub
-		return null;
+
+		return nsInstancesApi.c;
 	}
 
 	@Override

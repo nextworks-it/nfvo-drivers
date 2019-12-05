@@ -163,11 +163,16 @@ public class FiveGCatalogueClient extends CatalogueClient {
 	}
 	
 	
-	public List<VnfPkgInfo> getVnfPackageInfoList(String project, String authorization){
+	public List<VnfPkgInfo> getVnfPackageInfoList(String project, String authorization, String vnfdId){
 		List<VnfPkgInfo> vnfPkgList = null;
 		
 		try {
-			vnfPkgList = vnfApi.getVNFPkgsInfo(project, authorization);
+			if(vnfdId==null || vnfdId.equals("")){
+				vnfPkgList = vnfApi.getVNFPkgsInfo(project, authorization);
+			}else{
+				vnfPkgList = vnfApi.getVNFPkgsInfo(project, authorization, vnfdId);
+			}
+
 		} catch(RestClientException e) {
 			log.error("RestClientException when trying to get list of VnfPkgInfos : " + e.getMessage());
 			throw new RestClientException("RestClientException when trying to get list of VnfPkgInfos", e);
@@ -324,6 +329,8 @@ public class FiveGCatalogueClient extends CatalogueClient {
 		return multipartFile;
 
 	}
+
+
 	
 	private File convertToFile(MultipartFile multipart) throws Exception {
 		File convFile = new File(multipart.getOriginalFilename());
@@ -332,5 +339,11 @@ public class FiveGCatalogueClient extends CatalogueClient {
 		fos.write(multipart.getBytes());
 		fos.close();
 		return convFile;
+	}
+
+
+	public DescriptorTemplate getVNFD(String vnfPkgId, String project, String authorization ){
+
+		return (DescriptorTemplate)vnfApi.getVNFD(vnfPkgId,project, authorization);
 	}
 }
