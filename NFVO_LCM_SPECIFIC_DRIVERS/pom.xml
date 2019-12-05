@@ -73,6 +73,11 @@
 			<artifactId>msno-client</artifactId>
 			<version>1.0.0</version>
 		</dependency>
+		<dependency>
+			<groupId>io.swagger</groupId>
+			<artifactId>osm-client</artifactId>
+			<version>1.0.0</version>
+		</dependency>
 
 	</dependencies>
 
