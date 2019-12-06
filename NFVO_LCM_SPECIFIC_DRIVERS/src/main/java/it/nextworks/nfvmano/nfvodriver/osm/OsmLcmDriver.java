@@ -16,6 +16,7 @@
 package it.nextworks.nfvmano.nfvodriver.osm;
 
 
+import io.swagger.client.model.*;
 import it.nextworks.nfvmano.libs.ifa.common.enums.OperationStatus;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
@@ -36,38 +37,121 @@ import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.UpdateNs
 import it.nextworks.nfvmano.nfvodriver.NfvoLcmAbstractDriver;
 import it.nextworks.nfvmano.nfvodriver.NfvoLcmDriverType;
 import it.nextworks.nfvmano.nfvodriver.NfvoLcmNotificationInterface;
+import it.nextworks.nfvmano.nfvodriver.NfvoLcmOperationPollingManager;
+import it.nextworks.nfvmano.nfvodriver.sol5.Sol5NfvoLcmDriver;
 import it.nextworks.osm.ApiClient;
+import it.nextworks.osm.ApiException;
+import it.nextworks.osm.auth.HttpBasicAuth;
+import it.nextworks.osm.auth.OAuth;
 import it.nextworks.osm.openapi.NsInstancesApi;
+import it.nextworks.osm.openapi.NsPackagesApi;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 
 public class OsmLcmDriver extends NfvoLcmAbstractDriver {
+	private static final Logger log = LoggerFactory.getLogger(OsmLcmDriver.class);
+    private  String password;
+    private  String username;
+    private NsInstancesApi nsInstancesApi;
+	private NsPackagesApi nsPackagesApi;
+    private NfvoLcmOperationPollingManager nfvoLcmOperationPollingManager;
+	private OAuthSimpleClient oAuthSimpleClient;
+	private UUID vimId;
+	private String project;
+	private Map<UUID, UUID> instanceIdToNsdIdMapping;
+    private Map<UUID, UUID> instanceIdToNsdInfoIdMapping;
 
-	private NsInstancesApi nsInstancesApi;
-
-	public OsmLcmDriver(String nfvoAddress, String username, String password, NfvoLcmNotificationInterface nfvoNotificationsManager) {
+	public OsmLcmDriver(String nfvoAddress,
+						String username,
+						String password,
+						String project,
+						NfvoLcmOperationPollingManager nfvoLcmOperationPollingManager,
+						NfvoLcmNotificationInterface nfvoNotificationsManager,
+						UUID vimId) {
 		super(NfvoLcmDriverType.OSM, nfvoAddress, nfvoNotificationsManager);
-		ApiClient apiClient = new ApiClient();
-		apiClient.setBasePath(nfvoAddress);
-		apiClient.setUsername(username);
-		apiClient.setPassword(password);
-		nsInstancesApi= new NsInstancesApi(apiClient);
+		this.username = username;
+		this.password = password;
+		this.project = project;
+        this.nsInstancesApi = new NsInstancesApi();
+        this.nsPackagesApi = new NsPackagesApi();
+        this.instanceIdToNsdIdMapping = new HashMap<>();
+        this.instanceIdToNsdInfoIdMapping = new HashMap<>();
+		this.vimId= vimId;
+        this.project =project;
+		this.nfvoLcmOperationPollingManager = nfvoLcmOperationPollingManager;
+		this.oAuthSimpleClient = new OAuthSimpleClient(nfvoAddress+"/osm/admin/v1/tokens", username, password, project);
 
-		// TODO Auto-generated constructor stub
+
 	}
 
 	@Override
 	public String createNsIdentifier(CreateNsIdentifierRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
 
-		return null;
+		log.debug("Creating NS identfier for Nsd: "+request.getNsdId());
+        UUID nsdId = UUID.nameUUIDFromBytes(request.getNsdId().getBytes());
+        log.debug("NsdId translated to OSM:"+nsdId.toString());
+        UUID nsdInfoId = getNsdInfoId(nsdId);
+		log.debug("NsdInfoId obtained from OSM:"+nsdInfoId.toString());
+        CreateNSinstanceContentRequest requestTranslate = IfaOsmLcmTranslator.getCreateNSinstanceContentRequest(request, vimId, nsdInfoId);
+		try {
+
+            nsInstancesApi.setApiClient(getClient());
+		    CreateNSinstanceContentResponse response = nsInstancesApi.createNSinstanceContent(requestTranslate);
+			String nsInstanceId = response.getId().toString();
+			log.debug("Created NsIdentifier: "+nsInstanceId);
+			instanceIdToNsdIdMapping.put(UUID.fromString(nsInstanceId), nsdId);
+            instanceIdToNsdInfoIdMapping.put(UUID.fromString(nsInstanceId), nsdInfoId);
+			return nsInstanceId;
+		} catch (ApiException e) {
+			log.error(e.getMessage());
+			log.error(e.getStackTrace().toString());
+			throw new FailedOperationException(e.getMessage());
+		}
 	}
 
 	@Override
 	public String instantiateNs(InstantiateNsRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		// TODO Auto-generated method stub
-		return null;
+        UUID nsdInfoId = instanceIdToNsdInfoIdMapping.get(UUID.fromString(request.getNsInstanceId()));
+		io.swagger.client.model.InstantiateNsRequest requestTranslation = IfaOsmLcmTranslator.getInstantiateNsRequest(request,nsdInfoId, vimId);
+		String nsInstanceId = request.getNsInstanceId();
+		try {
+		    nsInstancesApi.setApiClient(getClient());
+			ObjectId objOperationId = nsInstancesApi.instantiateNSinstance(nsInstanceId, requestTranslation);
+			UUID operationId = objOperationId.getId();
+			if(nfvoLcmOperationPollingManager!=null)
+				nfvoLcmOperationPollingManager.addOperation(operationId.toString(), OperationStatus.SUCCESSFULLY_DONE, request.getNsInstanceId(), "NS_INSTANTIATION");
+			return operationId.toString();
+		} catch (ApiException e) {
+			log.error(e.getMessage());
+			log.error(e.getStackTrace().toString());
+			throw new FailedOperationException(e.getMessage());
+		}
+
 	}
+
+	private UUID getNsdInfoId(UUID nsdId) throws FailedOperationException {
+
+        try {
+            nsPackagesApi.setApiClient(getClient());
+            List<NsdInfo> nsdInfos = nsPackagesApi.getNSDs();
+            for(NsdInfo nsdInfo : nsdInfos){
+                if(nsdInfo.getId().equals(nsdId.toString()))
+                    return nsdInfo.getIdentifier();
+
+            }
+            throw new FailedOperationException("Nsd Info id not found: "+nsdId.toString());
+        } catch (ApiException e) {
+            throw new FailedOperationException(e.getMessage());
+        }
+    }
 
 	@Override
 	public String scaleNs(ScaleNsRequest request) throws MethodNotImplementedException, NotExistingEntityException,
@@ -93,8 +177,25 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 	@Override
 	public String terminateNs(TerminateNsRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		// TODO Auto-generated method stub
-		return null;
+
+		String nsInstanceId= request.getNsInstanceId();
+
+		io.swagger.client.model.TerminateNsRequest requestTranslate = IfaOsmLcmTranslator.getTerminateNsRequest(request);
+
+		try {
+			nsInstancesApi.setApiClient(this.getClient());
+		    ObjectId objOperationId = nsInstancesApi.terminateNSinstance(nsInstanceId, requestTranslate);
+			String operationId = objOperationId.getId().toString();
+			if(nfvoLcmOperationPollingManager!=null)
+				nfvoLcmOperationPollingManager.addOperation(operationId, OperationStatus.SUCCESSFULLY_DONE, request.getNsInstanceId(), "NS_TERMINATION");
+			log.debug("Added polling task for NFVO operation " + operationId);
+			return operationId;
+		} catch (ApiException e) {
+			log.error(e.getMessage());
+			log.error(e.getStackTrace().toString());
+			throw new FailedOperationException(e.getMessage());
+		}
+
 	}
 
 	@Override
@@ -114,8 +215,18 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 	@Override
 	public OperationStatus getOperationStatus(String operationId) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		// TODO Auto-generated method stub
-		return null;
+
+		try {
+			nsInstancesApi.setApiClient(getClient());
+			NsLcmOpOcc nsLcmOpOcc = nsInstancesApi.getNSLCMOpOcc(operationId);
+			OsmNsLcmOperationStatus osmOperationStatus = OsmNsLcmOperationStatus.valueOf(nsLcmOpOcc.getOperationState());
+			return IfaOsmLcmTranslator.getOperationSatus(osmOperationStatus);
+		} catch (ApiException e) {
+			log.error(e.getMessage());
+			log.error(e.getStackTrace().toString());
+			throw new FailedOperationException(e.getMessage());
+		}
+
 	}
 
 	@Override
@@ -138,6 +249,17 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 		// TODO Auto-generated method stub
 
 	}
+
+	private ApiClient getClient() throws FailedOperationException {
+
+        ApiClient apiClient = new ApiClient();
+        apiClient.setHttpClient(OAuthSimpleClient.getUnsafeOkHttpClient());
+        apiClient.setBasePath(this.getNfvoAddress()+"/osm/");
+        apiClient.setUsername(username);
+        apiClient.setPassword(password);
+        apiClient.setAccessToken(oAuthSimpleClient.getToken());
+        return apiClient;
+    }
 
 
 
