@@ -25,16 +25,16 @@ public class NfvoLcmServiceUtils {
     @Value("${nfvo.lcm.address}")
     private String nfvoLcmAddress;
 
-    @Value("${nfvo.lcm.username#{null}}")
+    @Value("${nfvo.lcm.username:}")
     private String nfvoLcmUsername;
 
-    @Value("${nfvo.lcm.password#{null}}")
+    @Value("${nfvo.lcm.password:}")
     private String nfvoLcmPassword;
 
-    @Value("${nfvo.lcm.project#{null}}")
+    @Value("${nfvo.lcm.project:}}")
     private String nfvoLcmProject;
 
-    @Value("${nfvo.lcm.vim#{null}}")
+    @Value("${nfvo.lcm.vim:}")
     private String nfvoLcmVim;
 
 
