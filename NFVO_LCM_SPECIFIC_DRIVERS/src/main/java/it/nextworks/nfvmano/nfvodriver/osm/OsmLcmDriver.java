@@ -48,6 +48,8 @@ import it.nextworks.osm.openapi.NsPackagesApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +68,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 	private String project;
 	private Map<UUID, UUID> instanceIdToNsdIdMapping;
     private Map<UUID, UUID> instanceIdToNsdInfoIdMapping;
+   // private Map<UUID, CreateNsIdentifierRequest> instanceToRequestMapping;
 
 	public OsmLcmDriver(String nfvoAddress,
 						String username,
@@ -82,6 +85,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
         this.nsPackagesApi = new NsPackagesApi();
         this.instanceIdToNsdIdMapping = new HashMap<>();
         this.instanceIdToNsdInfoIdMapping = new HashMap<>();
+        //this.instanceToRequestMapping = new HashMap<>();
 		this.vimId= vimId;
         this.project =project;
 		this.nfvoLcmOperationPollingManager = nfvoLcmOperationPollingManager;
@@ -94,20 +98,26 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 	public String createNsIdentifier(CreateNsIdentifierRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
 
+	    //OSM seems to trigger the instantiation when creating the NS instance resource
+        //Thus, there is no need to perform two different operations but to be aligned
+        //with the standard  here we just return an Id which is then mapped to the real Id
+        //used in OSM.
 		log.debug("Creating NS identfier for Nsd: "+request.getNsdId());
         UUID nsdId = UUID.nameUUIDFromBytes(request.getNsdId().getBytes());
         log.debug("NsdId translated to OSM:"+nsdId.toString());
         UUID nsdInfoId = getNsdInfoId(nsdId);
 		log.debug("NsdInfoId obtained from OSM:"+nsdInfoId.toString());
-        CreateNSinstanceContentRequest requestTranslate = IfaOsmLcmTranslator.getCreateNSinstanceContentRequest(request, vimId, nsdInfoId);
+
+        CreateNsRequest requestTranslate = IfaOsmLcmTranslator.getCreateNsRequest(request, vimId, nsdInfoId);
 		try {
 
             nsInstancesApi.setApiClient(getClient());
-		    CreateNSinstanceContentResponse response = nsInstancesApi.createNSinstanceContent(requestTranslate);
+		    ObjectId response = nsInstancesApi.addNSinstance(requestTranslate);
 			String nsInstanceId = response.getId().toString();
 			log.debug("Created NsIdentifier: "+nsInstanceId);
-			instanceIdToNsdIdMapping.put(UUID.fromString(nsInstanceId), nsdId);
-            instanceIdToNsdInfoIdMapping.put(UUID.fromString(nsInstanceId), nsdInfoId);
+            instanceIdToNsdIdMapping.put(response.getId(), nsdId);
+            instanceIdToNsdInfoIdMapping.put(response.getId(), nsdInfoId);
+            //instanceToRequestMapping.put(response.getId(), request);
 			return nsInstanceId;
 		} catch (ApiException e) {
 			log.error(e.getMessage());
@@ -119,25 +129,37 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 	@Override
 	public String instantiateNs(InstantiateNsRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-        UUID nsdInfoId = instanceIdToNsdInfoIdMapping.get(UUID.fromString(request.getNsInstanceId()));
-		io.swagger.client.model.InstantiateNsRequest requestTranslation = IfaOsmLcmTranslator.getInstantiateNsRequest(request,nsdInfoId, vimId);
-		String nsInstanceId = request.getNsInstanceId();
+        log.debug("Received instantiation request for NS Instance Id: "+request.getNsInstanceId());
+
+        UUID nsInstanceId = UUID.fromString(request.getNsInstanceId());
+        if(!instanceIdToNsdInfoIdMapping.containsKey(nsInstanceId))
+            throw new NotExistingEntityException("NS instance with id:"+nsInstanceId+" does not exist");
+        UUID nsdInfoId = instanceIdToNsdInfoIdMapping.get(nsInstanceId);
+		UUID nsdId = instanceIdToNsdIdMapping.get(nsInstanceId);
+
 		try {
+
+		    io.swagger.client.model.InstantiateNsRequest requestTranslation = IfaOsmLcmTranslator.getInstantiateNsRequest(request,nsdInfoId, nsdId, vimId);
 		    nsInstancesApi.setApiClient(getClient());
-			ObjectId objOperationId = nsInstancesApi.instantiateNSinstance(nsInstanceId, requestTranslation);
+			ObjectId objOperationId = nsInstancesApi.instantiateNSinstance(nsInstanceId.toString(), requestTranslation);
 			UUID operationId = objOperationId.getId();
 			if(nfvoLcmOperationPollingManager!=null)
 				nfvoLcmOperationPollingManager.addOperation(operationId.toString(), OperationStatus.SUCCESSFULLY_DONE, request.getNsInstanceId(), "NS_INSTANTIATION");
 			return operationId.toString();
+
+
 		} catch (ApiException e) {
 			log.error(e.getMessage());
-			log.error(e.getStackTrace().toString());
+			StringWriter sw = new StringWriter();
+			PrintWriter pw = new PrintWriter(sw);
+			e.printStackTrace(pw);
+			log.error(sw.toString());
 			throw new FailedOperationException(e.getMessage());
 		}
 
 	}
 
-	private UUID getNsdInfoId(UUID nsdId) throws FailedOperationException {
+	private UUID getNsdInfoId(UUID nsdId) throws NotExistingEntityException, FailedOperationException {
 
         try {
             nsPackagesApi.setApiClient(getClient());
@@ -147,7 +169,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
                     return nsdInfo.getIdentifier();
 
             }
-            throw new FailedOperationException("Nsd Info id not found: "+nsdId.toString());
+            throw new NotExistingEntityException("Nsd Info id not found: "+nsdId.toString());
         } catch (ApiException e) {
             throw new FailedOperationException(e.getMessage());
         }
@@ -177,7 +199,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 	@Override
 	public String terminateNs(TerminateNsRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-
+		log.debug("Received instantiation request for "+request.getNsInstanceId());
 		String nsInstanceId= request.getNsInstanceId();
 
 		io.swagger.client.model.TerminateNsRequest requestTranslate = IfaOsmLcmTranslator.getTerminateNsRequest(request);

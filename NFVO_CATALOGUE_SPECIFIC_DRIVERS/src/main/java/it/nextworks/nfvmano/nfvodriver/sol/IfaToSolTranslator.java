@@ -3,7 +3,9 @@ package it.nextworks.nfvmano.nfvodriver.sol;
 import java.util.*;
 
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.vnfpackagemanagement.elements.VnfPkgInfo;
+import it.nextworks.nfvmano.libs.ifa.common.elements.KeyValuePair;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
 import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.VirtualLinkDf;
 import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.VirtualLinkProfile;
 import it.nextworks.nfvmano.libs.descriptors.elements.ConnectivityType;
@@ -118,10 +120,13 @@ public class IfaToSolTranslator {
         for (VirtualLinkToLevelMapping virtualLinkToLevelMapping : nsIl.getVirtualLinkToLevelMapping() ) {
       		virtualLinkProfileId.add(virtualLinkToLevelMapping.getVirtualLinkProfileId());
         }
+
+        Map<String, String> vlProfileToLinkDesc = new HashMap();
     	for (String vlProfileId : virtualLinkProfileId) { 
     		for (VirtualLinkProfile virtualLinkProfile : nsDf.getVirtualLinkProfile()) {
     			if (vlProfileId.equals(virtualLinkProfile.getVirtualLinkProfileId())) {
     				nsVirtualLink.add(virtualLinkProfile.getVirtualLinkDescId());
+    				vlProfileToLinkDesc.put(vlProfileId,virtualLinkProfile.getVirtualLinkDescId() );
     			}
         	}
         }
@@ -158,7 +163,7 @@ public class IfaToSolTranslator {
         	vnfProfileId.add(vnfToLevelMapping.getVnfProfileId());
         }
         for (String vProfileId : vnfProfileId) {
-            int interfaceCounter = 0;
+
         	for (VnfProfile vnfProfile : nsDf.getVnfProfile()) {
         		if (vProfileId.equals(vnfProfile.getVnfProfileId())) {
         			VNFProperties vnfProperties = new VNFProperties();
@@ -166,12 +171,7 @@ public class IfaToSolTranslator {
         			vnfProperties.setDescriptorVersion(nsd.getVersion());
         			vnfProperties.setProvider(nsd.getDesigner());
         			vnfProperties.setProductName(vnfProfile.getVnfdId());
-
-        			List<String> vnfVirtualLinkProfileId= new ArrayList<>();
-        			for (NsVirtualLinkConnectivity nsVirtualLinkConnectivity : vnfProfile.getNsVirtualLinkConnectivity()) {
-        				vnfVirtualLinkProfileId.add(nsVirtualLinkConnectivity.getVirtualLinkProfileId());
-        			}
-        			Map<String, String> vnfVirtualLink= new HashMap<>();
+ 	     			Map<String, String> vnfVirtualLink= new HashMap<>();
         			//VnfPkgInfo currentPackage =  solCatalogueDriver.getVnfdIdPackageInfo(vnfProfile.getVnfdId());
                     //DescriptorTemplate vnfTemplate = solCatalogueDriver.getVNFD(currentPackage.getId().toString());
         			//List<VirtualLinkPair> vnfLinks = vnfTemplate.getTopologyTemplate().getSubstituitionMappings().getRequirements().getVirtualLink();
@@ -181,9 +181,10 @@ public class IfaToSolTranslator {
 
                     for (NsVirtualLinkConnectivity nsVirtualLinkConnectivity:vnfProfile.getNsVirtualLinkConnectivity()){
 
-                        String vlId = nsVirtualLinkConnectivity.getVirtualLinkProfileId();
+                        String vlDesc = vlProfileToLinkDesc.get(nsVirtualLinkConnectivity.getVirtualLinkProfileId());
                         for (String cpId : nsVirtualLinkConnectivity.getCpdId()){
-                            vnfVirtualLink.put(cpId, vlId);
+
+                        	vnfVirtualLink.put(cpId, vlDesc);
 
                         }
                     }
@@ -214,41 +215,54 @@ public class IfaToSolTranslator {
 		 *						layerProtocols (list): virtualLinkDesc>connectivityType>layerProtocol
 		 *						flowPattern : ???
          */
-        List<String> virtualLinkProfId = new ArrayList<>();
-        for (VirtualLinkToLevelMapping virtualLinkToLevelMapping : nsIl.getVirtualLinkToLevelMapping() ) {
-        	virtualLinkProfId.add(virtualLinkToLevelMapping.getVirtualLinkProfileId());
-        }
-        //List<String> virtualLinkDescId = new ArrayList<>();
-        for (String vlProfileId : virtualLinkProfileId) { 
-        	for (VirtualLinkProfile virtualLinkProfile : nsDf.getVirtualLinkProfile()) {
-        		if (vlProfileId.equals( virtualLinkProfile.getVirtualLinkProfileId())) {
-        			for (NsVirtualLinkDesc virtualLinkDesc : nsd.getVirtualLinkDesc()) {
-        				if (virtualLinkDesc.getVirtualLinkDescId().equals( virtualLinkProfile.getVirtualLinkDescId()) ){
-        					NsVirtualLinkNode vlNode = new 	NsVirtualLinkNode("tosca.nodes.nfv.NsVirtualLink",null, null);
-        					NsVirtualLinkProperties nsVirtualLinkProperties = new NsVirtualLinkProperties();
-        					nsVirtualLinkProperties.setDescription(virtualLinkDesc.getDescription());
-        					VlProfile vlProfile = new VlProfile();
-        					for (VirtualLinkDf virtualLinkDf : virtualLinkDesc.getVirtualLinkDf()) {
-        						if (virtualLinkDf.getFlavourId().equals(virtualLinkProfile.getFlavourId())) {
-        						//LinkBitrateRequirements maxBitrateRequirements = new LinkBitrateRequirements();
-        						//LinkBitrateRequirements minBitrateRequirements = new LinkBitrateRequirements();      									
-        						}
-        					}
-        					ConnectivityType connectivityType = new ConnectivityType();
-        					nsVirtualLinkProperties.setVlProfile(vlProfile);
-        					nsVirtualLinkProperties.setConnectivityType(connectivityType);
-        					vlNode.setProperties(nsVirtualLinkProperties);
-        					nodeTemplates.put(virtualLinkDesc.getVirtualLinkDescId(), vlNode);        								
-        				}
-        			}
-        		}
-        	}
-        }
+
+
+		for (Map.Entry<String, String> entry : vlProfileToLinkDesc.entrySet()) {
+			NsVirtualLinkDesc virtualLinkDesc = getNsVirtualLinkDesc(nsd, entry.getValue());
+			VirtualLinkProfile virtualLinkProfile = null;
+			try {
+				virtualLinkProfile = nsDf.getVirtualLinkProfile(entry.getKey());
+			} catch (NotExistingEntityException e) {
+				throw new FailedOperationException(e.getMessage());
+			}
+			NsVirtualLinkNode vlNode = new 	NsVirtualLinkNode("tosca.nodes.nfv.NsVirtualLink",null, null);
+			NsVirtualLinkProperties nsVirtualLinkProperties = new NsVirtualLinkProperties();
+			nsVirtualLinkProperties.setDescription(virtualLinkDesc.getDescription());
+			VlProfile vlProfile = new VlProfile();
+			for (VirtualLinkDf virtualLinkDf : virtualLinkDesc.getVirtualLinkDf()) {
+				if (virtualLinkDf.getFlavourId().equals(virtualLinkProfile.getFlavourId())) {
+					//LinkBitrateRequirements maxBitrateRequirements = new LinkBitrateRequirements();
+					//LinkBitrateRequirements minBitrateRequirements = new LinkBitrateRequirements();
+				}
+			}
+			ConnectivityType connectivityType = new ConnectivityType();
+			nsVirtualLinkProperties.setVlProfile(vlProfile);
+			nsVirtualLinkProperties.setConnectivityType(connectivityType);
+			vlNode.setProperties(nsVirtualLinkProperties);
+			nodeTemplates.put(virtualLinkDesc.getVirtualLinkDescId(), vlNode);
+
+		}
+
+
         topologyTemplate.setNodeTemplates(nodeTemplates);
         DescriptorTemplate descriptorTemplate = new DescriptorTemplate(toscaDefinitionsVersion, toscaDefaultNamespace, description, metadata, topologyTemplate);
         return descriptorTemplate;
 	}
 
+
+
+
+	private static NsVirtualLinkDesc getNsVirtualLinkDesc(Nsd nsd, String virtualLinkDescId) throws FailedOperationException {
+
+		Optional<NsVirtualLinkDesc> optionalNsVirtualLinkDesc = nsd.getVirtualLinkDesc().stream()
+				.filter(linkDesc -> linkDesc.getVirtualLinkDescId().equals(virtualLinkDescId))
+						.findFirst();
+		if(optionalNsVirtualLinkDesc.isPresent()){
+			return optionalNsVirtualLinkDesc.get();
+		}else throw new FailedOperationException("Cannot find virtual link desc with id:"+virtualLinkDescId+" in NSD:"+nsd.getNsdIdentifier());
+
+
+	}
 
 	private static String getVnfDescriptorId(VnfProfile vnfProfile){
 	    //String seed = vnfProfile.getVnfdId();

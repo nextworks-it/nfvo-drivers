@@ -1,6 +1,7 @@
 package it.nextworks.nfvmano.nfvodriver.osm;
 
 import io.swagger.client.model.CreateNSinstanceContentRequest;
+import io.swagger.client.model.CreateNsRequest;
 import io.swagger.client.model.InstantiateNsRequest;
 import io.swagger.client.model.TerminateNsRequest;
 import it.nextworks.nfvmano.libs.ifa.common.enums.OperationStatus;
@@ -16,10 +17,10 @@ public class IfaOsmLcmTranslator {
 
 
 
-    public static CreateNSinstanceContentRequest getCreateNSinstanceContentRequest(CreateNsIdentifierRequest request, UUID vimId, UUID nsdInfoId){
+    public static CreateNsRequest getCreateNsRequest(CreateNsIdentifierRequest request, UUID vimId, UUID nsdInfoId){
 
 
-        CreateNSinstanceContentRequest translation = new CreateNSinstanceContentRequest();
+        CreateNsRequest translation = new CreateNsRequest();
         translation.setNsName(request.getNsName());
         translation.setNsdId(nsdInfoId);
         translation.setVimAccountId(vimId);
@@ -32,12 +33,12 @@ public class IfaOsmLcmTranslator {
         return UUID.nameUUIDFromBytes(seed.getBytes());
     }
 
-    public static InstantiateNsRequest getInstantiateNsRequest(it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.InstantiateNsRequest request, UUID nsdInfoId, UUID vimId) {
+    public static InstantiateNsRequest getInstantiateNsRequest(it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.InstantiateNsRequest request, UUID nsdInfoId, UUID nsdId, UUID vimId) {
         InstantiateNsRequest translation = new InstantiateNsRequest();
         //TODO: Should we add again the nsdId? would need to be saved in a map
         translation.setVimAccountId(vimId);
         translation.setNsName(request.getNsInstanceId());
-        translation.setNsdId(nsdInfoId);
+        translation.setNsdId(nsdId);
         return translation;
 
     }
