@@ -9,6 +9,7 @@
     <name>NFVO_CATALOGUE_SPECIFIC_DRIVERS</name>
 
     <dependencies>
+
         <dependency>
             <groupId>it.nextworks.nfvmano</groupId>
             <artifactId>NfvoCatalogueAbstractDriver</artifactId>
@@ -26,8 +27,8 @@
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
-            <version>3.0.2.RELEASE</version>
+            <artifactId>spring-core</artifactId>
+            <version>5.1.9.RELEASE</version>
         </dependency>
         <dependency>
             <groupId>it.nextworks.nfvmano</groupId>
@@ -39,6 +40,39 @@
             <artifactId>NfvManoLibsSol001Descriptors</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>it.nextworks.nfvmano</groupId>
+            <artifactId>5GCatalogueClient</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.9.8</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>2.9.8</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.9.8</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+            <version>2.9.8</version>
+        </dependency>
+
     </dependencies>
     <build>
         <pluginManagement>

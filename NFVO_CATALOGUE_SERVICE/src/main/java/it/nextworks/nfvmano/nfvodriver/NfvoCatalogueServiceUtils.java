@@ -41,14 +41,17 @@ public class NfvoCatalogueServiceUtils {
     private String nfvoCatalogueAddress;
 
     
-    @Value("${nfvo.catalogue.username}")
+    @Value("${nfvo.catalogue.username:admin}")
     private String nfvoCatalogueUsername;
     
-    @Value("${nfvo.catalogue.password}")
+    @Value("${nfvo.catalogue.password:admin}")
     private String nfvoCataloguePassword;
     
-    @Value("${nfvo.catalogue.project}")
+    @Value("${nfvo.catalogue.project:admin}")
     private String nfvoCatalogueProject;
+
+    @Value("${nfvo.catalogue.id:5g-catalogue}")
+    private String nfvoCatalogueId;
 
     @Autowired
     NfvoCatalogueService nfvoCatalogueService;
@@ -71,7 +74,7 @@ public class NfvoCatalogueServiceUtils {
             nfvoCatalogueService.setNfvoCatalogueDriver(new OsmCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null));
         } else if(nfvoCatalogueType.equals("SOL_005")){
             log.debug("Configured for type:" + nfvoCatalogueType);
-            nfvoCatalogueService.setNfvoCatalogueDriver(new SolCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null));
+            nfvoCatalogueService.setNfvoCatalogueDriver(new SolCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, nfvoCatalogueId,null));
         } else {
             log.error("NFVO not configured!");
         }
