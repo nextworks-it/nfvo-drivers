@@ -15,6 +15,10 @@
 */
 package it.nextworks.nfvmano.nfvodriver;
 
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo;
+import it.nextworks.nfvmano.libs.ifa.common.elements.Filter;
+import it.nextworks.nfvmano.libs.ifa.common.enums.OperationalState;
+import it.nextworks.nfvmano.libs.ifa.common.enums.UsageState;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.AlreadyExistingEntityException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
@@ -27,23 +31,48 @@ import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
 import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.Nsd;
+import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.SecurityParameters;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueAbstractDriver;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueDriverType;
+import it.nextworks.nfvmano.nfvodriver.timeo.TimeoCatalogueRestClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 
 	private Map<String, Nsd> nsds = new HashMap<>();
+	private static final Logger log = LoggerFactory.getLogger(DummyNfvoCatalogueDriver.class);
 
 	public DummyNfvoCatalogueDriver(String nfvoAddress) {
 		super(NfvoCatalogueDriverType.DUMMY, nfvoAddress, null);
+		String uuidNSD = onBoardFakeNsd();
+		log.info("On boarded NSD with ID "+uuidNSD);
 	}
 
+
+	private String onBoardFakeNsd() {
+		Nsd nsd = new Nsd("nsVS",
+				"designer",
+				"0.1",
+				"nsdName",
+				"nsdInvariantId",
+				new ArrayList<String>(),
+				new ArrayList<String>(),
+				new ArrayList<String>(),
+				null);
+		try {
+			OnboardNsdRequest request = new OnboardNsdRequest(nsd, new HashMap<>());
+			String uuid = onboardNsd(request);
+			return uuid;
+		}
+		catch (Exception e) {
+			log.error("Error on boarding Fake nsd");
+			return null;
+		}
+	}
 
 
 	@Override
@@ -117,6 +146,7 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 		
 		String uuid = UUID.randomUUID().toString();
 		nsds.put(uuid, request.getNsd());
+		log.debug("Onboarded Nsd with ID " + request.getNsd().getNsdIdentifier() + " and version " + request.getNsd().getVersion());
 		return uuid;
 	}
 
@@ -153,7 +183,47 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	public QueryNsdResponse queryNsd(GeneralizedQueryRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
 		// TODO Auto-generated method stub
-		return null;
+
+		Filter filter = request.getFilter();
+		Map<String, String> params = filter.getParameters();
+		String p1 = "NSD_ID";
+		String p2 = "NSD_VERSION";
+
+
+		List<NsdInfo> queryResult = new ArrayList<>();
+
+		log.debug("Querying NSD");
+
+		if (params.containsKey(p1) && params.containsKey(p2)) {
+			String nsdId = params.get("NSD_ID");
+			String nsdVersion = params.get("NSD_VERSION");
+
+			log.debug("Querying NSD with ID " + nsdId + " and version " + nsdVersion);
+
+			for (Map.Entry<String, Nsd> nsdEntry : nsds.entrySet()) {
+				Nsd nsd = nsdEntry.getValue();
+				if (nsd.getNsdIdentifier().equals(nsdId) && nsd.getVersion().equals(nsdVersion)) {
+					log.debug("NSD found");
+					queryResult.add(new NsdInfo(nsdEntry.getKey(),
+							nsdId,
+							nsd.getNsdName(),
+							nsdVersion,
+							nsd.getDesigner(),
+							nsd,
+							new ArrayList<>(),
+							new ArrayList<>(),
+							null,
+							OperationalState.ENABLED,
+							UsageState.IN_USE,
+							false,
+							new HashMap<>()));
+					QueryNsdResponse response = new QueryNsdResponse(queryResult);
+					return response;
+				}
+			}
+			log.debug("NSD not found");
+			return null;
+		} else return null;
 	}
 
 	@Override
