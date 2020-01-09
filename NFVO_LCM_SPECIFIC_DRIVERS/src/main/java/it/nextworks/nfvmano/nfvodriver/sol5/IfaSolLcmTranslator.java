@@ -7,17 +7,12 @@ import java.util.List;
 import java.util.Map;
 
 import it.nextworks.nfvmano.libs.ifa.common.elements.AffinityRule;
+import it.nextworks.nfvmano.libs.ifa.common.elements.ResourceHandle;
 import it.nextworks.nfvmano.libs.ifa.common.enums.AffinityScope;
 import it.nextworks.nfvmano.libs.ifa.common.enums.AffinityType;
-import it.nextworks.nfvmano.libs.ifa.common.enums.InstantiationState;
-import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.CreateNsIdentifierRequest;
-import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.InstantiateNsRequest;
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsInfo;
-import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsScaleInfo;
-import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsVirtualLinkInfo;
+import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsLinkPort;
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.PnfInfo;
-import it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo;
-import it.nextworks.nfvmano.libs.ifa.records.nsinfo.VnffgInfo;
 import it.nextworks.nfvmano.nfvodriver.sol5.im.*;
 import it.nextworks.openapi.msno.model.AddPnfData;
 import it.nextworks.openapi.msno.model.AffinityOrAntiAffinityRule;
@@ -29,12 +24,12 @@ import it.nextworks.openapi.msno.model.CreateNsRequest;
 import it.nextworks.openapi.msno.model.IpOverEthernetAddressData;
 import it.nextworks.openapi.msno.model.IpOverEthernetAddressDataIpAddresses;
 import it.nextworks.openapi.msno.model.IpOverEthernetAddressDataIpAddresses.TypeEnum;
+import it.nextworks.openapi.msno.model.IpOverEthernetAddressInfo;
 import it.nextworks.openapi.msno.model.LocationConstraints;
 import it.nextworks.openapi.msno.model.NestedNsInstanceData;
-import it.nextworks.openapi.msno.model.NsInstance.NsStateEnum;
+import it.nextworks.openapi.msno.model.NsCpHandle;
 import it.nextworks.openapi.msno.model.ParamsForNestedNs;
 import it.nextworks.openapi.msno.model.PnfExtCpData;
-import it.nextworks.openapi.msno.model.PnfExtCpInfo;
 import it.nextworks.openapi.msno.model.VnfInstance;
 
 
@@ -149,21 +144,108 @@ public class IfaSolLcmTranslator {
 					inp.getPnfId(), inp.getPnfName(), inp.getPnfdId(), inp.getPnfdInfoId(), inp.getPnfProfileId(), cpInfos);
 			pnfInfos.add(pnfInfo);
 		}
-		//TODO:
+		
 		List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsVirtualLinkInfo> virtualLinkInfo = new ArrayList<>();
-		List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.VnffgInfo> vnffgInfo = new ArrayList<>();
-		List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo> sapInfo = new ArrayList<>();
-		List<String> nestedNsInfoId = new ArrayList<>();
+		List<it.nextworks.openapi.msno.model.NsVirtualLinkInfo> vlis = nsInstance.getVirtualLinkInfo();
+		for (it.nextworks.openapi.msno.model.NsVirtualLinkInfo vli : vlis) {
+			List<it.nextworks.nfvmano.libs.ifa.common.elements.ResourceHandle> resourceHandles = new ArrayList<ResourceHandle>();
+			List<it.nextworks.openapi.msno.model.ResourceHandle> rhs = vli.getResourceHandle();
+			for (it.nextworks.openapi.msno.model.ResourceHandle rh : rhs) {
+				it.nextworks.nfvmano.libs.ifa.common.elements.ResourceHandle rHandle = new it.nextworks.nfvmano.libs.ifa.common.elements.ResourceHandle(rh.getVimId(), 
+						rh.getResourceProviderId(), rh.getResourceId(), rh.getVimLevelResourceType());
+				resourceHandles.add(rHandle);
+			}
+			List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsLinkPort> linkPorts = new ArrayList<NsLinkPort>();
+			List<it.nextworks.openapi.msno.model.NsLinkPortInfo> lps = vli.getLinkPort();
+			for (it.nextworks.openapi.msno.model.NsLinkPortInfo lp : lps) {
+				it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsLinkPort lPort = new it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsLinkPort(null, 
+						new it.nextworks.nfvmano.libs.ifa.common.elements.ResourceHandle(lp.getResourceHandle().getVimId(), 
+								lp.getResourceHandle().getResourceProviderId(), lp.getResourceHandle().getResourceId(), lp.getResourceHandle().getVimLevelResourceType()), 
+						readCpIdFromNsCpHandle(lp.getNsCpHandle().get(0)), 
+						false);
+				linkPorts.add(lPort);
+			}
+			it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsVirtualLinkInfo vlInfo = new it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsVirtualLinkInfo(null, vli.getId(),
+					vli.getNsVirtualLinkDescId(),
+					resourceHandles,
+					linkPorts);
+		}
+		
+		List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.VnffgInfo> vnffgInfos = new ArrayList<>();
+		List<it.nextworks.openapi.msno.model.VnffgInfo> vfgis = nsInstance.getVnffgInfo();
+		for (it.nextworks.openapi.msno.model.VnffgInfo vfgi : vfgis) {
+			List<String> cpId = new ArrayList<String>();
+			List<NsCpHandle> cpHandles = vfgi.getNsCpHandle();
+			for (NsCpHandle ch : cpHandles) cpId.add(readCpIdFromNsCpHandle(ch));
+			it.nextworks.nfvmano.libs.ifa.records.nsinfo.VnffgInfo vnffgi = new it.nextworks.nfvmano.libs.ifa.records.nsinfo.VnffgInfo(null,
+					vfgi.getId(),
+					vfgi.getVnffgdId(),
+					vfgi.getVnfInstanceId(),
+					vfgi.getPnfdInfoId(),
+					vfgi.getNsVirtualLinkInfoId(),
+					cpId);
+			vnffgInfos.add(vnffgi);
+		}
+		
+		List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo> sapInfos = new ArrayList<>();
+		List<it.nextworks.openapi.msno.model.SapInfo> sis = nsInstance.getSapInfo();
+		for (it.nextworks.openapi.msno.model.SapInfo si : sis) {
+			it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo sapInfo = new it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo(null, 
+					si.getId(), 
+					si.getSapdId(), 
+					si.getSapName(), 
+					si.getDescription(), 
+					readIpAddressFromCpProtocolInfo(si.getSapProtocolInfo()), 
+					null);
+			sapInfos.add(sapInfo);
+		}
+		
+		List<String> nestedNsInfoId = nsInstance.getNestedNsInstanceId();
+		
 		it.nextworks.nfvmano.libs.ifa.common.enums.InstantiationState nsState = translateNsState(nsInstance.getNsState());
+		
 		List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsScaleInfo> nsScaleStatus = new ArrayList<>();
+		List<it.nextworks.openapi.msno.model.NsScaleInfo> nsScaleInfos = nsInstance.getNsScaleStatus();
+		for (it.nextworks.openapi.msno.model.NsScaleInfo nsScaleInfo : nsScaleInfos) {
+			it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsScaleInfo nsi = new it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsScaleInfo(nsScaleInfo.getNsScalingAspectId(),
+					nsScaleInfo.getNsScaleLevelId());
+			nsScaleStatus.add(nsi);
+		}
+		
 		List<it.nextworks.nfvmano.libs.ifa.common.elements.AffinityRule> additionalAffinityOrAntiAffinityRule = new ArrayList<>();
+		List<it.nextworks.openapi.msno.model.AffinityOrAntiAffinityRule> aars = nsInstance.getAdditionalAffinityOrAntiAffinityRule();
+		for (it.nextworks.openapi.msno.model.AffinityOrAntiAffinityRule aar : aars) {
+			it.nextworks.nfvmano.libs.ifa.common.elements.AffinityRule rule = translateAffinityRule(aar);
+			additionalAffinityOrAntiAffinityRule.add(rule);
+		}
+		
 		String monitoringDashboardUrl = null;	//this is not standard
+		
 		NsInfo nsInfo = new NsInfo(nsInstanceId, nsName, description, nsdId, null,
 				configurationParameters, flavourId, vnfInfoId, pnfInfos,
-				virtualLinkInfo, vnffgInfo, sapInfo,
+				virtualLinkInfo, vnffgInfos, sapInfos,
 				nestedNsInfoId, nsState, nsScaleStatus,
 				additionalAffinityOrAntiAffinityRule, monitoringDashboardUrl);
 		return nsInfo;
+	}
+	
+	private static String readCpIdFromNsCpHandle(NsCpHandle nsCpHandle) {
+		if (nsCpHandle == null) return null;
+		if (nsCpHandle.getNsSapInstanceId() != null) return nsCpHandle.getNsSapInstanceId();
+		if (nsCpHandle.getPnfExtCpInstanceId() != null) return nsCpHandle.getPnfExtCpInstanceId();
+		if (nsCpHandle.getVnfExtCpInstanceId() != null) return nsCpHandle.getVnfExtCpInstanceId();
+		return null;
+	}
+	
+	private static String readIpAddressFromCpProtocolInfo(List<it.nextworks.openapi.msno.model.CpProtocolInfo> infos) {
+		if ((infos == null) || infos.isEmpty()) return null;
+		IpOverEthernetAddressInfo addressInfo = infos.get(0).getIpOverEthernet();
+		if (addressInfo != null) {
+			List<String> ips = addressInfo.getAddresses();
+			if (ips.isEmpty()) return null;
+			else return ips.get(0);
+		}
+		return null;
 	}
 	
 	private static it.nextworks.nfvmano.libs.ifa.common.enums.InstantiationState translateNsState(it.nextworks.openapi.msno.model.NsInstance.NsStateEnum input) {
@@ -192,6 +274,17 @@ public class IfaSolLcmTranslator {
 		aaRule.setVnfdId(null);
 		aaRule.setVnfInstanceId(null);
 		aaRule.setVnfProfileId(null);
+		return aaRule;
+	}
+	
+	private static AffinityRule translateAffinityRule(AffinityOrAntiAffinityRule ar) {
+		AffinityType affinityType = AffinityType.AFFINITY;
+		AffinityScope affinityScope = AffinityScope.NFVI_NODE;
+		if (ar.getAffinityOrAntiAffiinty().equals(AffinityOrAntiAffiintyEnum.ANTI_AFFINITY)) affinityType = AffinityType.ANTI_AFFINITY;
+		if (ar.getScope().equals(ScopeEnum.NFVI_POP)) affinityScope = AffinityScope.NFVI_POP;
+		else if (ar.getScope().equals(ScopeEnum.ZONE)) affinityScope = AffinityScope.ZONE;
+		else if (ar.getScope().equals(ScopeEnum.ZONE_GROUP)) affinityScope = AffinityScope.ZONE_GROUP;
+		AffinityRule aaRule = new AffinityRule(affinityType, affinityScope);
 		return aaRule;
 	}
 	
