@@ -53,6 +53,7 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 	private String authorization = null;		//TODO: this is to be fixed - it should be the token
 	
 	private String callbackUri;
+	private String nfvoAddress;
 	
 	@Autowired
 	private NfvoLcmOperationPollingManager timeoNfvoOperationPollingManager;
@@ -63,12 +64,23 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 			String callbackUri) {
 		super(NfvoLcmDriverType.SOL_5, nfvoAddress, nfvoNotificationsManager);
 		this.timeoNfvoOperationPollingManager = timeoNfvoOperationPollingManager;
+		this.nfvoAddress = nfvoAddress;
 		ApiClient ac = new ApiClient();
 		String url = "http://" + nfvoAddress + "/nslcm/v1";
 		ac.setBasePath(url);
+		DefaultApi restClient = new DefaultApi();
 		restClient.setApiClient(ac);
 		this.callbackUri = callbackUri;
 	}
+
+	/*
+	public setApiEndpoint() {
+		ApiClient ac = new ApiClient();
+		String url = "http://" + this.nfvoAddress + "/nslcm/v1";
+		ac.setBasePath(url);
+		restClient.setApiClient(ac);
+	}
+	*/
 	
 	public String createNsIdentifier(CreateNsIdentifierRequest request) 
 			throws MethodNotImplementedException, NotExistingEntityException, FailedOperationException, MalformattedElementException {
