@@ -81,6 +81,7 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 			log.debug("Created NS instance with ID " + nsId);
 			return nsId;
 		} catch (ApiException e) {
+			log.error("Error creating new instance {}", e.getMessage());
 			throw new FailedOperationException("Failure when interacting with NFVO: " + e.getMessage());
 		}
 	}
@@ -98,6 +99,7 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 			timeoNfvoOperationPollingManager.addOperation(operationId, OperationStatus.SUCCESSFULLY_DONE, request.getNsInstanceId(), "NS_INSTANTIATION");
 			return operationId;
 		} catch (ApiException e) {
+			log.error("Error instantiating new instance {}", e.getMessage());
 			throw new FailedOperationException("Failure when interacting with NFVO: " + e.getMessage());
 		}
 	}
