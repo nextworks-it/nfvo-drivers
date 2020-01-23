@@ -67,9 +67,9 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 		this.nfvoAddress = nfvoAddress;
 		ApiClient ac = new ApiClient();
 		String url = "http://" + nfvoAddress + "/nslcm/v1";
-		ac.setBasePath(url);
-		DefaultApi restClient = new DefaultApi();
-		restClient.setApiClient(ac);
+		ac = ac.setBasePath(url);
+		DefaultApi restClient = new DefaultApi(ac);
+		log.debug("SOL 5 driver configured with base path: " + restClient.getApiClient().getBasePath());
 		this.callbackUri = callbackUri;
 	}
 
