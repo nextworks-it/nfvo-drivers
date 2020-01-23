@@ -66,6 +66,7 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 		ApiClient ac = new ApiClient();
 		String url = "http://" + nfvoAddress + "/nslcm/v1";
 		ac.setBasePath(url);
+		restClient.setApiClient(ac);
 		this.callbackUri = callbackUri;
 	}
 	
