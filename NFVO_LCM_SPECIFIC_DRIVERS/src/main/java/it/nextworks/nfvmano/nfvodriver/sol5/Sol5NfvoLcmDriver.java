@@ -75,8 +75,10 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 		request.isValid();
 		log.debug("Building create NS identifier request in SOL 005 format");
 		CreateNsRequest body = IfaSolLcmTranslator.buildSolCreateNsRequest(request);
+		log.debug("Create NS request {}", body.toString());
 		try {
 			NsInstance nsInstance = restClient.nsInstancesPost(version, accept, contentType, body, authorization);
+			log.debug("NS instance response {}", nsInstance.toString());
 			String nsId = nsInstance.getId();
 			log.debug("Created NS instance with ID " + nsId);
 			return nsId;
