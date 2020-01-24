@@ -1542,7 +1542,7 @@ public class DefaultApi {
         if (version != null)
         localVarHeaderParams.put("Version", apiClient.parameterToString(version));
         if (accept != null)
-        localVarHeaderParams.put("Accept", apiClient.parameterToString(accept));
+            localVarHeaderParams.put("Accept", apiClient.parameterToString(accept));
         if (contentType != null)
         localVarHeaderParams.put("Content-Type", apiClient.parameterToString(contentType));
 

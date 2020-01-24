@@ -48,7 +48,7 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 	private DefaultApi restClient;
 	
 	private String version = "v1";
-	private String accept = "application/json";
+	private String accept = "*/*";
 	private String contentType = "application/json";
 	private String authorization = null;		//TODO: this is to be fixed - it should be the token
 	
@@ -68,7 +68,7 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 		ApiClient ac = new ApiClient();
 		String url = "http://" + nfvoAddress + "/nslcm/v1";
 		ac = ac.setBasePath(url);
-		DefaultApi restClient = new DefaultApi(ac);
+		this.restClient = new DefaultApi(ac);
 		log.debug("SOL 5 driver configured with base path: " + restClient.getApiClient().getBasePath());
 		this.callbackUri = callbackUri;
 	}
@@ -108,6 +108,7 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 		log.debug("Building instantiate NS request in SOL 005 format");
 		String nsInstanceId = request.getNsInstanceId();
 		it.nextworks.openapi.msno.model.InstantiateNsRequest body = IfaSolLcmTranslator.buildSolInstantiateNsRequest(request);
+		log.debug("Instantiated ns request {}", body.toString());
 		try {
 			ApiResponse<NsInstance2> nsInstanceResponse = restClient.nsInstancesNsInstanceIdInstantiatePostWithHttpInfo(nsInstanceId, accept, contentType, version, body, authorization);
 			String operationId = readOperationIdFromResponse(nsInstanceResponse);
