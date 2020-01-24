@@ -30,6 +30,10 @@ public class KeyValuePairsString extends KeyValuePairs {
 	public void setKvs(List<KeyValuePair> kvs) {
 		this.kvs = kvs;
 	}
+	
+	public boolean isEmpty() {
+		return kvs.isEmpty();
+	}
 
 	@Override
 	public boolean equals(java.lang.Object o) {

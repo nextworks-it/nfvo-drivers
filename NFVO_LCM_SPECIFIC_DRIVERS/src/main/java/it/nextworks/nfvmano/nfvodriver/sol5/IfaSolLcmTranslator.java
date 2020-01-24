@@ -53,11 +53,11 @@ public class IfaSolLcmTranslator {
 		
 		List<ParamsForNestedNs> additionalParamForNestedNs = new ArrayList<>();
 		//This is not available in IFA
-		body.setAdditionalParamForNestedNs(additionalParamForNestedNs);
+		if (!additionalParamForNestedNs.isEmpty()) body.setAdditionalParamForNestedNs(additionalParamForNestedNs);
 		
 		Map<String,String> apn = request.getAdditionalParamForNs();
 		KeyValuePairsString additionalParamsForNs = translateStringMap(apn);
-		body.setAdditionalParamsForNs(additionalParamsForNs);
+		if (!additionalParamsForNs.isEmpty()) body.setAdditionalParamsForNs(additionalParamsForNs);
 		
 		List<it.nextworks.openapi.msno.model.ParamsForVnf> additionalParamsForVnf = new ArrayList<>();
 		List<it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.elements.ParamsForVnf> inputPfvs = request.getAdditionalParamForVnf();
