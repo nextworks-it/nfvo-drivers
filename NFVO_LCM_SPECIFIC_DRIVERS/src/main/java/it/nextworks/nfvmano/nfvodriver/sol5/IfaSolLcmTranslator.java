@@ -49,7 +49,7 @@ public class IfaSolLcmTranslator {
 		List<AffinityOrAntiAffinityRule> additionalAffinityOrAntiAffinityRule = new ArrayList<AffinityOrAntiAffinityRule>();
 		List<AffinityRule> ars = request.getAdditionalAffinityOrAntiAffinityRule();
 		for (AffinityRule ar : ars) additionalAffinityOrAntiAffinityRule.add(translateAffinityRule(ar));
-		body.setAdditionalAffinityOrAntiAffinityRule(additionalAffinityOrAntiAffinityRule);
+		if (!additionalAffinityOrAntiAffinityRule.isEmpty()) body.setAdditionalAffinityOrAntiAffinityRule(additionalAffinityOrAntiAffinityRule);
 		
 		List<ParamsForNestedNs> additionalParamForNestedNs = new ArrayList<>();
 		//This is not available in IFA
@@ -64,7 +64,7 @@ public class IfaSolLcmTranslator {
 		for (it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.elements.ParamsForVnf inputPfv : inputPfvs) {
 			additionalParamsForVnf.add(translateParamsForVnf(inputPfv));
 		}
-		body.setAdditionalParamsForVnf(additionalParamsForVnf);
+		if (!additionalParamsForVnf.isEmpty()) body.setAdditionalParamsForVnf(additionalParamsForVnf);
 		
 		
 		List<AddPnfData> addpnfData = new ArrayList<>();
@@ -78,7 +78,7 @@ public class IfaSolLcmTranslator {
 		List<it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.elements.VnfLocationConstraints> locationConstraints = request.getLocationConstraints();
 		for (it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.elements.VnfLocationConstraints lc : locationConstraints)
 			localizationLanguage.add(translateVnfLocationConstraints(lc));
-		body.setLocalizationLanguage(localizationLanguage);
+		if (!localizationLanguage.isEmpty()) body.setLocalizationLanguage(localizationLanguage);
 		
 		List<it.nextworks.openapi.msno.model.NestedNsInstanceData> nestedNsInstanceData = new ArrayList<>();
 		List<String> nestedNsInstanceIds = request.getNestedNsInstanceId();
@@ -88,7 +88,7 @@ public class IfaSolLcmTranslator {
 			nestedData.setNsProfileId(null);
 			nestedNsInstanceData.add(nestedData);
 		}
-		body.setNestedNsInstanceData(nestedNsInstanceData);
+		if (!nestedNsInstanceData.isEmpty()) body.setNestedNsInstanceData(nestedNsInstanceData);
 		
 		String nsFlavourId = request.getFlavourId();
 		body.setNsFlavourId(nsFlavourId);
