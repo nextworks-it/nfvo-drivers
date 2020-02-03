@@ -1,6 +1,7 @@
 package it.nextworks.nfvmano.nfvodriver;
 
 
+import edu.upc.gco.slcnt.orch.nmro.driver.lcm.NmroLcmDriver;
 import it.nextworks.nfvmano.nfvodriver.logging.NfvoLcmLoggingDriver;
 import it.nextworks.nfvmano.nfvodriver.osm.OsmLcmDriver;
 import it.nextworks.nfvmano.nfvodriver.sol5.Sol5NfvoLcmDriver;
@@ -49,28 +50,32 @@ public class NfvoLcmServiceUtils {
 
     @PostConstruct
     public void initNfvoLcmDriver() {
-        log.debug("Initializing NFVO LCM driver for type:"+ nfvoLcmType);
+        log.debug("Initializing NFVO LCM driver for type: "+ nfvoLcmType);
         if (nfvoLcmType.equals("LOGGING")) {
-
-            log.debug("Configured for NFVO LCM type:"+ nfvoLcmType);
+            log.debug("Configured for NFVO LCM type: "+ nfvoLcmType);
             nfvoLcmService.setNfvoLcmDriver(new NfvoLcmLoggingDriver());
 
         }else if (nfvoLcmType.equals("TIMEO")) {
-            log.debug("Configured for type:" + nfvoLcmType);
+            log.debug("Configured for type: " + nfvoLcmType);
             nfvoLcmService.setNfvoLcmDriver(new TimeoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager));
         }else if(nfvoLcmType.equals("DUMMY")){
-            log.debug("Configured for type:" + nfvoLcmType);
+            log.debug("Configured for type: " + nfvoLcmType);
             nfvoLcmService.setNfvoLcmDriver(new DummyNfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager));
 
         }else if(nfvoLcmType.equals("SOL5")) {
-            log.debug("Configured for type:" + nfvoLcmType);
+            log.debug("Configured for type: " + nfvoLcmType);
             nfvoLcmService.setNfvoLcmDriver(new Sol5NfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager, nfvoLcmNotificationUrl));
         }else if(nfvoLcmType.equals("OSM")){
             log.debug("Configured for type:" + nfvoLcmType);
             OsmLcmDriver osmLcmDriver = new OsmLcmDriver(this.nfvoLcmAddress, this.nfvoLcmUsername, this.nfvoLcmPassword,
                     this.nfvoLcmProject, this.nfvoLcmOperationPollingManager, null, UUID.fromString(this.nfvoLcmVim));
             nfvoLcmService.setNfvoLcmDriver(osmLcmDriver);
-        } else {
+        }
+        else if(nfvoLcmType.equals("NMRO")){
+            log.debug("Configured for type: " + nfvoLcmType);
+            NmroLcmDriver nmroLcmDriver= new NmroLcmDriver(NfvoLcmDriverType.OSM, this.nfvoLcmAddress, null, nfvoLcmOperationPollingManager);
+            nfvoLcmService.setNfvoLcmDriver(nmroLcmDriver);
+        }else {
             log.error("NFVO not configured!");
         }
     }
