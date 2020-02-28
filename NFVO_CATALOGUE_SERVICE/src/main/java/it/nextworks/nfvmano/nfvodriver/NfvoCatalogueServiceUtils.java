@@ -21,6 +21,7 @@ import it.nextworks.nfvmano.nfvodriver.logging.NfvoCatalogueLoggingDriver;
 import it.nextworks.nfvmano.nfvodriver.osm.OsmCatalogueDriver;
 import it.nextworks.nfvmano.nfvodriver.sol.SolCatalogueDriver;
 import it.nextworks.nfvmano.nfvodriver.timeo.TimeoCatalogueDriver;
+import it.nextworks.nfvmano.nfvodriver.dummy.DummyNfvoCatalogueDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,9 @@ public class NfvoCatalogueServiceUtils {
     @Value("${nfvo.catalogue.id:5g-catalogue}")
     private String nfvoCatalogueId;
 
+    @Value("${sebastian.localTmpDir:/tmp}")
+    private String tmpDir;
+
     @Autowired
     NfvoCatalogueService nfvoCatalogueService;
 
@@ -68,7 +72,7 @@ public class NfvoCatalogueServiceUtils {
             nfvoCatalogueService.setNfvoCatalogueDriver(new TimeoCatalogueDriver(nfvoCatalogueAddress, null));
         } else if(nfvoCatalogueType.equals("DUMMY")){
             log.debug("Configured for type:" + nfvoCatalogueType);
-            nfvoCatalogueService.setNfvoCatalogueDriver(new DummyNfvoCatalogueDriver(nfvoCatalogueAddress));
+            nfvoCatalogueService.setNfvoCatalogueDriver(new DummyNfvoCatalogueDriver(nfvoCatalogueAddress, tmpDir));
         } else if(nfvoCatalogueType.equals("OSM")){
             log.debug("Configured for type:" + nfvoCatalogueType);
             nfvoCatalogueService.setNfvoCatalogueDriver(new OsmCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null));

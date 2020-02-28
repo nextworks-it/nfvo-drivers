@@ -25,20 +25,13 @@ import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityExceptio
 import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
 import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
 import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.NsLcmConsumerInterface;
+import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.elements.ScaleNsData;
 import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsInfo;
-import it.nextworks.nfvmano.nfvodriver.NfvoLcmAbstractDriver;
-import it.nextworks.nfvmano.nfvodriver.NfvoLcmDriverType;
-import it.nextworks.nfvmano.nfvodriver.NfvoLcmNotificationInterface;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.*;
 
 public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 	
@@ -110,8 +103,23 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 
 	@Override
 	public String scaleNs(ScaleNsRequest request) throws MethodNotImplementedException, NotExistingEntityException,
-			FailedOperationException, MalformattedElementException {
-		throw new MethodNotImplementedException("Scale NS not supported");
+		FailedOperationException, MalformattedElementException {
+		request.isValid();
+		String nsInstanceId = request.getNsInstanceId();
+		log.debug("Received request to scale NS instance " + nsInstanceId);
+		if (nsInstances.containsKey(nsInstanceId)) {
+			log.debug("Generating new operation identifier");
+			UUID operationUuid = UUID.randomUUID();
+			String operationId = operationUuid.toString();
+			operations.put(operationId, OperationStatus.SUCCESSFULLY_DONE);
+			nfvoOperationPollingManager.addOperation(operationId, OperationStatus.SUCCESSFULLY_DONE, request.getNsInstanceId(), "NS_SCALING");
+			log.debug("Added polling task for NFVO operation " + operationId);
+			return operationId;
+		}
+		else {
+			log.error("NS instance "+ nsInstanceId + " not found");
+			throw new MethodNotImplementedException("Scale NS not supported");
+		}
 	}
 
 	@Override

@@ -30,6 +30,10 @@ public class KeyValuePairsString extends KeyValuePairs {
 	public void setKvs(List<KeyValuePair> kvs) {
 		this.kvs = kvs;
 	}
+	
+	public boolean isEmpty() {
+		return kvs.isEmpty();
+	}
 
 	@Override
 	public boolean equals(java.lang.Object o) {
@@ -55,7 +59,7 @@ public class KeyValuePairsString extends KeyValuePairs {
 		for (KeyValuePair kv : kvs) {
 			sb.append("    KVS: ").append("\n");
 			sb.append("    Key: ").append(toIndentedString(kv.getKey())).append("\n");
-			sb.append("    Key: ").append(toIndentedString(kv.getValue())).append("\n");
+			sb.append("    Value: ").append(toIndentedString(kv.getValue())).append("\n");
 		}  
 		sb.append("}");
 

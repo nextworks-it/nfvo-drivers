@@ -3,10 +3,11 @@ package it.nextworks.nfvmano.nfvodriver.sol5;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.springframework.beans.factory.annotation.Autowired;
 
 import it.nextworks.nfvmano.libs.ifa.common.enums.OperationStatus;
 import it.nextworks.nfvmano.libs.ifa.common.enums.ResponseCode;
@@ -32,10 +33,13 @@ import it.nextworks.nfvmano.nfvodriver.NfvoLcmNotificationInterface;
 import it.nextworks.nfvmano.nfvodriver.NfvoLcmOperationPollingManager;
 import it.nextworks.openapi.ApiClient;
 import it.nextworks.openapi.ApiException;
+import it.nextworks.openapi.ApiResponse;
 import it.nextworks.openapi.msno.DefaultApi;
 import it.nextworks.openapi.msno.model.CreateNsRequest;
 import it.nextworks.openapi.msno.model.NsInstance;
 import it.nextworks.openapi.msno.model.NsInstance2;
+import it.nextworks.openapi.msno.model.NsLcmOpOcc;
+import it.nextworks.openapi.msno.model.NsLcmOperationStateType;
 
 public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 
@@ -44,22 +48,39 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 	private DefaultApi restClient;
 	
 	private String version = "v1";
-	private String accept = "application/json";
+	private String accept = "*/*";
 	private String contentType = "application/json";
 	private String authorization = null;		//TODO: this is to be fixed - it should be the token
 	
 	private String callbackUri;
+	private String nfvoAddress;
+	
+	@Autowired
+	private NfvoLcmOperationPollingManager timeoNfvoOperationPollingManager;
 	
 	public Sol5NfvoLcmDriver(String nfvoAddress,
 			NfvoLcmNotificationInterface nfvoNotificationsManager,
 			NfvoLcmOperationPollingManager timeoNfvoOperationPollingManager,
 			String callbackUri) {
 		super(NfvoLcmDriverType.SOL_5, nfvoAddress, nfvoNotificationsManager);
+		this.timeoNfvoOperationPollingManager = timeoNfvoOperationPollingManager;
+		this.nfvoAddress = nfvoAddress;
 		ApiClient ac = new ApiClient();
 		String url = "http://" + nfvoAddress + "/nslcm/v1";
-		ac.setBasePath(url);
+		ac = ac.setBasePath(url);
+		this.restClient = new DefaultApi(ac);
+		log.debug("SOL 5 driver configured with base path: " + restClient.getApiClient().getBasePath());
 		this.callbackUri = callbackUri;
 	}
+
+	/*
+	public setApiEndpoint() {
+		ApiClient ac = new ApiClient();
+		String url = "http://" + this.nfvoAddress + "/nslcm/v1";
+		ac.setBasePath(url);
+		restClient.setApiClient(ac);
+	}
+	*/
 	
 	public String createNsIdentifier(CreateNsIdentifierRequest request) 
 			throws MethodNotImplementedException, NotExistingEntityException, FailedOperationException, MalformattedElementException {
@@ -67,12 +88,15 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 		request.isValid();
 		log.debug("Building create NS identifier request in SOL 005 format");
 		CreateNsRequest body = IfaSolLcmTranslator.buildSolCreateNsRequest(request);
+		log.debug("Create NS request {}", body.toString());
 		try {
 			NsInstance nsInstance = restClient.nsInstancesPost(version, accept, contentType, body, authorization);
+			log.debug("NS instance response {}", nsInstance.toString());
 			String nsId = nsInstance.getId();
 			log.debug("Created NS instance with ID " + nsId);
 			return nsId;
 		} catch (ApiException e) {
+			log.error("Error creating new instance {}", e.getMessage());
 			throw new FailedOperationException("Failure when interacting with NFVO: " + e.getMessage());
 		}
 	}
@@ -84,11 +108,14 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 		log.debug("Building instantiate NS request in SOL 005 format");
 		String nsInstanceId = request.getNsInstanceId();
 		it.nextworks.openapi.msno.model.InstantiateNsRequest body = IfaSolLcmTranslator.buildSolInstantiateNsRequest(request);
+		log.debug("Instantiated ns request {}", body.toString());
 		try {
-			NsInstance2 nsInstance = restClient.nsInstancesNsInstanceIdInstantiatePost(nsInstanceId, accept, contentType, version, body, authorization);
-			String operationId = "";	//TODO: this must be fixed when the new version of the REST API is available.
+			ApiResponse<NsInstance2> nsInstanceResponse = restClient.nsInstancesNsInstanceIdInstantiatePostWithHttpInfo(nsInstanceId, accept, contentType, version, body, authorization);
+			String operationId = readOperationIdFromResponse(nsInstanceResponse);
+			timeoNfvoOperationPollingManager.addOperation(operationId, OperationStatus.SUCCESSFULLY_DONE, request.getNsInstanceId(), "NS_INSTANTIATION");
 			return operationId;
 		} catch (ApiException e) {
+			log.error("Error instantiating new instance {}", e.getMessage());
 			throw new FailedOperationException("Failure when interacting with NFVO: " + e.getMessage());
 		}
 	}
@@ -125,8 +152,9 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 		log.debug("Building terminate NS request in SOL 005 format");
 		it.nextworks.openapi.msno.model.TerminateNsRequest body = IfaSolLcmTranslator.buildSolTerminateNsRequest(request);
 		try {
-			restClient.nsInstancesNsInstanceIdTerminatePost(request.getNsInstanceId(), accept, contentType, version, body, authorization);
-			String operationId = "";	//TODO: this must be fixed when the new version of the REST API is available.
+			ApiResponse<NsInstance2> nsInstanceResponse = restClient.nsInstancesNsInstanceIdTerminatePostWithHttpInfo(request.getNsInstanceId(), accept, contentType, version, body, authorization);
+			String operationId = readOperationIdFromResponse(nsInstanceResponse);
+			timeoNfvoOperationPollingManager.addOperation(operationId, OperationStatus.SUCCESSFULLY_DONE, request.getNsInstanceId(), "NS_TERMINATION");
 			return operationId;
 		} catch (ApiException e) {
 			throw new FailedOperationException("Failure when interacting with NFVO: " + e.getMessage());
@@ -148,7 +176,18 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 	}
 	
 	public OperationStatus getOperationStatus(String operationId) throws MethodNotImplementedException, NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		throw new MethodNotImplementedException();
+		if (operationId == null) throw new MalformattedElementException("Request operation with null ID");
+		log.debug("Getting information about LCM operation with ID " + operationId);
+		try {
+			NsLcmOpOcc operation = restClient.nsLcmOpOccsNsLcmOpOccIdGet(operationId, accept, contentType, version, authorization);
+			if (operation == null) throw new NotExistingEntityException("Operation with ID " + operationId + " not found");
+			log.debug("Retrieved operation: " + operationId.toString());
+			OperationStatus status = translateOperationStatus(operation.getOperationState());
+			log.debug("Operation status: " + status.toString());
+			return status;
+		} catch (ApiException e) {
+			throw new FailedOperationException("Failure when interacting with NFVO: " + e.getMessage());
+		}
 	}
 
 	public String subscribeNsLcmEvents(SubscribeRequest request, NsLcmConsumerInterface consumer) throws MethodNotImplementedException, MalformattedElementException, FailedOperationException {
@@ -161,6 +200,43 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 	
 	public void queryNsSubscription(GeneralizedQueryRequest request) throws MethodNotImplementedException, NotExistingEntityException, FailedOperationException, MalformattedElementException {
 		throw new MethodNotImplementedException();
+	}
+	
+	private String readOperationIdFromResponse(ApiResponse<?> nsInstanceResponse) throws FailedOperationException {
+		log.debug("Reading operation ID from HTTP response: ");
+		Map<String, List<String>> headers = nsInstanceResponse.getHeaders();
+		List<String> locations = headers.get("Location");
+		if (locations != null) {
+			String operationUrl = locations.get(0);
+			if (operationUrl == null) throw new FailedOperationException("Missing operation ID in location response header."); 
+			String opUrls[] = operationUrl.split("/");
+			int x = opUrls.length;
+			if (x < 1) throw new FailedOperationException("Missing operation ID in location response header.");
+			String operationId = opUrls[x-1];
+			log.debug("Operation ID: " + operationId);
+			return operationId;
+		} else {
+			log.error("Missing operation ID in location response header.");
+			throw new FailedOperationException("Missing operation ID in location response header.");
+		}
+	}
+	
+	private OperationStatus translateOperationStatus(NsLcmOperationStateType state) {
+		switch (state) {
+		case PROCESSING:
+			return OperationStatus.PROCESSING;
+
+		case COMPLETED:
+			return OperationStatus.SUCCESSFULLY_DONE;
+			
+		case FAILED:
+			return OperationStatus.FAILED;
+			
+		default: {
+			log.error("Unexpected operation status, returning failed");
+			return OperationStatus.FAILED;
+		}
+		}
 	}
 
 }
