@@ -48,11 +48,12 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 	private DefaultApi restClient;
 	
 	private String version = "v1";
-	private String accept = "application/json";
+	private String accept = "*/*";
 	private String contentType = "application/json";
 	private String authorization = null;		//TODO: this is to be fixed - it should be the token
 	
 	private String callbackUri;
+	private String nfvoAddress;
 	
 	@Autowired
 	private NfvoLcmOperationPollingManager timeoNfvoOperationPollingManager;
@@ -63,11 +64,23 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 			String callbackUri) {
 		super(NfvoLcmDriverType.SOL_5, nfvoAddress, nfvoNotificationsManager);
 		this.timeoNfvoOperationPollingManager = timeoNfvoOperationPollingManager;
+		this.nfvoAddress = nfvoAddress;
 		ApiClient ac = new ApiClient();
 		String url = "http://" + nfvoAddress + "/nslcm/v1";
-		ac.setBasePath(url);
+		ac = ac.setBasePath(url);
+		this.restClient = new DefaultApi(ac);
+		log.debug("SOL 5 driver configured with base path: " + restClient.getApiClient().getBasePath());
 		this.callbackUri = callbackUri;
 	}
+
+	/*
+	public setApiEndpoint() {
+		ApiClient ac = new ApiClient();
+		String url = "http://" + this.nfvoAddress + "/nslcm/v1";
+		ac.setBasePath(url);
+		restClient.setApiClient(ac);
+	}
+	*/
 	
 	public String createNsIdentifier(CreateNsIdentifierRequest request) 
 			throws MethodNotImplementedException, NotExistingEntityException, FailedOperationException, MalformattedElementException {
@@ -75,12 +88,15 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 		request.isValid();
 		log.debug("Building create NS identifier request in SOL 005 format");
 		CreateNsRequest body = IfaSolLcmTranslator.buildSolCreateNsRequest(request);
+		log.debug("Create NS request {}", body.toString());
 		try {
 			NsInstance nsInstance = restClient.nsInstancesPost(version, accept, contentType, body, authorization);
+			log.debug("NS instance response {}", nsInstance.toString());
 			String nsId = nsInstance.getId();
 			log.debug("Created NS instance with ID " + nsId);
 			return nsId;
 		} catch (ApiException e) {
+			log.error("Error creating new instance {}", e.getMessage());
 			throw new FailedOperationException("Failure when interacting with NFVO: " + e.getMessage());
 		}
 	}
@@ -92,12 +108,14 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 		log.debug("Building instantiate NS request in SOL 005 format");
 		String nsInstanceId = request.getNsInstanceId();
 		it.nextworks.openapi.msno.model.InstantiateNsRequest body = IfaSolLcmTranslator.buildSolInstantiateNsRequest(request);
+		log.debug("Instantiated ns request {}", body.toString());
 		try {
 			ApiResponse<NsInstance2> nsInstanceResponse = restClient.nsInstancesNsInstanceIdInstantiatePostWithHttpInfo(nsInstanceId, accept, contentType, version, body, authorization);
 			String operationId = readOperationIdFromResponse(nsInstanceResponse);
 			timeoNfvoOperationPollingManager.addOperation(operationId, OperationStatus.SUCCESSFULLY_DONE, request.getNsInstanceId(), "NS_INSTANTIATION");
 			return operationId;
 		} catch (ApiException e) {
+			log.error("Error instantiating new instance {}", e.getMessage());
 			throw new FailedOperationException("Failure when interacting with NFVO: " + e.getMessage());
 		}
 	}

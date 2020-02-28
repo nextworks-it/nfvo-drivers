@@ -79,6 +79,7 @@ public class ApiClient {
     public ApiClient() {
         httpClient = new OkHttpClient();
 
+        httpClient.networkInterceptors().add(new FixContentTypeInterceptor());
 
         verifyingSsl = true;
 

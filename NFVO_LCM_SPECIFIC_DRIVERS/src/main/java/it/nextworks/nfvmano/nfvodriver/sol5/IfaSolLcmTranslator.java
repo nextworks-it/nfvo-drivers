@@ -49,35 +49,36 @@ public class IfaSolLcmTranslator {
 		List<AffinityOrAntiAffinityRule> additionalAffinityOrAntiAffinityRule = new ArrayList<AffinityOrAntiAffinityRule>();
 		List<AffinityRule> ars = request.getAdditionalAffinityOrAntiAffinityRule();
 		for (AffinityRule ar : ars) additionalAffinityOrAntiAffinityRule.add(translateAffinityRule(ar));
-		body.setAdditionalAffinityOrAntiAffinityRule(additionalAffinityOrAntiAffinityRule);
+		if (!additionalAffinityOrAntiAffinityRule.isEmpty()) body.setAdditionalAffinityOrAntiAffinityRule(additionalAffinityOrAntiAffinityRule);
 		
 		List<ParamsForNestedNs> additionalParamForNestedNs = new ArrayList<>();
 		//This is not available in IFA
-		body.setAdditionalParamForNestedNs(additionalParamForNestedNs);
+		if (!additionalParamForNestedNs.isEmpty()) body.setAdditionalParamForNestedNs(additionalParamForNestedNs);
 		
 		Map<String,String> apn = request.getAdditionalParamForNs();
 		KeyValuePairsString additionalParamsForNs = translateStringMap(apn);
-		body.setAdditionalParamsForNs(additionalParamsForNs);
+		if (!additionalParamsForNs.isEmpty()) body.setAdditionalParamsForNs(additionalParamsForNs);
 		
 		List<it.nextworks.openapi.msno.model.ParamsForVnf> additionalParamsForVnf = new ArrayList<>();
 		List<it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.elements.ParamsForVnf> inputPfvs = request.getAdditionalParamForVnf();
 		for (it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.elements.ParamsForVnf inputPfv : inputPfvs) {
 			additionalParamsForVnf.add(translateParamsForVnf(inputPfv));
 		}
-		body.setAdditionalParamsForVnf(additionalParamsForVnf);
+		if (!additionalParamsForVnf.isEmpty()) body.setAdditionalParamsForVnf(additionalParamsForVnf);
+		
 		
 		List<AddPnfData> addpnfData = new ArrayList<>();
 		List<PnfInfo> pnfInfos = request.getPnfInfo();
 		for (PnfInfo pnfInfo : pnfInfos) {
 			addpnfData.add(translatePnfInfo(pnfInfo));
 		}
-		body.setAddpnfData(addpnfData);
+		if (!addpnfData.isEmpty()) body.setAddpnfData(addpnfData);
 		
 		List<it.nextworks.openapi.msno.model.VnfLocationConstraint> localizationLanguage = new ArrayList<>();
 		List<it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.elements.VnfLocationConstraints> locationConstraints = request.getLocationConstraints();
 		for (it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.elements.VnfLocationConstraints lc : locationConstraints)
 			localizationLanguage.add(translateVnfLocationConstraints(lc));
-		body.setLocalizationLanguage(localizationLanguage);
+		if (!localizationLanguage.isEmpty()) body.setLocalizationLanguage(localizationLanguage);
 		
 		List<it.nextworks.openapi.msno.model.NestedNsInstanceData> nestedNsInstanceData = new ArrayList<>();
 		List<String> nestedNsInstanceIds = request.getNestedNsInstanceId();
@@ -87,7 +88,7 @@ public class IfaSolLcmTranslator {
 			nestedData.setNsProfileId(null);
 			nestedNsInstanceData.add(nestedData);
 		}
-		body.setNestedNsInstanceData(nestedNsInstanceData);
+		if (!nestedNsInstanceData.isEmpty()) body.setNestedNsInstanceData(nestedNsInstanceData);
 		
 		String nsFlavourId = request.getFlavourId();
 		body.setNsFlavourId(nsFlavourId);
@@ -100,7 +101,7 @@ public class IfaSolLcmTranslator {
 		for (it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.elements.SapData sap : inSapData) {
 			sapData.add(translateSapData(sap));
 		}
-		body.setSapData(sapData);
+		if (!sapData.isEmpty()) body.setSapData(sapData);
 		
 		if (request.getStartTime() != null)
 			body.setStartTime(request.getStartTime().toString());
@@ -110,7 +111,7 @@ public class IfaSolLcmTranslator {
 		for (it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.elements.VnfInstanceData inVnfInstance : inVnfInstanceData) {
 			vnfInstanceData.add(translateVnfInstanceData(inVnfInstance));
 		}
-		body.setVnfInstanceData(vnfInstanceData);
+		if (!vnfInstanceData.isEmpty()) body.setVnfInstanceData(vnfInstanceData);
 		return body;
 	}
 	
