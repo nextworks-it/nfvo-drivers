@@ -13,7 +13,9 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package it.nextworks.nfvmano.nfvodriver;
+package it.nextworks.nfvmano.nfvodriver.dummy;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo;
 import it.nextworks.nfvmano.libs.ifa.common.elements.Filter;
@@ -31,25 +33,36 @@ import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
 import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.Nsd;
-import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.SecurityParameters;
+import it.nextworks.nfvmano.libs.ifa.descriptors.onboardedvnfpackage.OnboardedVnfPkgInfo;
+import it.nextworks.nfvmano.libs.ifa.descriptors.vnfd.Vnfd;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueAbstractDriver;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueDriverType;
-import it.nextworks.nfvmano.nfvodriver.timeo.TimeoCatalogueRestClient;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpMethod;
+import org.springframework.util.StreamUtils;
+import org.springframework.web.client.RestTemplate;
 
-import java.io.File;
+import java.io.*;
+import java.nio.charset.Charset;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 
 	private Map<String, Nsd> nsds = new HashMap<>();
 	private static final Logger log = LoggerFactory.getLogger(DummyNfvoCatalogueDriver.class);
+	private FileUtilities fileUtilities;
+	private long lastVnfPkgInfoId;
+	private ArrayList<OnboardedVnfPkgInfo> vnfPkgInfos = new ArrayList<>();
 
-	public DummyNfvoCatalogueDriver(String nfvoAddress) {
+	public DummyNfvoCatalogueDriver(String nfvoAddress, String tmpDir) {
 		super(NfvoCatalogueDriverType.DUMMY, nfvoAddress, null);
-		String uuidNSD = onBoardFakeNsd();
-		log.info("On boarded NSD with ID "+uuidNSD);
+		//String uuidNSD = onBoardFakeNsd();
+		this.fileUtilities = new FileUtilities(tmpDir);
+		//log.info("On boarded NSD with ID "+uuidNSD);
 	}
 
 
@@ -72,8 +85,68 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 			log.error("Error on boarding Fake nsd");
 			return null;
 		}
+
+
 	}
 
+	private OnBoardVnfPackageResponse fakeOnBoardVnfPackage(OnBoardVnfPackageRequest request)
+			throws MethodNotImplementedException, AlreadyExistingEntityException, FailedOperationException,
+			MalformattedElementException {
+		RestTemplate restTemplate = new RestTemplate();
+		String vnfPackagePath = request.getVnfPackagePath();
+        log.debug("Getting VNF package");
+
+
+        log.debug("Retrieving VNFD from VNF package");
+		String folder = null;
+		try {
+			String downloadedFile = fileUtilities.downloadFile(vnfPackagePath);
+			folder = fileUtilities.extractFile(downloadedFile);
+			File jsonFile = fileUtilities.findJsonFileInDir(folder);
+			Charset encoding = null;
+			String json = FileUtils.readFileToString(jsonFile, encoding);
+			log.debug("VNFD json: \n" + json);
+
+			ObjectMapper mapper = new ObjectMapper();
+			Vnfd vnfd = (Vnfd) mapper.readValue(json, Vnfd.class);
+			log.debug("VNFD correctly parsed.");
+
+			log.debug("Cleaning local directory");
+			fileUtilities.removeFileAndFolder(downloadedFile, folder);
+			OnboardedVnfPkgInfo pkgInfo = createVnfPkgInfoFromVnfd(vnfd);
+			vnfPkgInfos.add(pkgInfo);
+			OnBoardVnfPackageResponse response = new OnBoardVnfPackageResponse(pkgInfo.getOnboardedVnfPkgInfoId(), vnfd.getVnfdId());
+			return response;
+		} catch (ArchiveException e) {
+			throw new FailedOperationException(e.getMessage());
+		} catch (IOException e) {
+			throw new FailedOperationException(e.getMessage());
+		}
+
+
+
+
+	}
+
+	private OnboardedVnfPkgInfo createVnfPkgInfoFromVnfd(Vnfd vnfd){
+		String vnfPkgInfoId = (new Long(lastVnfPkgInfoId)).toString();
+		OnboardedVnfPkgInfo pkgInfo = new OnboardedVnfPkgInfo(vnfPkgInfoId,
+				vnfd.getVnfdId(),
+				vnfd.getVnfProvider(),
+				vnfd.getVnfProductName(),
+				vnfd.getVnfSoftwareVersion(),
+				vnfd.getVnfdVersion(),
+				"",
+				vnfd,
+				null,
+				null,
+				OperationalState.ENABLED,
+				UsageState.NOT_IN_USE,
+				false,
+				null);
+		lastVnfPkgInfoId++;
+		return pkgInfo;
+	}
 
 	@Override
 	public File fetchOnboardedApplicationPackage(String onboardedAppPkgId)
@@ -273,8 +346,7 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	public OnBoardVnfPackageResponse onBoardVnfPackage(OnBoardVnfPackageRequest request)
 			throws MethodNotImplementedException, AlreadyExistingEntityException, FailedOperationException,
 			MalformattedElementException {
-		// TODO Auto-generated method stub
-		return null;
+		return fakeOnBoardVnfPackage(request);
 	}
 
 	@Override
@@ -301,8 +373,35 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public QueryOnBoardedVnfPkgInfoResponse queryVnfPackageInfo(GeneralizedQueryRequest request)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
-		// TODO Auto-generated method stub
-		return null;
+		Filter  filter =request.getFilter();
+		Map<String, String> params = filter.getParameters();
+		if(params.containsKey("VNF_PACKAGE_PRODUCT_NAME") && params.containsKey("VNF_PACKAGE_SW_VERSION")&& params.containsKey("VNF_PACKAGE_PROVIDER")){
+
+			String vnfPackageProductName = params.get("VNF_PACKAGE_PRODUCT_NAME");
+			String vnfPackageSwVersion = params.get("VNF_PACKAGE_SW_VERSION");
+			String vnfPackageProvider = params.get("VNF_PACKAGE_PROVIDER");
+			List<OnboardedVnfPkgInfo> filtered  = vnfPkgInfos.stream()
+					.filter(pkgInfo -> pkgInfo.getVnfProductName().equals(vnfPackageProductName)&&
+							pkgInfo.getVnfSoftwareVersion().equals(vnfPackageSwVersion)&&
+							pkgInfo.getVnfProvider().equals(vnfPackageProvider))
+					.collect(Collectors.toList());
+			return new QueryOnBoardedVnfPkgInfoResponse(filtered);
+		}else if(params.containsKey("VNF_PACKAGE_ID")){
+			String vnfPackageId = params.get("VNF_PACKAGE_ID");
+			List<OnboardedVnfPkgInfo> filtered  = vnfPkgInfos.stream()
+					.filter(pkgInfo -> pkgInfo.getOnboardedVnfPkgInfoId().equals(vnfPackageId)		)
+					.collect(Collectors.toList());
+			return new QueryOnBoardedVnfPkgInfoResponse(filtered);
+
+		}else if(params.containsKey("VNFD_ID")){
+			String vnfdId = params.get("VNFD_ID");
+			List<OnboardedVnfPkgInfo> filtered  = vnfPkgInfos.stream()
+					.filter(pkgInfo -> pkgInfo.getVnfdId().equals(vnfdId)		)
+					.collect(Collectors.toList());
+			return new QueryOnBoardedVnfPkgInfoResponse(filtered);
+
+		}else throw  new MalformattedElementException("Unsupported VNF Package filter");
+
 	}
 
 	@Override
