@@ -375,8 +375,9 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
 		Filter  filter =request.getFilter();
 		Map<String, String> params = filter.getParameters();
+		log.info("Performing queryVnfPackageInfo");
 		if(params.containsKey("VNF_PACKAGE_PRODUCT_NAME") && params.containsKey("VNF_PACKAGE_SW_VERSION")&& params.containsKey("VNF_PACKAGE_PROVIDER")){
-
+			log.info("Querying queryVnfPackageInfo by VNF_PACKAGE_PRODUCT_NAME, VNF_PACKAGE_SW_VERSION and VNF_PACKAGE_PROVIDER");
 			String vnfPackageProductName = params.get("VNF_PACKAGE_PRODUCT_NAME");
 			String vnfPackageSwVersion = params.get("VNF_PACKAGE_SW_VERSION");
 			String vnfPackageProvider = params.get("VNF_PACKAGE_PROVIDER");
@@ -387,6 +388,7 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 					.collect(Collectors.toList());
 			return new QueryOnBoardedVnfPkgInfoResponse(filtered);
 		}else if(params.containsKey("VNF_PACKAGE_ID")){
+			log.info("Querying queryVnfPackageInfo by VNF_PACKAGE_ID");
 			String vnfPackageId = params.get("VNF_PACKAGE_ID");
 			List<OnboardedVnfPkgInfo> filtered  = vnfPkgInfos.stream()
 					.filter(pkgInfo -> pkgInfo.getOnboardedVnfPkgInfoId().equals(vnfPackageId)		)
@@ -394,10 +396,16 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 			return new QueryOnBoardedVnfPkgInfoResponse(filtered);
 
 		}else if(params.containsKey("VNFD_ID")){
+
 			String vnfdId = params.get("VNFD_ID");
+			log.info("Querying queryVnfPackageInfo by VNFD_ID equal to :"+vnfdId);
 			List<OnboardedVnfPkgInfo> filtered  = vnfPkgInfos.stream()
 					.filter(pkgInfo -> pkgInfo.getVnfdId().equals(vnfdId)		)
 					.collect(Collectors.toList());
+			for(OnboardedVnfPkgInfo onboardedVnfPkgInfo: vnfPkgInfos){
+				log.info("vnfdID not filtered:" +onboardedVnfPkgInfo.getVnfdId());
+			}
+			log.info("filtered size: "+filtered.size());
 			return new QueryOnBoardedVnfPkgInfoResponse(filtered);
 
 		}else throw  new MalformattedElementException("Unsupported VNF Package filter");
