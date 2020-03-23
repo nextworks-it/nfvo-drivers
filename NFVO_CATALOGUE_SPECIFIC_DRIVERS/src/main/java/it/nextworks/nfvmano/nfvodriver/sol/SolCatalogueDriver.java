@@ -183,7 +183,15 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 		for (NsDf df : nsd.getNsDf()) { // need to generate a sol nsd for each ns Profile in ifa descriptor
 				for (NsLevel nsIl : df.getNsInstantiationLevel()) {
 
-					DescriptorTemplate dt = IfaToSolTranslator.translateIfaToSolNsd(nsd, df, nsIl, this);
+					String compressFilePath = IfaToSolTranslator.createCsarPackageForNsdDfIl(nsd, df, nsIl);
+					File nsFile = new File(compressFilePath);
+					try {
+						String nsId = nsdApi.uploadNetworkService(nsFile.getAbsolutePath(), this.project, contentType, keyValuePair, authorization );
+					} catch (IOException e) {
+						log.error("Error during NS upload!",e);
+						throw new FailedOperationException(e.getMessage());
+					}
+					/*DescriptorTemplate dt = IfaToSolTranslator.translateIfaToSolNsd(nsd, df, nsIl);
 					if(dt!=null){
 						try {
 							File nsFile = new File(this.getNsdFile(dt));
@@ -199,7 +207,7 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 					}else{
 						log.error("Error during IFA to SOL translation");
 						throw  new FailedOperationException("Error during IFA to SOL translation");
-					}
+					}*/
 
 
 				}
@@ -349,21 +357,7 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	}
 
 
-	private String getNsdFile (DescriptorTemplate template) throws IOException {
-		File nsdFile = File.createTempFile("nsd", ".yaml");
-		log.debug("Using file: "+nsdFile.getPath()+" to store NSD: "+template.getMetadata());
-		ObjectMapper mapper = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
-		String obtainedNsd = mapper.writeValueAsString(template);
-		log.debug("Obtained NSD:"+obtainedNsd);
-		BufferedWriter writer = new BufferedWriter(new FileWriter(nsdFile));
-		writer.write(obtainedNsd);
 
-		writer.close();
-
-		return nsdFile.getAbsolutePath();
-
-
-	}
 
 	public VnfPkgInfo getVnfdIdPackageInfo(String vnfdId){
         String authorization = null;
