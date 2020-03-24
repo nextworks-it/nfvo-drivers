@@ -183,7 +183,7 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 		for (NsDf df : nsd.getNsDf()) { // need to generate a sol nsd for each ns Profile in ifa descriptor
 				for (NsLevel nsIl : df.getNsInstantiationLevel()) {
 
-					String compressFilePath = IfaToSolTranslator.createCsarPackageForNsdDfIl(nsd, df, nsIl);
+					String compressFilePath = IfaToSolTranslator.createCsarPackageForNsdDfIl(nsd, df, nsIl, this);
 					File nsFile = new File(compressFilePath);
 					try {
 						String nsId = nsdApi.uploadNetworkService(nsFile.getAbsolutePath(), this.project, contentType, keyValuePair, authorization );
@@ -317,7 +317,16 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public QueryOnBoardedVnfPkgInfoResponse queryVnfPackageInfo(GeneralizedQueryRequest request)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
-		throw new MethodNotImplementedException();
+		String authorization = null;
+		if(request.getFilter().getParameters().containsKey("VNFD_ID")){
+			String vnfdId = request.getFilter().getParameters().get("VNFD_ID");
+
+			List<VnfPkgInfo> vnfPkgInfos = nsdApi.getVnfPackageInfoList(this.project,authorization,vnfdId);
+			return IfaToSolTranslator.translateQueryVnfPackageInfo(request, vnfPkgInfos);
+
+		}else throw new MethodNotImplementedException("Unsupported query filter");
+
+
 	}
 
 	@Override
@@ -359,10 +368,7 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 
 
 
-	public VnfPkgInfo getVnfdIdPackageInfo(String vnfdId){
-        String authorization = null;
-	    return nsdApi.getVnfPackageInfoList(this.project,authorization,vnfdId).get(0);
-    }
+
 
     public DescriptorTemplate getVNFD(String vnfPkgId){
 	    return nsdApi.getVNFD(vnfPkgId, this.project, null);
@@ -371,36 +377,4 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 
 }
 
-class NsdDfIlKey{
 
-
-	private String nsdId;
-	private String instantiationLevel;
-	private String deploymentFlavor;
-
-	public NsdDfIlKey(String nsdId, String instantiationLevel, String deploymentFlavor) {
-		this.nsdId = nsdId;
-		this.instantiationLevel = instantiationLevel;
-		this.deploymentFlavor = deploymentFlavor;
-	}
-
-	public String getNsdId() {
-		return nsdId;
-	}
-
-	public String getInstantiationLevel() {
-		return instantiationLevel;
-	}
-
-	public String getDeploymentFlavor() {
-		return deploymentFlavor;
-	}
-
-	@Override
-	public boolean equals(Object o){
-		if(o instanceof NsdDfIlKey){
-			NsdDfIlKey key = (NsdDfIlKey)o;
-			return nsdId.equals(key.getNsdId())&&instantiationLevel.equals(key.getInstantiationLevel())&&deploymentFlavor.equals(key.getDeploymentFlavor());
-		}else return false;
-	}
-}
