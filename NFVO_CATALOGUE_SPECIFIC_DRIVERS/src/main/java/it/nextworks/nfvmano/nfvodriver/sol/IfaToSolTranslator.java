@@ -9,7 +9,9 @@ import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import it.nextworks.nfvmano.libs.descriptors.interfaces.LcmOperation;
@@ -58,6 +60,10 @@ import it.nextworks.nfvmano.libs.descriptors.vnfd.nodes.VNF.VNFRequirements;
 import it.nextworks.nfvmano.libs.ifa.descriptors.onboardedvnfpackage.OnboardedVnfPkgInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.USE_NATIVE_OBJECT_ID;
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.USE_NATIVE_TYPE_ID;
+import static com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature.WRITE_DOC_START_MARKER;
 
 public class IfaToSolTranslator {
 
@@ -132,7 +138,7 @@ public class IfaToSolTranslator {
          */
         Map<String, Node> nodeTemplates = new HashMap<>();    
         //Set NS Node
-        NSNode nsNode = new NSNode("tosca.nodes.nfv.NS", null, null);
+        NSNode nsNode = new NSNode(null, null, null);
 
         NSProperties nsProperties = new NSProperties(nsDescriptorId, nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf().get(0).getNsDfId() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ));
         nsNode.setProperties(nsProperties);
@@ -252,7 +258,7 @@ public class IfaToSolTranslator {
 				null, null, null, null, flavourId, "", null);
 
 		VNFRequirements vnfRequirements = new VNFRequirements(vnfVirtualLink);
-		VNFNode vnfNode = new VNFNode("tosca.nodes.nfv.VNF", null, null,null, null, null);
+		VNFNode vnfNode = new VNFNode(null, null, null,null, null, null);
 		vnfNode.setProperties(vnfProperties);
 		vnfNode.setRequirements(vnfRequirements);
 		return vnfNode;
@@ -297,7 +303,7 @@ public class IfaToSolTranslator {
 		} catch (NotExistingEntityException e) {
 			throw new FailedOperationException(e.getMessage());
 		}
-		NsVirtualLinkNode vlNode = new 	NsVirtualLinkNode("tosca.nodes.nfv.NsVirtualLink",null, null);
+		NsVirtualLinkNode vlNode = new 	NsVirtualLinkNode(null,null, null);
 		NsVirtualLinkProperties nsVirtualLinkProperties = new NsVirtualLinkProperties();
 		nsVirtualLinkProperties.setDescription(virtualLinkDesc.getDescription());
 		VlProfile vlProfile = new VlProfile();
@@ -608,15 +614,21 @@ public class IfaToSolTranslator {
 	private static void createNsdFileDefinition (DescriptorTemplate template, String nsDefinitionPath) throws IOException {
 		File nsdFile = new File(nsDefinitionPath);
 		log.debug("Using file: "+nsdFile.getPath()+" to store NSD: "+template.getMetadata());
-		ObjectMapper mapper = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
+		final YAMLFactory yamlFactory = new YAMLFactory()
+				.configure(USE_NATIVE_TYPE_ID, false)
+				.configure(USE_NATIVE_OBJECT_ID, false)
+				.configure(WRITE_DOC_START_MARKER, false);
+
+
+		ObjectMapper mapper = new ObjectMapper(yamlFactory);
+
+		mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+		mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 		String obtainedNsd = mapper.writeValueAsString(template);
 		log.debug("Obtained NSD:"+obtainedNsd);
 		BufferedWriter writer = new BufferedWriter(new FileWriter(nsdFile));
 		writer.write(obtainedNsd);
-
 		writer.close();
-
-
 
 
 	}
