@@ -17,6 +17,7 @@ package it.nextworks.nfvmano.nfvodriver;
 
 
 
+import edu.upc.gco.slcnt.orch.nmro.driver.catalogue.NmroCatalogueDriver;
 import it.nextworks.nfvmano.nfvodriver.logging.NfvoCatalogueLoggingDriver;
 import it.nextworks.nfvmano.nfvodriver.osm.OsmCatalogueDriver;
 import it.nextworks.nfvmano.nfvodriver.sol.SolCatalogueDriver;
@@ -64,7 +65,6 @@ public class NfvoCatalogueServiceUtils {
     public void initNfvoCatalogueDriver() {
         log.debug("Initializing NFVO CATALOGUE driver for type:" + nfvoCatalogueType);
         if (nfvoCatalogueType.equals("LOGGING")) {
-
             log.debug("Configured for type:" + nfvoCatalogueType);
             nfvoCatalogueService.setNfvoCatalogueDriver(new NfvoCatalogueLoggingDriver());
         } else if (nfvoCatalogueType.equals("TIMEO")) {
@@ -79,7 +79,11 @@ public class NfvoCatalogueServiceUtils {
         } else if(nfvoCatalogueType.equals("SOL_005")){
             log.debug("Configured for type:" + nfvoCatalogueType);
             nfvoCatalogueService.setNfvoCatalogueDriver(new SolCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, nfvoCatalogueId,null));
-        } else {
+        }else if(nfvoCatalogueType.equals("NMRO")){
+            log.debug("Configured for type:" + nfvoCatalogueType);
+            nfvoCatalogueService.setNfvoCatalogueDriver(new NmroCatalogueDriver(NfvoCatalogueDriverType.NMRO, nfvoCatalogueAddress, null));
+        }
+        else {
             log.error("NFVO not configured!");
         }
     }

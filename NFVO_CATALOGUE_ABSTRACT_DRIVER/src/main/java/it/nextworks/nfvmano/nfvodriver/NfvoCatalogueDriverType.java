@@ -22,6 +22,7 @@ public enum NfvoCatalogueDriverType {
     CLOUDIFY,
     DUMMY,
     LOGGING,
-    SOL_005
+    SOL_005,
+    NMRO
 
 }

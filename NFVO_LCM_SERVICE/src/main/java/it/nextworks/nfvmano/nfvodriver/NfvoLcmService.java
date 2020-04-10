@@ -131,9 +131,7 @@ public class NfvoLcmService implements NsLcmProviderInterface {
 
 
 	public void setNfvoLcmDriver(NfvoLcmAbstractDriver driver){
-
 		log.debug("The system is configured to operate over the "+driver.getNfvoDriverType()+" NFVO LCM driver");
-
 		this.nfvoLcmDriver =driver;
 		this.nfvoLcmDriver.setNfvoLcmNotificationManager(nfvoLcmNotificationManager);
 	}

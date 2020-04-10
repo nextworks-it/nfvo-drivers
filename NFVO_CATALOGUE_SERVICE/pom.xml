@@ -65,6 +65,12 @@
 			<version>0.0.2-SNAPSHOT</version>
 		</dependency>
 
+
+		<dependency>
+			<groupId>edu.upc.gco.slcnt.orch</groupId>
+			<artifactId>nmro-driver</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
 
 
