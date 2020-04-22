@@ -45,7 +45,7 @@ import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
 public class NfvoLcmService implements NsLcmProviderInterface {
 	
 	private static final Logger log = LoggerFactory.getLogger(NfvoLcmService.class);
-	
+
 
 	private NfvoLcmAbstractDriver nfvoLcmDriver;
 	
@@ -135,4 +135,8 @@ public class NfvoLcmService implements NsLcmProviderInterface {
 		this.nfvoLcmDriver =driver;
 		this.nfvoLcmDriver.setNfvoLcmNotificationManager(nfvoLcmNotificationManager);
 	}
+	public NfvoLcmAbstractDriver getNfvoLcmDriver() {
+		return nfvoLcmDriver;
+	}
+
 }
