@@ -134,7 +134,7 @@ public class IfaToSolTranslator {
 		 * 					name : nsDf > nsProfile > nsdId
 		 * 					invariantId : nsdInvariantId + nsDf > nsDfId + nsDf > nsInstantiationLevel > nsLevelId *TO BE CLARIFIED* *TO BE CLARIFIED*
 		 *				requirements
-		 *					virtualLink (list): nsDf > virtualLinkProfile > virtualLinkDescId 
+		 *					virtualLink (list): nsDf > virtualLinkProfile > virtualLinkDescId  //OVERSEED: ONLY NEEDED TO MAP VIRTUAL LINKS OF COMPOSED NSDS
          */
         Map<String, Node> nodeTemplates = new HashMap<>();    
         //Set NS Node
@@ -156,8 +156,8 @@ public class IfaToSolTranslator {
 			}
 		}
         
-    	NSRequirements nsRequirements = getNsRequirements(nsd, nsDf, nsIl, virtualLinkProfileIds, vlProfileToLinkDesc);
-
+    	//NSRequirements nsRequirements = getNsRequirements(nsd, nsDf, nsIl, virtualLinkProfileIds, vlProfileToLinkDesc);
+        NSRequirements nsRequirements = null;
 		NSInterfaces nsInterfaces = getNsInterfaces(nsd);
 		nsNode.setInterfaces(nsInterfaces);
         nsNode.setRequirements(nsRequirements);
@@ -321,12 +321,18 @@ public class IfaToSolTranslator {
 	}
 
 	private static NSRequirements getNsRequirements(Nsd nsd, NsDf nsDf, NsLevel nsIl , List<String> virtualLinkProfileIds, Map<String, String> vlProfileToLinkDesc){
-		List<String> nsVirtualLinks = new ArrayList<>();
+
+        /**
+         * This is only needed for composite nsd to map the links of the composed to the ones
+         * of the non-composed ones
+         *
+	    List<String> nsVirtualLinks = new ArrayList<>();
 		for (String vlProfileId : virtualLinkProfileIds) {
 			nsVirtualLinks.add(vlProfileToLinkDesc.get(vlProfileId));
 		}
 
-		return new NSRequirements(nsVirtualLinks);
+         */
+		return new NSRequirements(new HashMap<>());
 
 	}
 
