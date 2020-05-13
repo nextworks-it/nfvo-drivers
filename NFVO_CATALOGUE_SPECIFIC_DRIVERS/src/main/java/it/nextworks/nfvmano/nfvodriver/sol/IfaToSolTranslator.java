@@ -115,7 +115,7 @@ public class IfaToSolTranslator {
         NSProperties nsProperties = new NSProperties(nsDescriptorId, nsd.getDesigner(), nsd.getVersion(), ( nsd.getNsdIdentifier() + "_" + nsd.getNsDf().get(0).getNsDfId() + "_" + nsIl.getNsLevelId() ), ( nsd.getNsdInvariantId() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ));
         nsNode.setProperties(nsProperties);
 
-        List<String> nsVirtualLink = new ArrayList<>();
+        //List<String> nsVirtualLink = new ArrayList<>();
         List<String> virtualLinkProfileId = new ArrayList<>();
         for (VirtualLinkToLevelMapping virtualLinkToLevelMapping : nsIl.getVirtualLinkToLevelMapping() ) {
       		virtualLinkProfileId.add(virtualLinkToLevelMapping.getVirtualLinkProfileId());
@@ -125,13 +125,13 @@ public class IfaToSolTranslator {
     	for (String vlProfileId : virtualLinkProfileId) { 
     		for (VirtualLinkProfile virtualLinkProfile : nsDf.getVirtualLinkProfile()) {
     			if (vlProfileId.equals(virtualLinkProfile.getVirtualLinkProfileId())) {
-    				nsVirtualLink.add(virtualLinkProfile.getVirtualLinkDescId());
+					//nsVirtualLink.add(virtualLinkProfile.getVirtualLinkDescId());
     				vlProfileToLinkDesc.put(vlProfileId,virtualLinkProfile.getVirtualLinkDescId() );
     			}
         	}
         }
         
-    	NSRequirements nsRequirements = new NSRequirements(nsVirtualLink);
+    	NSRequirements nsRequirements = new NSRequirements(null);
         nsNode.setRequirements(nsRequirements);
         Node node = nsNode;
 
