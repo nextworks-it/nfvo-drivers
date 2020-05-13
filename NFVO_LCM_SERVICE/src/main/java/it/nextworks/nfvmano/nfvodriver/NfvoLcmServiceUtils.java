@@ -38,6 +38,11 @@ public class NfvoLcmServiceUtils {
     private String nfvoLcmVim;
 
 
+
+    //Using default value from OkHttpClient
+    @Value("${nfvo.lcm.timeout:10000}")
+    private int nfvoLcmTimeout;
+
     @Value("${nfvo.lcm.notification.url}")
     private String nfvoLcmNotificationUrl;
 
@@ -64,7 +69,7 @@ public class NfvoLcmServiceUtils {
 
         }else if(nfvoLcmType.equals("SOL5")) {
             log.debug("Configured for type:" + nfvoLcmType);
-            nfvoLcmService.setNfvoLcmDriver(new Sol5NfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager, nfvoLcmNotificationUrl));
+            nfvoLcmService.setNfvoLcmDriver(new Sol5NfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager, nfvoLcmNotificationUrl, nfvoLcmTimeout));
         }else if(nfvoLcmType.equals("OSM")){
             log.debug("Configured for type:" + nfvoLcmType);
             OsmLcmDriver osmLcmDriver = new OsmLcmDriver(this.nfvoLcmAddress, this.nfvoLcmUsername, this.nfvoLcmPassword,
