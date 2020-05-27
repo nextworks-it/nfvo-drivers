@@ -33,6 +33,7 @@ import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementExcept
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
 import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
+import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.AddressData;
 import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.LifeCycleManagementScript;
 import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.VirtualLinkDf;
 import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.VirtualLinkProfile;
@@ -152,6 +153,7 @@ public class IfaToSolTranslator {
 			for (VirtualLinkProfile virtualLinkProfile : nsDf.getVirtualLinkProfile()) {
 				if (vlProfileId.equals(virtualLinkProfile.getVirtualLinkProfileId())) {
 					vlProfileToLinkDesc.put(vlProfileId,virtualLinkProfile.getVirtualLinkDescId() );
+
 				}
 			}
 		}
@@ -316,8 +318,31 @@ public class IfaToSolTranslator {
 		ConnectivityType connectivityType = new ConnectivityType();
 		nsVirtualLinkProperties.setVlProfile(vlProfile);
 		nsVirtualLinkProperties.setConnectivityType(connectivityType);
+		nsVirtualLinkProperties.setExternalNet(isVirtualLinkExternal(nsd, virtualLinkDescriptorId));
+		nsVirtualLinkProperties.setMgmtNet(isVirtualLinkManagement(nsd, virtualLinkDescriptorId));
 		vlNode.setProperties(nsVirtualLinkProperties);
 		return vlNode;
+	}
+
+	/**
+	 * returns true if there is one Sap connected ot the virtual link
+	 * @param nsd
+	 * @return
+	 */
+	private static boolean isVirtualLinkManagement(Nsd nsd, String virtualLinkDescId ){
+		log.debug("Determining if link is managmenet");
+		List<Sapd> saps = nsd.getSapd();
+		if(saps!=null&& !saps.isEmpty()){
+			for(Sapd sap: saps){
+				if(sap.getNsVirtualLinkDescId().equals(virtualLinkDescId))
+					for(AddressData address: sap.getAddressData()){
+						if(address.isManagement())
+							return true;
+					}
+
+			}
+		}
+		return false;
 	}
 
 	private static NSRequirements getNsRequirements(Nsd nsd, NsDf nsDf, NsLevel nsIl , List<String> virtualLinkProfileIds, Map<String, String> vlProfileToLinkDesc){
@@ -718,4 +743,21 @@ public class IfaToSolTranslator {
 		QueryOnBoardedVnfPkgInfoResponse response = new QueryOnBoardedVnfPkgInfoResponse(pkgInfos);
 		return response;
 	}
+
+    /**
+     * returns true if there is one Sap connected ot the virtual link
+     * @param nsd
+     * @return
+     */
+	private static boolean isVirtualLinkExternal(Nsd nsd, String virtualLinkDescId ){
+	    log.debug("Determining if link is external");
+	    List<Sapd> saps = nsd.getSapd();
+	    if(saps!=null&& !saps.isEmpty()){
+	        for(Sapd sap: saps){
+	            if(sap.getNsVirtualLinkDescId().equals(virtualLinkDescId))
+	                return true;
+            }
+        }
+	    return false;
+    }
 }
