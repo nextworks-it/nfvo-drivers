@@ -30,6 +30,7 @@ import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.*;
 
@@ -78,6 +79,13 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 	public String instantiateNs(InstantiateNsRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
 		request.isValid();
+		ObjectMapper mapper = new ObjectMapper();
+		try{
+			log.debug("Received InstantiateNsRequest: "+mapper.writeValueAsString(request));
+		}catch (Exception e){
+			log.error("Cannot deserialize InstantiateNsRequest");
+		}
+
 		String nsInstanceId = request.getNsInstanceId();
 		log.debug("Received request to instantiate NS instance " + nsInstanceId);
 		if (nsInstances.containsKey(nsInstanceId)) {

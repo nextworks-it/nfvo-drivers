@@ -61,14 +61,18 @@ public class Sol5NfvoLcmDriver extends NfvoLcmAbstractDriver {
 	public Sol5NfvoLcmDriver(String nfvoAddress,
 			NfvoLcmNotificationInterface nfvoNotificationsManager,
 			NfvoLcmOperationPollingManager timeoNfvoOperationPollingManager,
-			String callbackUri) {
+			String callbackUri, int timeout) {
 		super(NfvoLcmDriverType.SOL_5, nfvoAddress, nfvoNotificationsManager);
 		this.timeoNfvoOperationPollingManager = timeoNfvoOperationPollingManager;
 		this.nfvoAddress = nfvoAddress;
 		ApiClient ac = new ApiClient();
+		ac.setConnectTimeout(timeout);
+		ac.setReadTimeout(timeout);
+		ac.setWriteTimeout(timeout);
 		String url = "http://" + nfvoAddress + "/nslcm/v1";
 		ac = ac.setBasePath(url);
 		this.restClient = new DefaultApi(ac);
+
 		log.debug("SOL 5 driver configured with base path: " + restClient.getApiClient().getBasePath());
 		this.callbackUri = callbackUri;
 	}
