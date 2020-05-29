@@ -16,8 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -45,6 +47,13 @@ public class FiveGCatalogueClient extends CatalogueClient {
 		mgmtApi = new it.nextworks.nfvmano.libs.fivegcatalogueclient.api.management.DefaultApi(new it.nextworks.nfvmano.libs.fivegcatalogueclient.invoker.management.ApiClient(catalogue));
 	}
 
+
+    public FiveGCatalogueClient(CatalogueType type, Catalogue catalogue,ApiClient nsdApiC) {
+        super(type, catalogue);
+        nsdApi = new DefaultApi(nsdApiC);
+        vnfApi = new it.nextworks.nfvmano.libs.fivegcatalogueclient.api.vnf.DefaultApi(new it.nextworks.nfvmano.libs.fivegcatalogueclient.invoker.vnf.ApiClient(catalogue));
+        mgmtApi = new it.nextworks.nfvmano.libs.fivegcatalogueclient.api.management.DefaultApi(new it.nextworks.nfvmano.libs.fivegcatalogueclient.invoker.management.ApiClient(catalogue));
+    }
 	@Bean 
 	public MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter() { 
 		ObjectMapper mapper = new ObjectMapper(); 
@@ -83,9 +92,17 @@ public class FiveGCatalogueClient extends CatalogueClient {
 			log.debug("Data has been pushed correctly");
 //			nsdApi.uploadNSD(nsInfo.getId().toString(), fileDescriptor, contentType);
 		} catch(RestClientException e) {
-			log.error("Something went wrong pushing the descriptor content on the catalogue: " + e.getMessage());
-			nsdApi.deleteNSDInfo(nsInfo.getId().toString(), project, authorization);
-			throw new RestClientException("Something went wrong pushing the descriptor content on the catalogue: " + e.getMessage(), e);
+			if(e instanceof HttpClientErrorException){
+				if(((HttpClientErrorException)e).getStatusCode()== HttpStatus.CONFLICT){
+					log.debug("Conflict exception, letting it pass");
+					throw e;
+				}
+			}else{
+				log.error("Something went wrong pushing the descriptor content on the catalogue: " + e.getMessage());
+				nsdApi.deleteNSDInfo(nsInfo.getId().toString(), project, authorization);
+				throw new RestClientException("Something went wrong pushing the descriptor content on the catalogue: " + e.getMessage(), e);
+			}
+
 		}
 		
 		return nsInfo.getId().toString();

@@ -20,6 +20,7 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -571,8 +572,14 @@ public class ApiClient {
                     restTemplate.exchange(builder.build().toUri(), method, requestEntity, Document.class);
             document = responseEntity.getBody();
         } catch (Exception e) {
-            log.debug("Got exception when sending request. " + e.getMessage());
-            throw new RestClientException("Got exception when sending request. " + e.getMessage());
+            if( e instanceof HttpClientErrorException){
+                log.debug("HttpClientErrorException, letting it pass");
+                throw e;
+            }else{
+                log.debug("Got exception when sending request. " + e.getMessage());
+                throw new RestClientException("Got exception when sending request. " + e.getMessage());
+            }
+
         }
 
         return document;

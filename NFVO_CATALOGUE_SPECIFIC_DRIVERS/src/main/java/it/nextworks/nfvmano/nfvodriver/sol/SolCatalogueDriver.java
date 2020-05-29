@@ -25,6 +25,9 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import it.nextworks.nfvmano.libs.fivegcatalogueclient.invoker.nsd.ApiClient;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.AlreadyExistingEntityException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.Catalogue;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.CatalogueType;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.FiveGCatalogueClient;
@@ -33,7 +36,9 @@ import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.vnfpackagemanagemen
 import it.nextworks.nfvmano.libs.ifa.common.elements.KeyValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.NsdManagementConsumerInterface;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.VnfPackageManagementConsumerInterface;
@@ -59,8 +64,8 @@ import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryOnBoard
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryPnfdResponse;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.UpdateNsdRequest;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.UpdatePnfdRequest;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.AlreadyExistingEntityException;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
+
+
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
@@ -74,6 +79,7 @@ import it.nextworks.nfvmano.libs.descriptors.templates.DescriptorTemplate;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueAbstractDriver;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueDriverType;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueNotificationInterface;
+import org.springframework.web.client.RestTemplate;
 
 public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	
@@ -108,8 +114,14 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 				user,
 				password);
 
-		this.nsdApi=new FiveGCatalogueClient(CatalogueType.FIVEG_CATALOGUE, catalogue);
+		//this.nsdApi=new FiveGCatalogueClient(CatalogueType.FIVEG_CATALOGUE, catalogue);
 
+        RestTemplateBuilder restTemplateBuilder = new RestTemplateBuilder();
+        RestTemplate restTemplate = restTemplateBuilder
+                .errorHandler(new NsdRestTemplateErrorHandler())
+                .build();
+        ApiClient client = new ApiClient(restTemplate, catalogue);
+        this.nsdApi= new FiveGCatalogueClient(CatalogueType.FIVEG_CATALOGUE, catalogue, client);
 		
 	}
 
@@ -190,6 +202,15 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 					} catch (IOException e) {
 						log.error("Error during NS upload!",e);
 						throw new FailedOperationException(e.getMessage());
+					} catch (HttpClientErrorException e){
+						HttpStatus status = e.getStatusCode();
+						if (status == HttpStatus.CONFLICT) {
+							throw new AlreadyExistingEntityException("NSD already onboarded");
+						}else{
+							log.error("Error onboarding NSD", e);
+							throw new FailedOperationException("Nsd onboarding failed"+e.getMessage());
+
+						}
 					}
 					/*DescriptorTemplate dt = IfaToSolTranslator.translateIfaToSolNsd(nsd, df, nsIl);
 					if(dt!=null){
