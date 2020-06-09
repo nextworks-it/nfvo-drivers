@@ -17,6 +17,8 @@ package it.nextworks.nfvmano.nfvodriver;
 
 
 
+import it.nextworks.nfvmano.nfvodriver.file.DummyFileNfvoCatalogueDriver;
+import it.nextworks.nfvmano.nfvodriver.file.NsdFileRegistryService;
 import it.nextworks.nfvmano.nfvodriver.logging.NfvoCatalogueLoggingDriver;
 import it.nextworks.nfvmano.nfvodriver.osm.OsmCatalogueDriver;
 import it.nextworks.nfvmano.nfvodriver.sol.SolCatalogueDriver;
@@ -57,8 +59,15 @@ public class NfvoCatalogueServiceUtils {
     @Value("${sebastian.localTmpDir:/tmp}")
     private String tmpDir;
 
+    @Value("${nfvo.catalogue.nsdStorage.enabled:false}")
+    private boolean nsdFileStorageEnabled;
+
+
     @Autowired
     NfvoCatalogueService nfvoCatalogueService;
+
+    @Autowired
+    NsdFileRegistryService nsdFileRegistryService;
 
     @PostConstruct
     public void initNfvoCatalogueDriver() {
@@ -76,9 +85,13 @@ public class NfvoCatalogueServiceUtils {
         } else if(nfvoCatalogueType.equals("OSM")){
             log.debug("Configured for type:" + nfvoCatalogueType);
             nfvoCatalogueService.setNfvoCatalogueDriver(new OsmCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null));
-        } else if(nfvoCatalogueType.equals("SOL_005")){
+        } else if(nfvoCatalogueType.equals("SOL_005")) {
             log.debug("Configured for type:" + nfvoCatalogueType);
-            nfvoCatalogueService.setNfvoCatalogueDriver(new SolCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, nfvoCatalogueId,null));
+            nfvoCatalogueService.setNfvoCatalogueDriver(new SolCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, nfvoCatalogueId, null, nsdFileRegistryService, nsdFileStorageEnabled));
+        }else if(nfvoCatalogueType.equals("DUMMY_FILE")){
+            //only used for test purposes
+            log.debug("Configured for type:" + nfvoCatalogueType);
+            nfvoCatalogueService.setNfvoCatalogueDriver(new DummyFileNfvoCatalogueDriver(nsdFileRegistryService));
         } else {
             log.error("NFVO not configured!");
         }
