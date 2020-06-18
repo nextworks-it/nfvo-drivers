@@ -250,8 +250,9 @@ public class IfaSolLcmTranslator {
             for(VnfExtCpInfo cpInfo: extCpInfos){
                 List<CpProtocolInfo> cpProtocolInfos = cpInfo.getCpProtocolInfo();
                 String address = cpProtocolInfos.get(0).getIpOverEthernet().getIpAddresses().get(0).getAddresses().get(0);
+                String sapName = vnfI.getVnfdId()+"-"+cpInfo.getCpdId();
                 it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo sapInfo
-                        = new it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo(null, cpInfo.getId(), cpInfo.getCpdId(),"", "",address, null );
+                        = new it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo(null, cpInfo.getId(), cpInfo.getCpdId(),sapName, sapName,address, null );
                 sapInfos.add(sapInfo);
 
 
