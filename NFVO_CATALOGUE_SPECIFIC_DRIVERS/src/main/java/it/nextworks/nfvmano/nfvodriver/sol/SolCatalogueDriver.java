@@ -196,9 +196,11 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 				for (NsLevel nsIl : df.getNsInstantiationLevel()) {
 
 					String compressFilePath = IfaToSolTranslator.createCsarPackageForNsdDfIl(nsd, df, nsIl, this);
-					if(keyValuePair.containsKey("NS_INVARIANT_ID")){
-						log.debug("Adding NSD_ID to KeyPair map");
-						keyValuePair.put("NSD_ID", IfaToSolTranslator.getNsDescriptorId(nsd, df, nsIl));
+					if(keyValuePair.containsKey("NSD_INVARIANT_ID")){
+
+						String nsdSolId = IfaToSolTranslator.getNsDescriptorId(nsd, df, nsIl);
+						keyValuePair.put("NSD_ID", nsdSolId );
+						log.debug("Adding NSD_ID to KeyPair map:" +nsdSolId);
 					}
 
 					File nsFile = new File(compressFilePath);
