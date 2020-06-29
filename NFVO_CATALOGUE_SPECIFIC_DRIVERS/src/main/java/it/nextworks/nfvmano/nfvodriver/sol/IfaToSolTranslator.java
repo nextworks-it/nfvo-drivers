@@ -539,7 +539,7 @@ public class IfaToSolTranslator {
 
 	public static String createCsarPackageForNsdDfIl(Nsd nsd, NsDf nsDf, NsLevel nsIl, SolCatalogueDriver driver) throws FailedOperationException {
 
-		DescriptorTemplate descriptorTemplate = translateIfaToSolNsd(nsd, nsDf, nsIl, driver );
+		DescriptorTemplate descriptorTemplate = translateIfaToSolNsd(nsd, nsDf, nsIl, driver);
 		String nsDescriptorId = getNsDescriptorIdSeed(nsd, nsDf, nsIl);
 		File csarFolder = null;
 
@@ -716,7 +716,7 @@ public class IfaToSolTranslator {
 
     }
 
-    private static String getNsDescriptorId(Nsd nsd, NsDf nsDf, NsLevel nsIl){
+    public static String getNsDescriptorId(Nsd nsd, NsDf nsDf, NsLevel nsIl){
         String seed = getNsDescriptorIdSeed(nsd, nsDf, nsIl);
         return UUID.nameUUIDFromBytes(seed.getBytes()).toString();
     }
