@@ -50,18 +50,18 @@ public class DummyFileNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 
 	private static final Logger log = LoggerFactory.getLogger(DummyFileNfvoCatalogueDriver.class);
 	private NsdFileRegistryService nsdFileRegistryService;
+	private VnfdFileRegistryService vnfdFileRegistryService;
+	private String tmpDir;
+	private FileUtilities fileUtilities;
 
-	public DummyFileNfvoCatalogueDriver(NsdFileRegistryService nsdFileRegistryService) {
+	public DummyFileNfvoCatalogueDriver(NsdFileRegistryService nsdFileRegistryService, VnfdFileRegistryService vnfdFileRegistryService, String tmpDir) {
 		super(NfvoCatalogueDriverType.DUMMY_FILE, null, null);
 		this.nsdFileRegistryService = nsdFileRegistryService;
+		this.tmpDir = tmpDir;
+		fileUtilities = new FileUtilities(tmpDir);
+		this.vnfdFileRegistryService= vnfdFileRegistryService;
 
 	}
-
-
-
-
-
-
 
 
 	@Override
@@ -252,7 +252,33 @@ public class DummyFileNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 			MalformattedElementException {
 
 
-		throw new MethodNotImplementedException("vnf package onboarding not supported");
+		log.debug("Received request to onboard a new VNF package");
+		String folder = null;
+		String vnfPackagePath = request.getVnfPackagePath();
+		try {
+			String downloadedFile = fileUtilities.downloadFile(vnfPackagePath);
+			folder = fileUtilities.extractFile(downloadedFile);
+			File jsonFile = fileUtilities.findJsonFileInDir(folder);
+			Charset encoding = null;
+			String json = FileUtils.readFileToString(jsonFile, encoding);
+			log.debug("VNFD json: \n" + json);
+
+			ObjectMapper mapper = new ObjectMapper();
+			Vnfd vnfd = (Vnfd) mapper.readValue(json, Vnfd.class);
+			log.debug("VNFD correctly parsed.");
+			String vnfdInfoId = vnfdFileRegistryService.storeVnfd(request, vnfd);
+			log.debug("Cleaning local directory");
+			fileUtilities.removeFileAndFolder(downloadedFile, folder);
+
+
+			OnBoardVnfPackageResponse response = new OnBoardVnfPackageResponse(vnfdInfoId, vnfd.getVnfdId());
+			return response;
+		} catch (ArchiveException e) {
+			throw new FailedOperationException(e.getMessage());
+		} catch (IOException e) {
+			throw new FailedOperationException(e.getMessage());
+		}
+
 	}
 
 	@Override
@@ -279,7 +305,28 @@ public class DummyFileNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public QueryOnBoardedVnfPkgInfoResponse queryVnfPackageInfo(GeneralizedQueryRequest request)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
-		throw new MethodNotImplementedException();
+		log.debug("Received query to retrieve VnfPkgInfo");
+		Map<String, String> parameters = request.getFilter().getParameters();
+
+		/*
+		"VNF_PACKAGE_PRODUCT_NAME" && "VNF_PACKAGE_SW_VERSION" && "VNF_PACKAGE_PROVIDER"
+		 */
+		if(parameters.size()==3 && parameters.containsKey("VNF_PACKAGE_PRODUCT_NAME") &&
+				parameters.containsKey("VNF_PACKAGE_SW_VERSION") && parameters.containsKey("VNF_PACKAGE_PROVIDER")){
+			OnboardedVnfPkgInfo vnfPkgInfo = vnfdFileRegistryService.queryVnf(parameters.get("VNF_PACKAGE_PRODUCT_NAME"), parameters.get("VNF_PACKAGE_PROVIDER"),
+					parameters.get("VNF_PACKAGE_SW_VERSION"));
+			List<OnboardedVnfPkgInfo> pkgInfos = new ArrayList<>();
+			pkgInfos.add(vnfPkgInfo);
+			return new QueryOnBoardedVnfPkgInfoResponse(pkgInfos);
+
+		}else if(parameters.size()==1  && parameters.containsKey("VNFD_ID") ){
+			OnboardedVnfPkgInfo vnfPkgInfo = vnfdFileRegistryService.queryVnf(parameters.get("VNFD_ID"));
+			List<OnboardedVnfPkgInfo> pkgInfos = new ArrayList<>();
+			pkgInfos.add(vnfPkgInfo);
+			return new QueryOnBoardedVnfPkgInfoResponse(pkgInfos);
+		}else{
+			throw new MalformattedElementException("Specified filter params not supported");
+		}
 
 	}
 

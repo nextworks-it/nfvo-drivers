@@ -19,6 +19,7 @@ package it.nextworks.nfvmano.nfvodriver;
 
 import it.nextworks.nfvmano.nfvodriver.file.DummyFileNfvoCatalogueDriver;
 import it.nextworks.nfvmano.nfvodriver.file.NsdFileRegistryService;
+import it.nextworks.nfvmano.nfvodriver.file.VnfdFileRegistryService;
 import it.nextworks.nfvmano.nfvodriver.logging.NfvoCatalogueLoggingDriver;
 import it.nextworks.nfvmano.nfvodriver.osm.OsmCatalogueDriver;
 import it.nextworks.nfvmano.nfvodriver.sol.SolCatalogueDriver;
@@ -69,6 +70,9 @@ public class NfvoCatalogueServiceUtils {
     @Autowired
     NsdFileRegistryService nsdFileRegistryService;
 
+    @Autowired
+    VnfdFileRegistryService vnfdFileRegistryService;
+
     @PostConstruct
     public void initNfvoCatalogueDriver() {
         log.debug("Initializing NFVO CATALOGUE driver for type:" + nfvoCatalogueType);
@@ -91,7 +95,7 @@ public class NfvoCatalogueServiceUtils {
         }else if(nfvoCatalogueType.equals("DUMMY_FILE")){
             //only used for test purposes
             log.debug("Configured for type:" + nfvoCatalogueType);
-            nfvoCatalogueService.setNfvoCatalogueDriver(new DummyFileNfvoCatalogueDriver(nsdFileRegistryService));
+            nfvoCatalogueService.setNfvoCatalogueDriver(new DummyFileNfvoCatalogueDriver(nsdFileRegistryService, vnfdFileRegistryService, tmpDir));
         } else {
             log.error("NFVO not configured!");
         }

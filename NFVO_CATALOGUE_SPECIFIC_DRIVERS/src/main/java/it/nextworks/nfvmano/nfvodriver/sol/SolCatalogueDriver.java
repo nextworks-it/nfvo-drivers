@@ -134,6 +134,8 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 		
 	}
 
+
+
 	@Override
 	public File fetchOnboardedApplicationPackage(String onboardedAppPkgId)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
@@ -226,7 +228,7 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 						try {
 							File nsFile = new File(this.getNsdFile(dt));
 							String nsId = nsdApi.uploadNetworkService(nsFile.getAbsolutePath(), this.project, contentType, keyValuePair, authorization );
-							NsdDfIlKey nsdDfIlKey = new NsdDfIlKey(nsd.getNsdIdentifier(),df.getNsDfId(), nsIl.getNsLevelId() );
+							NsdDfIlKey nsdDfIlKey = new NsdDfIlKey(nsd.getVnfdId(),df.getNsDfId(), nsIl.getNsLevelId() );
 							nsdDfIlKeys.add(nsdDfIlKey);
 							tripletToSolNs.put(nsdDfIlKey, nsId);
 						} catch (IOException e) {
