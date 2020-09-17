@@ -26,8 +26,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.invoker.nsd.ApiClient;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo;
-import it.nextworks.nfvmano.libs.ifa.common.elements.Filter;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.AlreadyExistingEntityException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.Catalogue;
@@ -36,7 +34,6 @@ import it.nextworks.nfvmano.libs.fivegcatalogueclient.FiveGCatalogueClient;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.nsdmanagement.elements.KeyValuePairs;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.vnfpackagemanagement.elements.VnfPkgInfo;
 import it.nextworks.nfvmano.libs.ifa.common.elements.KeyValuePair;
-import it.nextworks.nfvmano.nfvodriver.file.NsdFileRegistryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -93,8 +90,6 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	private String project;
 	private String catalogueId;
 	private FiveGCatalogueClient nsdApi;
-	private boolean nsdFileRepoEnabled;
-	private NsdFileRegistryService nsdFileRegistryService;
 
 	//Map with the return nsd id and the list of triplets used as key for the SOL underneath
 	private Map<String, List<NsdDfIlKey>> nsIdToTriplet = new HashMap<>();
@@ -105,16 +100,12 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 			String password,
 			String project,
 			String catalogueId,
-			NfvoCatalogueNotificationInterface nfvoCatalogueNotificationManager,
-			NsdFileRegistryService nsdFileRegistryService,
-							  boolean nsdFileRepoEnabled) {
+			NfvoCatalogueNotificationInterface nfvoCatalogueNotificationManager) {
 		super(NfvoCatalogueDriverType.SOL_005, nfvoAddress, nfvoCatalogueNotificationManager);
 		this.catalogueId = catalogueId;
 		this.user = user;
 		this.password = password;
 		this.project = project;
-		this.nsdFileRegistryService = nsdFileRegistryService;
-		this.nsdFileRepoEnabled = nsdFileRepoEnabled;
 
 		Catalogue catalogue = new Catalogue(
 				catalogueId,
@@ -133,8 +124,6 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
         this.nsdApi= new FiveGCatalogueClient(CatalogueType.FIVEG_CATALOGUE, catalogue, client);
 		
 	}
-
-
 
 	@Override
 	public File fetchOnboardedApplicationPackage(String onboardedAppPkgId)
@@ -195,7 +184,7 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public String onboardNsd(OnboardNsdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
-		log.debug("Processing request to onboard a new NSD.");
+		log.debug("Processig request to onboard a new NSD.");
 		String contentType = "multipart/form-data";
 		KeyValuePairs keyValuePair = new KeyValuePairs();
 		keyValuePair.putAll(request.getUserDefinedData());
@@ -236,7 +225,7 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 						try {
 							File nsFile = new File(this.getNsdFile(dt));
 							String nsId = nsdApi.uploadNetworkService(nsFile.getAbsolutePath(), this.project, contentType, keyValuePair, authorization );
-							NsdDfIlKey nsdDfIlKey = new NsdDfIlKey(nsd.getVnfdId(),df.getNsDfId(), nsIl.getNsLevelId() );
+							NsdDfIlKey nsdDfIlKey = new NsdDfIlKey(nsd.getNsdIdentifier(),df.getNsDfId(), nsIl.getNsLevelId() );
 							nsdDfIlKeys.add(nsdDfIlKey);
 							tripletToSolNs.put(nsdDfIlKey, nsId);
 						} catch (IOException e) {
@@ -252,13 +241,10 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 
 				}
 			}
-		String uuid =  UUID.randomUUID().toString();
-		if(nsdFileRepoEnabled){
-			uuid = nsdFileRegistryService.storeNsd(nsd);
-		}
-
-		nsIdToTriplet.put(uuid, nsdDfIlKeys);
-		return uuid;
+		UUID uuid = UUID.randomUUID();
+		String randomUUIDString = uuid.toString();
+		nsIdToTriplet.put(randomUUIDString, nsdDfIlKeys);
+		return randomUUIDString;
 	}
 
 	@Override
@@ -291,37 +277,8 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public QueryNsdResponse queryNsd(GeneralizedQueryRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
-		if(nsdFileRepoEnabled){
-			Filter filter = request.getFilter();
-			Map<String, String> params = filter.getParameters();
-			String p1 = "NSD_ID";
-			String p2 = "NSD_VERSION";
-			log.debug("Querying NSD");
-
-			if (params.containsKey(p1) && params.containsKey(p2)) {
-				String nsdId = params.get("NSD_ID");
-				String nsdVersion = params.get("NSD_VERSION");
-
-
-				log.debug("Querying NSD with ID " + nsdId + " and version " + nsdVersion);
-				NsdInfo nsdInfo = nsdFileRegistryService.queryNsd(nsdId, nsdVersion);
-				List<NsdInfo> nsdInfos = new ArrayList<>();
-				nsdInfos.add(nsdInfo);
-				return new QueryNsdResponse(nsdInfos);
-
-
-			} else if(params.size()==1 &&params.containsKey("NSD_INFO_ID")){
-				String nsdInfoId = params.get("NSD_INFO_ID");
-
-				log.debug("Querying nsd using nsdInfoId:"+nsdInfoId);
-				NsdInfo nsdInfo = nsdFileRegistryService.queryNsd(nsdInfoId);
-				List<NsdInfo> nsdInfos = new ArrayList<>();
-				nsdInfos.add(nsdInfo);
-				return new QueryNsdResponse(nsdInfos);
-
-			}else  throw new MalformattedElementException("Only nsdId and nsdVersion or nsdInfoId query implemented");
-		}else throw new MethodNotImplementedException("QueryNsd not implemented for the current scenario");
-
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override

@@ -91,7 +91,7 @@ public class NfvoCatalogueServiceUtils {
             nfvoCatalogueService.setNfvoCatalogueDriver(new OsmCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null));
         } else if(nfvoCatalogueType.equals("SOL_005")) {
             log.debug("Configured for type:" + nfvoCatalogueType);
-            nfvoCatalogueService.setNfvoCatalogueDriver(new SolCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, nfvoCatalogueId, null, nsdFileRegistryService, nsdFileStorageEnabled));
+            nfvoCatalogueService.setNfvoCatalogueDriver(new SolCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, nfvoCatalogueId, null));
         }else if(nfvoCatalogueType.equals("DUMMY_FILE")){
             //only used for test purposes
             log.debug("Configured for type:" + nfvoCatalogueType);
