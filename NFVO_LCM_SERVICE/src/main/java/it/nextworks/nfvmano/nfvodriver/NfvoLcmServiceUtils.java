@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -37,6 +39,10 @@ public class NfvoLcmServiceUtils {
     @Value("${nfvo.lcm.vim:}")
     private String nfvoLcmVim;
 
+
+    //Using default value from OkHttpClient
+    @Value("${nfvo.lcm.driver.dummy.nestedNsdIds:nsdCore,nsdEdge}")
+    private String[] dummyDriverNestedNsdIds;
 
 
     //Using default value from OkHttpClient
@@ -65,7 +71,7 @@ public class NfvoLcmServiceUtils {
             nfvoLcmService.setNfvoLcmDriver(new TimeoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager));
         }else if(nfvoLcmType.equals("DUMMY")){
             log.debug("Configured for type:" + nfvoLcmType);
-            nfvoLcmService.setNfvoLcmDriver(new DummyNfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager));
+            nfvoLcmService.setNfvoLcmDriver(new DummyNfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager, Arrays.asList(dummyDriverNestedNsdIds)));
 
         }else if(nfvoLcmType.equals("SOL5")) {
             log.debug("Configured for type:" + nfvoLcmType);
