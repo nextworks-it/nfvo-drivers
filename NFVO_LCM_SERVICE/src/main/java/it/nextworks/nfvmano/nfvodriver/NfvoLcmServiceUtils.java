@@ -4,6 +4,7 @@ package it.nextworks.nfvmano.nfvodriver;
 import it.nextworks.nfvmano.nfvodriver.logging.NfvoLcmLoggingDriver;
 import it.nextworks.nfvmano.nfvodriver.osm.OsmLcmDriver;
 import it.nextworks.nfvmano.nfvodriver.sol5.Sol5NfvoLcmDriver;
+import it.nextworks.nfvmano.nfvodriver.test.EvsTestNfvoLcmDriver;
 import it.nextworks.nfvmano.nfvodriver.timeo.TimeoLcmDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,6 +82,10 @@ public class NfvoLcmServiceUtils {
             OsmLcmDriver osmLcmDriver = new OsmLcmDriver(this.nfvoLcmAddress, this.nfvoLcmUsername, this.nfvoLcmPassword,
                     this.nfvoLcmProject, this.nfvoLcmOperationPollingManager, null, UUID.fromString(this.nfvoLcmVim));
             nfvoLcmService.setNfvoLcmDriver(osmLcmDriver);
+        }else if(nfvoLcmType.equals("EVS_TEST")){
+            log.debug("Configured for type:" + nfvoLcmType);
+            nfvoLcmService.setNfvoLcmDriver(new EvsTestNfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager));
+
         } else {
             log.error("NFVO not configured!");
         }

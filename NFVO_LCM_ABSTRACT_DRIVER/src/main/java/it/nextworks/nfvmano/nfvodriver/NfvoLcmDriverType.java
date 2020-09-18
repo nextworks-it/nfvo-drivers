@@ -22,6 +22,7 @@ public enum NfvoLcmDriverType {
     CLOUDIFY,
     SOL_5,
     DUMMY,
-    LOGGING
+    LOGGING,
+    EVS_TEST
 
 }
