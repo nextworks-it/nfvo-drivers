@@ -62,32 +62,44 @@ public class EvsTestNfvoLcmDriver extends NfvoLcmAbstractDriver {
 		request.isValid();
 		log.debug("Generating new NS identifier");
 		UUID nsInfoUuid = UUID.randomUUID();
-		List<String> nestedIds = new ArrayList<>();
-
-		Map<String, String> vnfPlacement = new HashMap<>();
-		vnfPlacement.put("vnf.placement.vCIM", "EDGE");
-		nestedIds.add(generateNsdInfo("nsEVS", request.getTenantId(), null ));
-		nestedIds.add(generateNsdInfo("nsDENMgenerator", request.getTenantId(), null));
-		nestedIds.add(generateNsdInfo("nsCIM", request.getTenantId(), vnfPlacement));
-		String nsInfoId = nsInfoUuid.toString();
-		log.debug("Generated NS identifier " + nsInfoId);
-		NsInfo nsInfo = new NsInfo(nsInfoId, 
-				request.getNsName(), 				//nsName 
-				request.getNsDescription(),			//description 
-				"nestedEVS",					//nsdId
-				null, 								//flavourId 
-				null, 								//vnfInfoId
-				nestedIds, 								//nestedNsInfoId
-				InstantiationState.NOT_INSTANTIATED,//nsState 
-				null,								//nsScaleStatus
-				null,								//additionalAffinityOrAntiAffinityRule
-				request.getTenantId(),				//tenantId
-				null);		//configurationParameters)
+        String nsInfoId = nsInfoUuid.toString();
+        Map<String, String> vnfPlacement = new HashMap<>();
+        vnfPlacement.put("vnf.placement.vEVS", "EDGE");
+		String nsEVSInfoId = generateNsdInfo("nsEVS", request.getTenantId(), vnfPlacement );
+        List<String> nestedIds = new ArrayList<>();
+        nestedIds.add(nsEVSInfoId);
+		if(request.getNsName().contains("shared")){
 
 
 
-		nsInstances.put(nsInfoId, nsInfo);
-		return nsInfoId;
+
+            nestedIds.add(generateNsdInfo("nsDENMgenerator", request.getTenantId(), null));
+            nestedIds.add(generateNsdInfo("nsCIM", request.getTenantId(), null));
+
+
+        }else{
+            nestedIds.add(generateNsdInfo("nsCIMTest", request.getTenantId(), null));
+
+        }
+        log.debug("Generated NS identifier " + nsInfoId);
+        NsInfo nsInfo = new NsInfo(nsInfoId,
+                request.getNsName(), 				//nsName
+                request.getNsDescription(),			//description
+                request.getNsdId(),					//nsdId
+                null, 								//flavourId
+                null, 								//vnfInfoId
+                nestedIds, 								//nestedNsInfoId
+                InstantiationState.NOT_INSTANTIATED,//nsState
+                null,								//nsScaleStatus
+                null,								//additionalAffinityOrAntiAffinityRule
+                request.getTenantId(),				//tenantId
+                null);		//configurationParameters)
+
+
+
+        nsInstances.put(nsInfoId, nsInfo);
+
+        return nsInfoId;
 	}
 
 	@Override
@@ -111,9 +123,13 @@ public class EvsTestNfvoLcmDriver extends NfvoLcmAbstractDriver {
 			operations.put(operationId, OperationStatus.SUCCESSFULLY_DONE);
 			NsInfo nsInfo = nsInstances.get(nsInstanceId);
 			for(String nestedNsi : nsInfo.getNestedNsInfoId()){
-				NsInfo nestedNsInfo = nsInstances.get(nestedNsi);
-				nestedNsInfo.setNsState(InstantiationState.INSTANTIATED);
+
+			    NsInfo nestedNsInfo = nsInstances.get(nestedNsi);
+
+			    nestedNsInfo.setNsState(InstantiationState.INSTANTIATED);
+
 				nsInstances.put(nestedNsi, nestedNsInfo);
+
 			}
 			nsInfo.setFlavourId(request.getFlavourId());
 			nsInfo.setInstantiationLevel(request.getNsInstantiationLevelId());
@@ -259,11 +275,14 @@ public class EvsTestNfvoLcmDriver extends NfvoLcmAbstractDriver {
 		UUID nestedNsInfoUuid = UUID.randomUUID();
 		String nestedNsInfoId = nestedNsInfoUuid.toString();
 		log.debug("Generated NS identifier " + nestedNsInfoId);
+
+        String currentDf = nsdId+"_df";
+        String currentIl = nsdId+"_il_small";
 		NsInfo nsInfo = new NsInfo(nestedNsInfoId,
 				nsdId, 				//nsName
 				nsdId,			//description
 				nsdId,					//nsdId
-				"flavor", 								//flavourId
+				currentDf, 								//flavourId
 				null, 								//vnfInfoId
 				null, 								//nestedNsInfoId
 				InstantiationState.NOT_INSTANTIATED,//nsState
@@ -271,7 +290,8 @@ public class EvsTestNfvoLcmDriver extends NfvoLcmAbstractDriver {
 				null,								//additionalAffinityOrAntiAffinityRule
 				tenant,				//tenantId
 				configurationParameters);		//configurationParameters)
-		nsInstances.put(nestedNsInfoId, nsInfo);
+		nsInfo.setInstantiationLevel(currentIl);
+        nsInstances.put(nestedNsInfoId, nsInfo);
 		return nestedNsInfoId;
 	}
 
