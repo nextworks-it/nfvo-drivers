@@ -38,8 +38,14 @@ public class VnfdFileRegistryService {
 
     public String storeVnfd(OnBoardVnfPackageRequest request, Vnfd vnfd) throws FailedOperationException, AlreadyExistingEntityException {
         log.debug("Storing Vnfd: "+vnfd.getVnfdId()+" in internal catalogue");
-        Optional<VnfdFileRegistry> nsdFileRegistryOptional =   vnfdFileRegistryRepository.findByVnfdIdAndVnfdVersion(vnfd.getVnfdId(), vnfd.getVnfdVersion());
-        if(!nsdFileRegistryOptional.isPresent()){
+        boolean vnfPresent =   vnfdFileRegistryRepository.findByVnfdIdAndVnfdVersion(vnfd.getVnfdId(), vnfd.getVnfdVersion()).isPresent()
+                ||  vnfdFileRegistryRepository.findByPackageNameAndPackageProviderAndPackageVersion(request.getName(), request.getProvider(), request.getVersion()).isPresent();;
+        if(vnfPresent){
+            throw new AlreadyExistingEntityException("Vnfd with vnfdId:"+vnfd.getVnfdId()+" already present in DB");
+        }
+
+
+
             String vnfdInfoId = getVnfdInfoId(vnfd.getVnfdId(), vnfd.getVnfdVersion());
             String vnfdRelativePath = getVnfdRelativePath(vnfd.getVnfdId(), vnfd.getVnfdVersion());
             String vnfdPath = getVnfdFullPath(vnfd.getVnfdId(), vnfd.getVnfdVersion());
@@ -56,7 +62,7 @@ public class VnfdFileRegistryService {
                 throw new FailedOperationException(e.getMessage());
             }
 
-        }else throw new AlreadyExistingEntityException("Vnfd with vnfdId:"+vnfd.getVnfdId()+" already present in DB");
+
 
     }
 

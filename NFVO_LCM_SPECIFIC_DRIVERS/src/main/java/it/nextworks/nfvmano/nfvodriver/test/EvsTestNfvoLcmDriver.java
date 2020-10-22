@@ -43,6 +43,7 @@ public class EvsTestNfvoLcmDriver extends NfvoLcmAbstractDriver {
 	private Map<String, OperationStatus> operations = new HashMap<>();
 	private List<String> subscriptions = new ArrayList<>();
 
+	private String nsEVSInfoId= null;
 
 	private NfvoLcmOperationPollingManager nfvoOperationPollingManager;
 
@@ -65,13 +66,14 @@ public class EvsTestNfvoLcmDriver extends NfvoLcmAbstractDriver {
         String nsInfoId = nsInfoUuid.toString();
         Map<String, String> vnfPlacement = new HashMap<>();
         vnfPlacement.put("vnf.placement.vEVS", "EDGE");
-		String nsEVSInfoId = generateNsdInfo("nsEVS", request.getTenantId(), vnfPlacement );
+
         List<String> nestedIds = new ArrayList<>();
-        nestedIds.add(nsEVSInfoId);
+
 		if(request.getNsName().contains("shared")){
 
 
 
+			nsEVSInfoId = generateNsdInfo("nsEVS", request.getTenantId(), vnfPlacement );
 
             nestedIds.add(generateNsdInfo("nsDENMgenerator", request.getTenantId(), null));
             nestedIds.add(generateNsdInfo("nsCIM", request.getTenantId(), null));
@@ -81,6 +83,7 @@ public class EvsTestNfvoLcmDriver extends NfvoLcmAbstractDriver {
             nestedIds.add(generateNsdInfo("nsCIMTest", request.getTenantId(), null));
 
         }
+		nestedIds.add(nsEVSInfoId);
         log.debug("Generated NS identifier " + nsInfoId);
         NsInfo nsInfo = new NsInfo(nsInfoId,
                 request.getNsName(), 				//nsName

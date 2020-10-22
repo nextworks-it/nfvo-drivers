@@ -39,7 +39,7 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 	private Map<String, NsInfo> nsInstances = new HashMap<>();
 	private Map<String, OperationStatus> operations = new HashMap<>();
 	private List<String> subscriptions = new ArrayList<>();
-	private List<String> nestedNsdIds = new ArrayList<>();
+
 	
 	private NfvoLcmOperationPollingManager nfvoOperationPollingManager;
 	
@@ -47,10 +47,10 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 
 	public DummyNfvoLcmDriver(String nfvoAddress, 
 			NfvoLcmNotificationInterface nfvoNotificationManager,
-			NfvoLcmOperationPollingManager nfvoOperationPollingManager, List<String> nestedNsdIds) {
+			NfvoLcmOperationPollingManager nfvoOperationPollingManager) {
 		super(NfvoLcmDriverType.DUMMY, nfvoAddress, nfvoNotificationManager);
 		this.nfvoOperationPollingManager = nfvoOperationPollingManager;
-		if(nestedNsdIds!=null) this.nestedNsdIds = nestedNsdIds;
+
 	}
 
 	@Override
@@ -59,27 +59,8 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 		request.isValid();
 		log.debug("Generating new NS identifier");
 		UUID nsInfoUuid = UUID.randomUUID();
-		List<String> nestedIds = new ArrayList<>();
-		for(String nestedNsdId: nestedNsdIds){
-			UUID nestedNsInfoUuid = UUID.randomUUID();
-			String nestedNsInfoId = nestedNsInfoUuid.toString();
-			log.debug("Generated NS identifier " + nestedNsInfoId);
-			NsInfo nsInfo = new NsInfo(nestedNsInfoId,
-					nestedNsdId, 				//nsName
-					nestedNsdId,			//description
-					nestedNsdId,					//nsdId
-					"flavor", 								//flavourId
-					null, 								//vnfInfoId
-					null, 								//nestedNsInfoId
-					InstantiationState.NOT_INSTANTIATED,//nsState
-					null,								//nsScaleStatus
-					null,								//additionalAffinityOrAntiAffinityRule
-					request.getTenantId(),				//tenantId
-					null);		//configurationParameters)
-			nsInstances.put(nestedNsInfoId, nsInfo);
-			nestedIds.add(nestedNsInfoId);
 
-		}
+
 		String nsInfoId = nsInfoUuid.toString();
 		log.debug("Generated NS identifier " + nsInfoId);
 		NsInfo nsInfo = new NsInfo(nsInfoId, 
@@ -88,7 +69,7 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 				request.getNsdId(),					//nsdId 
 				null, 								//flavourId 
 				null, 								//vnfInfoId
-				nestedIds, 								//nestedNsInfoId
+				null, 								//nestedNsInfoId
 				InstantiationState.NOT_INSTANTIATED,//nsState 
 				null,								//nsScaleStatus
 				null,								//additionalAffinityOrAntiAffinityRule
@@ -121,11 +102,7 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 			log.debug("Generated operation identifier " + operationId);
 			operations.put(operationId, OperationStatus.SUCCESSFULLY_DONE);
 			NsInfo nsInfo = nsInstances.get(nsInstanceId);
-			for(String nestedNsi : nsInfo.getNestedNsInfoId()){
-				NsInfo nestedNsInfo = nsInstances.get(nestedNsi);
-				nestedNsInfo.setNsState(InstantiationState.INSTANTIATED);
-				nsInstances.put(nestedNsi, nestedNsInfo);
-			}
+
 			nsInfo.setFlavourId(request.getFlavourId());
 			nsInfo.setInstantiationLevel(request.getNsInstantiationLevelId());
 			nsInfo.setNsState(InstantiationState.INSTANTIATED);
