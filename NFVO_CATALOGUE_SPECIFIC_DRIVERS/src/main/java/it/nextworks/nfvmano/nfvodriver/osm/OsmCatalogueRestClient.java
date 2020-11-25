@@ -9,6 +9,8 @@ import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementExcept
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.NsDf;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.Nsd;
+import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.NSDCatalog;
+import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.OsmNSPackage;
 import it.nextworks.osm.ApiClient;
 import it.nextworks.osm.ApiException;
 import it.nextworks.osm.openapi.NsPackagesApi;
@@ -37,6 +39,8 @@ public class OsmCatalogueRestClient {
     private NsPackagesApi nsPackagesApi;
     private Map<UUID, UUID> IdToNsdIdMapping;
     private Map<UUID, UUID> IdToNsdInfoIdMapping;
+    private NSDCatalog nsdCatalog;
+    private OsmNSPackage osmNSPackage;
 
     public OsmCatalogueRestClient(String nfvoAddress, String username, String password, OAuthSimpleClient oAuthSimpleClient){
         this.oAuthSimpleClient = oAuthSimpleClient;
@@ -46,6 +50,9 @@ public class OsmCatalogueRestClient {
         nsPackagesApi = new NsPackagesApi();
         this.IdToNsdIdMapping = new HashMap<>();
         this.IdToNsdInfoIdMapping = new HashMap<>();
+        this.nsdCatalog = new NSDCatalog();
+        this.osmNSPackage = new OsmNSPackage();
+        osmNSPackage.setNsdCatalog(nsdCatalog);
     }
 
     //******************************** NSD methods ********************************//

@@ -1,8 +1,10 @@
 package it.nextworks.nfvmano.nfvodriver.osm;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import it.nextworks.nfvmano.libs.fivegcatalogueclient.ArchiveBuilder;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
 import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.AddressData;
@@ -10,14 +12,22 @@ import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.VirtualLinkProf
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.*;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.*;
 import it.nextworks.osm.ApiException;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.zip.GZIPOutputStream;
 
 public class IfaOsmTranslator {
 
@@ -124,7 +134,6 @@ public class IfaOsmTranslator {
         }
         //associate the vld list to nsd
         nsDescriptor.setVldList(vldList);
-
         return nsDescriptor;
     }
 
@@ -167,6 +176,7 @@ public class IfaOsmTranslator {
         }
         return false;
     }
+
     /**
      * Create the Nsd zip package and return the path
      * @param nsd
@@ -175,53 +185,131 @@ public class IfaOsmTranslator {
      */
     public static String createPackage(Nsd nsd, NsDf nsDf) throws FailedOperationException {
         NSDescriptor nsdOsm = translateIfaOsmNsd(nsd,nsDf);
-        makeYml(nsdOsm);
-        String tmpPackagePath = "/home/nextworks/Desktop/" + nsdOsm.getId() + ".yaml";
-        ObjectMapper mapperToYaml = new ObjectMapper(new YAMLFactory());
-        mapperToYaml.configure(SerializationFeature.INDENT_OUTPUT,true);
+        List<NSDescriptor> nsDescriptorList = new ArrayList<>();
+        nsDescriptorList.add(nsdOsm);
+        NSDCatalog nsdCatalog = new NSDCatalog();
+        nsdCatalog.setNsds(nsDescriptorList);
+        OsmNSPackage osmNSPackage = new OsmNSPackage();
+        osmNSPackage.setNsdCatalog(nsdCatalog);
+
+        //making folder that will contain nsd
+        File nsdFolder = makeNsFolder(nsdOsm.getId());
+
+        //making yaml file
+        makeYml(osmNSPackage,nsdOsm.getId(),nsdFolder.getAbsolutePath());
+
+        //creating zip archive
+        String tarNsdFile = compress(nsdFolder);
+
+        return tarNsdFile;
+    }
+
+    private static File makeNsFolder(String nsdId) {
+        String folderPath = System.getProperty("java.io.tmpdir") + File.separator + nsdId + "_ns";
+        Path path = Paths.get(folderPath);
+        if(Files.isDirectory(path)){
+            log.debug("Temporary folder " + nsdId + "_ns already existing. Overwriting");
+            if (!rmRecursively(path.toFile())) {
+                throw new IllegalStateException(
+                        String.format("Could not delete folder %s", path.toFile().getAbsolutePath())
+                );
+            }
+        }
         try {
-            mapperToYaml.writeValue(new File(tmpPackagePath), nsdOsm);
+            Files.createDirectories(Paths.get(folderPath));
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return path.toFile();
+    }
 
-        return "Hello";
-        /*
-        //Generate the yaml file associated to NSDescriptor
-        String tmpPackagePath = "/tmp/" + nsdOsm.getId();
-        File nsdYaml = new File("/tmp/" + nsdOsm.getId() + ".yaml");
-        ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
+    private static boolean rmRecursively(File folder) {
+        SimpleFileVisitor<Path> deleter = new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+                    throws IOException {
+                Files.delete(file);
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException e)
+                    throws IOException {
+                if (e == null) {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                } else {
+                    // directory iteration failed
+                    throw e;
+                }
+            }
+        };
         try {
-            objectMapper.writeValue(nsdYaml, nsdOsm);
+            Files.walkFileTree(folder.toPath(), deleter);
+            return true;
         } catch (IOException e) {
-            log.error("Error during yaml file creation!", e);
-            throw new FailedOperationException(e.getMessage());
+            log.error(
+                    "Could not recursively delete folder {}. Error: {}",
+                    folder.getAbsolutePath(),
+                    e.getMessage()
+            );
+            log.debug("Error details: ", e);
+            return false;
         }
+    } //same of ArchiveBuilder
 
-        //Create zip folder
-        /*
-            File f = new File("d:\\test.zip");
-            ZipOutputStream out = new ZipOutputStream(new FileOutputStream(f));
-            ZipEntry e = new ZipEntry("mytext.txt");
-            out.putNextEntry(e);
+    private static void makeYml(OsmNSPackage osmNSPackage, String nsdId, String nsdFolder) {
+        String yamlFilePath = nsdFolder + File.separator + nsdId + "_nsd.yaml";
 
-            byte[] data = sb.toString().getBytes();
-            out.write(data, 0, data.length);
-            out.closeEntry();
-
-            out.close();
-
-
-        return null;*/
+        File nsdFile = new File(yamlFilePath);
+        ObjectMapper ymlMapper = new ObjectMapper(new YAMLFactory());
+        try{
+            List<String> strings = Arrays.asList(ymlMapper.writeValueAsString(osmNSPackage).split("\n"));
+            Files.write(Paths.get(yamlFilePath), strings);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    private static void makeYml(NSDescriptor nsdOsm) {
-        ObjectMapper mapperToYaml = new ObjectMapper(new YAMLFactory());
-        System.out.println("TEMP DIR: " + System.getProperty("java.io.tmpdir"));
-        String yamlFilePath = System.getProperty("java.io.tmpdir");
-        yamlFilePath = yamlFilePath + File.separator + nsdOsm.getId() + ".yaml";
+    private static String compress(File folder) {
+        File rootDir = folder.getParentFile();
+        File archive = new File(rootDir, folder.getName() + ".tar.gz");
+        try (
+                FileOutputStream fos = new FileOutputStream(archive);
+                GZIPOutputStream gos = new GZIPOutputStream(new BufferedOutputStream(fos));
+                TarArchiveOutputStream tos = new TarArchiveOutputStream(gos)
+        ) {
+            SimpleFileVisitor<Path> archiver = new SimpleFileVisitor<Path>() {
 
+                private File ROOT = folder.getParentFile();
 
-        File nsdFile = new File();
-    }
+                private String relPath(Path target) {
+                    return ROOT.toPath().relativize(target).toString();
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+                        throws IOException {
+                    tos.putArchiveEntry(new TarArchiveEntry(file.toFile(), relPath(file)));
+                    Files.copy(file, tos);
+                    tos.closeArchiveEntry();
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult preVisitDirectory(Path path, BasicFileAttributes basicFileAttributes)
+                        throws IOException {
+                    tos.putArchiveEntry(new TarArchiveEntry(path.toFile(), relPath(path)));
+                    tos.closeArchiveEntry();
+                    return FileVisitResult.CONTINUE;
+                }
+            };
+            Files.walkFileTree(folder.toPath(), archiver);
+            return archive.getAbsolutePath();
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    String.format("Could not compress package. Error: %s", e.getMessage())
+            );
+        }
+    } //same of ArchiveBuilder
 }
