@@ -15,59 +15,46 @@
 */
 package it.nextworks.nfvmano.nfvodriver.osm;
 
-import java.io.File;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.NsdManagementConsumerInterface;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.VnfPackageManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeleteNsdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeleteNsdResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeletePnfdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeletePnfdResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeleteVnfPackageRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DisableNsdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DisableVnfPackageRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.EnableNsdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.EnableVnfPackageRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.FetchOnboardedVnfPackageArtifactsRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnBoardVnfPackageRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnBoardVnfPackageResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardAppPackageRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardAppPackageResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardNsdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardPnfdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryNsdResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryOnBoadedAppPkgInfoResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryOnBoardedVnfPkgInfoResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryPnfdResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.UpdateNsdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.UpdatePnfdRequest;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.AlreadyExistingEntityException;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.*;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.*;
 import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
 import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueAbstractDriver;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueDriverType;
-import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueNotificationInterface;
+import it.nextworks.osm.ApiException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.List;
+import java.util.UUID;
 
 public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	
 	private static final Logger log = LoggerFactory.getLogger(OsmCatalogueDriver.class);
-	
+	private OAuthSimpleClient oAuthSimpleClient;
+	private String username;
+	private String password;
+	private String project;
+	private UUID vimId;
+	private OsmCatalogueRestClient osmCatalogueRestClient;
+
 	public OsmCatalogueDriver(String nfvoAddress,
-			String user,
-			String password,
-			String project,
-			NfvoCatalogueNotificationInterface nfvoCatalogueNotificationManager) {
-		super(NfvoCatalogueDriverType.OSM, nfvoAddress, nfvoCatalogueNotificationManager);
-			}
+							  String username,
+							  String password,
+							  String project,
+							  UUID vimId) {
+
+		super(NfvoCatalogueDriverType.OSM, nfvoAddress, null);
+		this.username = username;
+		this.password = password;
+		this.project = project;
+		this.oAuthSimpleClient = new OAuthSimpleClient(nfvoAddress+"/osm/admin/v1/tokens", username, password, project);
+		this.osmCatalogueRestClient = new OsmCatalogueRestClient(nfvoAddress, username, password, oAuthSimpleClient);
+	}
 
 	@Override
 	public File fetchOnboardedApplicationPackage(String onboardedAppPkgId)
@@ -129,8 +116,17 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	public String onboardNsd(OnboardNsdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
 		log.debug("Processig request to onboard a new NSD.");
-		// TODO Auto-generated method stub
+		try {
+			osmCatalogueRestClient.onboardNsd(request);
+		} catch (ApiException e) {
+			e.printStackTrace();
+		}
 		return null;
+	}
+
+	//for testing purpose
+	public void getNSDs(){
+		osmCatalogueRestClient.getNSDs();
 	}
 
 	@Override
@@ -208,7 +204,9 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	public OnBoardVnfPackageResponse onBoardVnfPackage(OnBoardVnfPackageRequest request)
 			throws MethodNotImplementedException, AlreadyExistingEntityException, FailedOperationException,
 			MalformattedElementException {
-		throw new MethodNotImplementedException();
+		log.debug("Processig request to onboard a new VNFD.");
+		//osmCatalogueRestClient.onboardVnfd(request);
+		return null;
 	}
 
 	@Override
@@ -270,5 +268,5 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
 		throw new MethodNotImplementedException();
 	}
-
+	
 }
