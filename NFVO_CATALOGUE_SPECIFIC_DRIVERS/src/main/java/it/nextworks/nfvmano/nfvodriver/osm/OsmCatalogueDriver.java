@@ -117,7 +117,7 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
 		log.debug("Processig request to onboard a new NSD.");
 		try {
-			osmCatalogueRestClient.onboardNsd(request);
+			return osmCatalogueRestClient.onboardNsd(request);
 		} catch (ApiException e) {
 			e.printStackTrace();
 		}
@@ -205,8 +205,7 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 			throws MethodNotImplementedException, AlreadyExistingEntityException, FailedOperationException,
 			MalformattedElementException {
 		log.debug("Processig request to onboard a new VNFD.");
-		//osmCatalogueRestClient.onboardVnfd(request);
-		return null;
+		return osmCatalogueRestClient.onboardVnfPackage(request);
 	}
 
 	@Override

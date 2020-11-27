@@ -1,17 +1,15 @@
 package it.nextworks.nfvmano.nfvodriver.osm;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import it.nextworks.nfvmano.libs.fivegcatalogueclient.ArchiveBuilder;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
 import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.AddressData;
 import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.VirtualLinkProfile;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.*;
+import it.nextworks.nfvmano.libs.ifa.descriptors.vnfd.VnfDf;
+import it.nextworks.nfvmano.libs.ifa.descriptors.vnfd.Vnfd;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.*;
-import it.nextworks.osm.ApiException;
+import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.VNFDescriptor;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.slf4j.Logger;
@@ -32,14 +30,17 @@ import java.util.zip.GZIPOutputStream;
 public class IfaOsmTranslator {
 
     private static final Logger log = LoggerFactory.getLogger(IfaOsmTranslator.class);
+    private static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
+
+
+    //******************************** NSD tanslation ********************************//
 
     /**
      * Takes Nsd Ifa descriptor and generates the corrispondent Nsd to be onboarded in OSM
      * @param nsd
      * @return nsDf
-     * @throws ApiException If fail to call the API, e.g. server error or cannot deserialize the response body
      */
-    public static NSDescriptor translateIfaOsmNsd(Nsd nsd, NsDf nsDf) throws FailedOperationException {
+    private static NSDescriptor translateIfaToOsmNsd(Nsd nsd, NsDf nsDf) {
 
         NSDescriptor nsDescriptor = new NSDescriptor();
 
@@ -61,7 +62,7 @@ public class IfaOsmTranslator {
         } catch (NotExistingEntityException e) {
             log.debug("No description found for nsDescriptor: " + nsDescriptor.getId());
             e.printStackTrace();
-            nsDescriptor.setDescription("Empty");
+            nsDescriptor.setDescription("No available description");
         }
 
         List<ConstituentVNFD> constituentVNFDList = new ArrayList<>();
@@ -84,11 +85,16 @@ public class IfaOsmTranslator {
             connectionPoint.setName(sapd.getCpdId());
             nsVirtuaLinkIdToSapd.put(sapd.getNsVirtualLinkDescId(), sapd);
             /*
-             * In Sapd the attribute AddressData is a list. Can we assume
-             * that is always a list of one single element?
+             * In Sapd the attribute AddressData is a list.
+             * For a NSD connection point in OSM the only other
+             * entry is "floating-ip-required" that is by default false
+             * Can we assume
+             * that is always a list of one single element in order to get this info?
+             * //TODO validate this
              */
-            connectionPoint.setFloatingIPRequired(sapd.getAddressData().get(0).isFloatingIpActivated());
-            connectionPoint.setType("VPORT"); //the only supported
+            if(sapd.getAddressData() != null)
+                connectionPoint.setFloatingIPRequired(sapd.getAddressData().get(0).isFloatingIpActivated());
+            connectionPoint.setType("VPORT"); //the only supported by OSM
             connectionPoint.setVldIdRef(sapd.getNsVirtualLinkDescId());
             connectionPointList.add(connectionPoint);
         }
@@ -107,7 +113,7 @@ public class IfaOsmTranslator {
             vld.setType("ELAN"); //OSM support also ELINE
 
             vld.setMgmtNetwork(isVirtualLinkManagement(nsVirtuaLinkIdToSapd.get(vld.getId()), vld.getId()));
-            vld.setVimNetworkName(vld.getId());
+            vld.setVimNetworkName(vld.getId()); //TODO validate this
             vldIdListHashMap.put(vld.getId(), new ArrayList<>());
             vldList.add(vld);
             vlProfileIdToVlDescId.put(getVirtualLinkProfileId(nsDf,vld.getId()), vld.getId());
@@ -117,18 +123,19 @@ public class IfaOsmTranslator {
             for(NsVirtualLinkConnectivity nsVirtualLinkConnectivity : vnfProfile.getNsVirtualLinkConnectivity()) {
                 String vlDescId = vlProfileIdToVlDescId.get(nsVirtualLinkConnectivity.getVirtualLinkProfileId());
                 if(isVldPresent(vldList, vlDescId)){
-                    VNFDConnectionPointReference vnfdConnectionPointReference = new VNFDConnectionPointReference();
-                    vnfdConnectionPointReference.setVnfdIdReference(vnfProfile.getVnfdId()); // vnfdId
-                    //assume one single cpd. TODO check for this assumption
-                    vnfdConnectionPointReference.setVnfdConnectionPointReference(nsVirtualLinkConnectivity.getCpdId().get(0)); //cp of the vnf
-                    vnfdConnectionPointReference.setIndexReference(vnfdIdToPosition.get(vnfProfile.getVnfdId())); //position of vnf within the nsd
-                    //this cp belogs to the vld referenced by vnfProfileId
-                    vldIdListHashMap.get(vlDescId) //take the list of cps associated to vlDescvId
-                            .add(vnfdConnectionPointReference);
+                    for(String cpdId : nsVirtualLinkConnectivity.getCpdId()){
+                        VNFDConnectionPointReference vnfdConnectionPointReference = new VNFDConnectionPointReference();
+                        vnfdConnectionPointReference.setVnfdIdReference(vnfProfile.getVnfdId()); // vnfdId
+                        vnfdConnectionPointReference.setVnfdConnectionPointReference(cpdId); //cp of the vnf
+                        vnfdConnectionPointReference.setIndexReference(vnfdIdToPosition.get(vnfProfile.getVnfdId())); //position of vnf within the nsd
+                        //this cp belongs to the vld referenced by vnfProfileId
+                        vldIdListHashMap.get(vlDescId) //take the list of cps associated to vlDescvId
+                                .add(vnfdConnectionPointReference);
+                    }
                 }
             }
         }
-        //associate the list of cp to each vld
+        //now we need to associate the list of cp to each vld
         for(VLD vld : vldList){
             vld.setVnfdConnectionPointReferences(vldIdListHashMap.get(vld.getId()));
         }
@@ -177,14 +184,25 @@ public class IfaOsmTranslator {
         return false;
     }
 
+    //******************************** VNFD tanslation ********************************//
+
+    private static VNFDescriptor translateIfaToOsmVnfd(Vnfd vnfd) {
+
+
+        return null;
+    }
+
+    //******************************** Utility functions ********************************//
+
     /**
      * Create the Nsd zip package and return the path
      * @param nsd
      * @param nsDf
      * @return String
      */
-    public static String createPackage(Nsd nsd, NsDf nsDf) throws FailedOperationException {
-        NSDescriptor nsdOsm = translateIfaOsmNsd(nsd,nsDf);
+    public static File createPackageForNsd(Nsd nsd, NsDf nsDf) {
+        NSDescriptor nsdOsm = translateIfaToOsmNsd(nsd,nsDf);
+
         List<NSDescriptor> nsDescriptorList = new ArrayList<>();
         nsDescriptorList.add(nsdOsm);
         NSDCatalog nsdCatalog = new NSDCatalog();
@@ -199,13 +217,18 @@ public class IfaOsmTranslator {
         makeYml(osmNSPackage,nsdOsm.getId(),nsdFolder.getAbsolutePath());
 
         //creating zip archive
-        String tarNsdFile = compress(nsdFolder);
+        File tarNsdFile = compress(nsdFolder);
 
         return tarNsdFile;
     }
 
+    public static File createPackageForVnfd(Vnfd vnfd, VnfDf vnfdDf) {
+
+        return null;
+    }
+
     private static File makeNsFolder(String nsdId) {
-        String folderPath = System.getProperty("java.io.tmpdir") + File.separator + nsdId + "_ns";
+        String folderPath = TEMP_DIR + File.separator + nsdId + "_ns";
         Path path = Paths.get(folderPath);
         if(Files.isDirectory(path)){
             log.debug("Temporary folder " + nsdId + "_ns already existing. Overwriting");
@@ -261,7 +284,6 @@ public class IfaOsmTranslator {
     private static void makeYml(OsmNSPackage osmNSPackage, String nsdId, String nsdFolder) {
         String yamlFilePath = nsdFolder + File.separator + nsdId + "_nsd.yaml";
 
-        File nsdFile = new File(yamlFilePath);
         ObjectMapper ymlMapper = new ObjectMapper(new YAMLFactory());
         try{
             List<String> strings = Arrays.asList(ymlMapper.writeValueAsString(osmNSPackage).split("\n"));
@@ -271,7 +293,7 @@ public class IfaOsmTranslator {
         }
     }
 
-    private static String compress(File folder) {
+    private static File compress(File folder) {
         File rootDir = folder.getParentFile();
         File archive = new File(rootDir, folder.getName() + ".tar.gz");
         try (
@@ -305,11 +327,16 @@ public class IfaOsmTranslator {
                 }
             };
             Files.walkFileTree(folder.toPath(), archiver);
-            return archive.getAbsolutePath();
+            return archive;
         } catch (IOException e) {
             throw new IllegalStateException(
                     String.format("Could not compress package. Error: %s", e.getMessage())
             );
         }
     } //same of ArchiveBuilder
+
+    public static String getOsmNsdId(Nsd nsd, NsDf df) {
+        return nsd.getNsdIdentifier()+"_"+ df.getNsDfId();
+    }
+
 }
