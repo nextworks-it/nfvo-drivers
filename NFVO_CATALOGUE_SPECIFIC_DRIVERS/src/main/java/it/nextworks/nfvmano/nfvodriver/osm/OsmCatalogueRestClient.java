@@ -171,7 +171,7 @@ public class OsmCatalogueRestClient {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        if(vnfd == null) throw new MalformattedElementException("NSD for onboarding is empty");
+        if(vnfd == null) throw new MalformattedElementException("VNFD for onboarding is empty");
         //maybe a vnfd for each couple of vnfd,vnfDf?
         for(VnfDf vnfdDf : vnfd.getDeploymentFlavour()){
 
