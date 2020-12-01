@@ -2,7 +2,6 @@ package it.nextworks.nfvmano.nfvodriver.osm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.client.model.CreateNsdInfoRequest;
-import io.swagger.client.model.CreateVnfPkgInfoRequest;
 import io.swagger.client.model.NsdInfo;
 import io.swagger.client.model.ObjectId;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnBoardVnfPackageRequest;
@@ -21,14 +20,12 @@ import it.nextworks.osm.ApiClient;
 import it.nextworks.osm.ApiException;
 import it.nextworks.osm.openapi.NsPackagesApi;
 import it.nextworks.osm.openapi.VnfPackagesApi;
-import org.apache.commons.compress.archivers.ArchiveException;
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -150,7 +147,7 @@ public class OsmCatalogueRestClient {
         log.debug("Retrieving VNFD from VNF package");
         String folder = null;
         Vnfd vnfd = null;
-        try{
+        /*try{
             String downloadedFile = fileUtilities.downloadFile(vnfPackagePath);
             folder = fileUtilities.extractFile(downloadedFile);
             File jsonFile = fileUtilities.findJsonFileInDir(folder);
@@ -170,6 +167,12 @@ public class OsmCatalogueRestClient {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        }*/
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            vnfd = (Vnfd) mapper.readValue(Paths.get("/home/nextworks/Desktop/vnfd.json").toFile(), Vnfd.class);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         if(vnfd == null) throw new MalformattedElementException("VNFD for onboarding is empty");
         //maybe a vnfd for each couple of vnfd,vnfDf?
@@ -179,7 +182,7 @@ public class OsmCatalogueRestClient {
             String vnfdInfoId = "";
 
             //create a new Vnfd resource
-            try {
+            /*try {
                 vnfPackagesApi.setApiClient(getClient());
                 ObjectId response = vnfPackagesApi.addVnfPkg(new CreateVnfPkgInfoRequest());
                 vnfdInfoId = response.getId().toString();
@@ -199,7 +202,7 @@ public class OsmCatalogueRestClient {
                     log.error("Can't delete vnfdInfoId resource", apiException);
                 }
                 throw new FailedOperationException("Error on VNFD onboarding!" + e.getResponseBody());
-            }
+            }*/
         }
 
         /*

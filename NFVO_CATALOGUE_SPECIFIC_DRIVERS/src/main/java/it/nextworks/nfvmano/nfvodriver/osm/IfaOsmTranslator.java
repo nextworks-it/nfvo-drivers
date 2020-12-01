@@ -2,11 +2,9 @@ package it.nextworks.nfvmano.nfvodriver.osm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
-import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.AddressData;
-import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.VirtualComputeDesc;
-import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.VirtualLinkProfile;
-import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.VirtualStorageDesc;
+import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.*;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.*;
 import it.nextworks.nfvmano.libs.ifa.descriptors.vnfd.*;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.*;
@@ -111,8 +109,11 @@ public class IfaOsmTranslator {
             vld.setDescription(nsVirtualLinkDesc.getDescription());
             vld.setType("ELAN"); //OSM support also ELINE
 
-            vld.setMgmtNetwork(isVirtualLinkManagement(nsVirtuaLinkIdToSapd.get(vld.getId()), vld.getId()));
-            vld.setVimNetworkName(vld.getId()); //TODO validate this
+            boolean isVLMgmt = isVirtualLinkManagement(nsVirtuaLinkIdToSapd.get(vld.getId()), vld.getId());
+            vld.setMgmtNetwork(isVLMgmt);
+            if(isVLMgmt) vld.setVimNetworkName("VM_MGMT");
+            else vld.setVimNetworkName(vld.getId());
+
             vldIdListHashMap.put(vld.getId(), new ArrayList<>());
             vldList.add(vld);
             vlProfileIdToVlDescId.put(getVirtualLinkProfileId(nsDf,vld.getId()), vld.getId());
@@ -185,13 +186,18 @@ public class IfaOsmTranslator {
 
     //******************************** VNFD tanslation ********************************//
 
-    private static VNFDescriptor translateIfaToOsmVnfd(Vnfd vnfd, VnfDf vnfDf) {
+    private static VNFDescriptor translateIfaToOsmVnfd(Vnfd vnfd, VnfDf vnfDf) throws FailedOperationException {
 
+        //managing the cloud init script: return error if there are multiple vdus
+        if(vnfd.getVdu().size() > 1 && vnfd.getLifeCycleManagementScript().size() != 0){
+            throw new FailedOperationException("A VNF configuration script is present, but there are multiple vdu");
+        }
+        
         VNFDescriptor vnfDescriptor = new VNFDescriptor();
 
         //map the internalCpd of a vdu to its external Cpd
-        //TODO is the case of one External CP with more internal CP of different VDU possible?
         HashMap<String,String> intCpdToExtCpd = new HashMap<>();
+
         // map the cp of the vdu to an internal vld (that connects vdus)
         HashMap<String,String> intVLDToIntCP = new HashMap<>();
         HashMap<String,String> intCPToIntVduInterface = new HashMap<>();
@@ -211,7 +217,6 @@ public class IfaOsmTranslator {
             connectionPoint.setId(vnfExtCpd.getCpdId());
             connectionPoint.setName(vnfExtCpd.getCpdId());
             connectionPoint.setType("VPORT"); // the only supported by OSM
-            //connectionPoint.setPortSecurityEnabled(); TODO how to set this?
             //connectionPoint.setInternalVldRef(); TODO how to set this?
             intCpdToExtCpd.put(vnfExtCpd.getIntCpd(),vnfExtCpd.getCpdId());
             connectionPoints.add(connectionPoint);
@@ -222,10 +227,6 @@ public class IfaOsmTranslator {
         ManagementInterface managementInterface = new ManagementInterface();
         if(mgmtConnectionPoint != null){
             managementInterface.setCp(mgmtConnectionPoint.getCpdId());
-            //managementInterface.setIp(); specify the static ip address for managing VNF
-            //managementInterface.setPort();port for the management interface
-            //managementInterface.setVduIdentification(); use the default management interface on this vdu
-            //managementInterface.setDashboardParameters(); parameters for dashboard vnf
             vnfDescriptor.setManagementInterface(managementInterface);
         }
 
@@ -236,11 +237,12 @@ public class IfaOsmTranslator {
             osmVDU.setId(ifaVDU.getVduId());
             osmVDU.setName(ifaVDU.getVduName());
             osmVDU.setDescription(ifaVDU.getDescription());
-            //get the initial count from DF -> vduProfile(vduId) -> minNumberOfInstances
+            //get the initial count from DF -> vduProfile(vduId) -> minNumberOfInstances //TODO validate
             osmVDU.setCount(getCountVduFromVduProfile(vnfDf.getVduProfile(),ifaVDU.getVduId()));
             //the name of sw image must be the same of the image on OpenStack (for example "ubuntu18.04")
-            osmVDU.setImage(ifaVDU.getSwImageDesc().getName());
-            //osmVDU.setCloudInitFile(); TODO how to set this?
+            osmVDU.setImage(ifaVDU.getSwImageDesc().getName()); //TODO validate
+
+            //osmVDU.setCloudInitFile(); //TODO how to set this?
 
             VirtualComputeDesc virtualComputeDesc = null;
             List<VirtualStorageDesc> virtualStorageDescs = new ArrayList<>();
@@ -253,20 +255,18 @@ public class IfaOsmTranslator {
                 e.printStackTrace();
             }
             VMFlavor vmFlavor = new VMFlavor();
-            //TODO validate the management of the storage because virtualStorageDescs is a list
             vmFlavor.setStorageGb(getStorageFromSWImageId(virtualStorageDescs,ifaVDU.getSwImageDesc().getSwImageId()));
             if(virtualComputeDesc!= null){
-                vmFlavor.setMemoryMb(virtualComputeDesc.getVirtualMemory().getVirtualMemSize());
+                vmFlavor.setMemoryMb(virtualComputeDesc.getVirtualMemory().getVirtualMemSize()*1024);
                 vmFlavor.setVcpuCount(virtualComputeDesc.getVirtualCpu().getNumVirtualCpu());
             }
-
             osmVDU.setVmFlavor(vmFlavor);
 
             //Setting the vdu interface
             List<Interface> interfaceList = new ArrayList<>();
-            int position = 1;
             //setting internal cp
             List<InternalConnectionPoint> internalConnectionPoints = new ArrayList<>();
+            int position = 1;
             for(VduCpd vduCpd : ifaVDU.getIntCpd()){
                 Interface osmInterface = new Interface();
                 if(intCpdToExtCpd.containsKey(vduCpd.getCpdId())){
@@ -275,10 +275,12 @@ public class IfaOsmTranslator {
                     osmInterface.setExtConnPointRef(intCpdToExtCpd.get(vduCpd.getCpdId()));
                 }
                 else{
-                    //this is a cp that let the connection to other vdu
+                    //this is a cp that allow connection to other vdu (through a vld)
                     osmInterface.setType("INTERNAL");
                     //TODO validate this
-                    osmInterface.setIntConnPointRef(vduCpd.getCpdId()+"-internal");
+                    osmInterface.setIntConnPointRef(getIcpNameFromCpd(vduCpd.getCpdId()));
+                    //vduCpd -> internal-connection-point-ref = vduCpd-internal
+
                     intVLDToIntCP.put(vduCpd.getIntVirtualLinkDesc(),vduCpd.getCpdId());
                     intCPToIntVduInterface.put(vduCpd.getCpdId(),osmInterface.getIntConnPointRef());
                 }
@@ -287,17 +289,17 @@ public class IfaOsmTranslator {
                 position++;
                 osmInterface.setMgmtInterface(checkIfIsManagement(vduCpd.getAddressData()));
                 VirtualInterface virtualInterface = new VirtualInterface();
-                virtualInterface.setType("PARAVIRT"); //TODO how to set this properly? There are multiple options
+                virtualInterface.setType("PARAVIRT"); //Note this is the default entry, but there are others
                 //virtualInterface.setBandwidth(); aggregate bandwidth of the NIC
                 //virtualInterface.setVpci(); specify the virtual PCI address
                 osmInterface.setVirtualInterface(virtualInterface);
+                interfaceList.add(osmInterface);
                 if(osmInterface.getType().equals("INTERNAL")){
                     InternalConnectionPoint internalConnectionPoint = new InternalConnectionPoint();
                     internalConnectionPoint.setId(osmInterface.getIntConnPointRef());
                     internalConnectionPoint.setName(osmInterface.getIntConnPointRef());
                     internalConnectionPoint.setShortName(osmInterface.getIntConnPointRef());
                     internalConnectionPoint.setType("VPORT");
-                    //internalConnectionPoint.setPortSecuityEnabled(); TODO how to set this?
                     internalConnectionPoint.setInternalVldRef(vduCpd.getIntVirtualLinkDesc());
                     internalConnectionPoints.add(internalConnectionPoint);
                 }
@@ -309,19 +311,23 @@ public class IfaOsmTranslator {
         vnfDescriptor.setVduList(vduList);
 
         //TODO why internalConnectionPoint is only one element?
-        /*List<InternalVld> internalVlds = new ArrayList<>();
+        List<InternalVld> internalVlds = new ArrayList<>();
         for(VnfVirtualLinkDesc vnfVirtualLinkDesc : vnfd.getIntVirtualLinkDesc()){
             InternalVld vld = new InternalVld();
             vld.setId(vnfVirtualLinkDesc.getVirtualLinkDescId());
             vld.setName(vnfVirtualLinkDesc.getVirtualLinkDescId());
             vld.setType("ELAN"); //TODO or maybe ELINE?
-            //vld.setRootBandwidth(); TODO How to set this?
-            //vld.setLeafBandwidth(); TODO How to set this?
+            //vld.setRootBandwidth(); TODO How to set this? aggregate bandwidth
+            //vld.setLeafBandwidth(); TODO How to set this? bandwidth of branches
             InternalConnectionPointVld internalConnectionPointVld = new InternalConnectionPointVld();
         }
-        vnfDescriptor.setInternalVld(internalVlds);*/
+        vnfDescriptor.setInternalVld(internalVlds);
 
         return vnfDescriptor;
+    }
+
+    private static String getIcpNameFromCpd(String cpdId) {
+        return cpdId+"-internal";
     }
 
     private static Integer getStorageFromSWImageId(List<VirtualStorageDesc> virtualStorageDescs, String swImageId) {
@@ -380,8 +386,23 @@ public class IfaOsmTranslator {
         return tarNsdFile;
     }
 
-    public static File createPackageForVnfd(Vnfd vnfd, VnfDf vnfdDf) {
-        VNFDescriptor vnfdOsm = translateIfaToOsmVnfd(vnfd,vnfdDf);
+    public static File createPackageForVnfd(Vnfd vnfd, VnfDf vnfdDf) { //TODO modify
+        VNFDescriptor vnfdOsm = null;
+        try {
+            vnfdOsm = translateIfaToOsmVnfd(vnfd,vnfdDf);
+        } catch (FailedOperationException e) {
+            e.printStackTrace();
+            return null;
+        }
+        List<VNFDescriptor> vnfDescriptorList = new ArrayList<>();
+        vnfDescriptorList.add(vnfdOsm);
+        VNFDCatalog vnfdCatalog = new VNFDCatalog();
+        vnfdCatalog.setVnfd(vnfDescriptorList);
+
+        OsmVNFPackage osmVNFPackage = new OsmVNFPackage();
+        osmVNFPackage.setVnfdCatalog(vnfdCatalog);
+
+        makeYml(osmVNFPackage, vnfdOsm.getId());
         return null;
     }
 
@@ -445,6 +466,18 @@ public class IfaOsmTranslator {
         ObjectMapper ymlMapper = new ObjectMapper(new YAMLFactory());
         try{
             List<String> strings = Arrays.asList(ymlMapper.writeValueAsString(osmNSPackage).split("\n"));
+            Files.write(Paths.get(yamlFilePath), strings);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void makeYml(OsmVNFPackage osmVNFPackage, String id) {
+        String yamlFilePath = TEMP_DIR + File.separator + "test.yaml";
+
+        ObjectMapper ymlMapper = new ObjectMapper(new YAMLFactory());
+        try{
+            List<String> strings = Arrays.asList(ymlMapper.writeValueAsString(osmVNFPackage).split("\n"));
             Files.write(Paths.get(yamlFilePath), strings);
         } catch (IOException e) {
             e.printStackTrace();

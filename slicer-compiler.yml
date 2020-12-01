@@ -1,0 +1,112 @@
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+
+  #$ sudo apt install software-properties-common
+  #$ sudo apt-add-repository --yes --update ppa:ansible/ansible
+  #$ sudo apt install ansible
+  #$ ansible-playbook <this_playbook>
+
+  #check java
+  - name: Fetch Java version
+    shell: java -version 2>&1 | grep version | awk '{print $3}' | sed 's/"//g'
+    register: java_version
+
+  - debug:
+      msg: "JRE is present, but in a version different than 8. Only JRE 8 is officially supported. Please install Java 8 manually and configure it."
+    when: '"1.8" not in java_version.stdout and java_version.stdout != ""'
+
+  - meta: end_play
+    when: '"1.8" not in java_version.stdout and java_version.stdout != ""'
+
+  - name: Installing java 8
+    apt:
+      name: openjdk-8-jdk
+      state: present
+    become: yes
+
+  - name: Update packages
+    apt:
+      update_cache: yes
+    become: yes
+
+  #check maven
+  - name: "Check if maven is installed"
+    package_facts:
+      manager: "auto"
+  
+  - name: Installing maven
+    apt:
+      name: maven
+    when: "'maven' not in ansible_facts.packages"
+    become: yes
+
+  # get current pwd
+  - name: get current working directory
+    shell: echo $(pwd)
+    register: current_pwd
+    
+  - debug:
+      msg: "Trying to create slicer directory at {{ current_pwd.stdout }}"
+
+  - name: check if working dir already exist
+    stat:
+      path: "{{ current_pwd.stdout }}/slicer"
+    register: check_output
+
+  - debug:
+      msg: "The directory already exists"
+    when: check_output.stat.exists 
+  
+  - meta: end_play
+    when: check_output.stat.exists
+
+  - name: create slicer directory
+    file:
+      path: "{{ current_pwd.stdout }}/slicer"
+      state: directory
+    
+  #get repos    
+  - name: get nfv-ifa-libs
+    shell: cd {{ current_pwd.stdout }}/slicer && git clone --branch dev_5growth git://10.0.2.10:/git/KD/nfv-ifa-libs
+
+  - name: get identity-mangement
+    shell: cd {{ current_pwd.stdout }}/slicer && git clone git://10.0.2.10:/git/KD/identity-management
+
+  - name: get blueprint-catalogue
+    shell: cd {{ current_pwd.stdout }}/slicer && git clone --branch slicer_merge git://10.0.2.10:/git/KD/blueprint-catalogue
+
+  - name: get nfv-sol-libs
+    shell: cd {{ current_pwd.stdout }}/slicer && git clone git://10.0.2.10:/git/KD/nfv-sol-libs
+
+  - name: get nfvo-driver
+    shell: cd {{ current_pwd.stdout }}/slicer && git clone git://10.0.2.10:/git/KD/nfvo-driver
+
+  - name: get slicer
+    shell: cd {{ current_pwd.stdout }}/slicer && git clone --branch slicer_merge git://10.0.2.10:/git/KD/slicer
+  
+  #mvn clean install
+  - name: compiling nfv-ifa-libs
+    shell: cd {{ current_pwd.stdout }}/slicer/nfv-ifa-libs && mvn clean install
+
+  - name: compiling identity-management
+    shell: cd {{ current_pwd.stdout }}/slicer/identity-management && mvn clean install
+
+  - name: compiling nfv-sol-libs
+    shell: cd {{ current_pwd.stdout }}/slicer/nfv-sol-libs && ./install_nfv_sol_libs.sh
+
+  - name: compiling nfvo-driver
+    shell: cd {{ current_pwd.stdout }}/slicer/nfvo-driver && mvn clean install
+
+  - name: compiling blueprint-catalogue
+    shell: cd {{ current_pwd.stdout }}/slicer/blueprint-catalogue && mvn clean install
+
+  - name: compiling 5geve rest client
+    shell: cd {{ current_pwd.stdout }}/slicer/slicer/5GEVE_REST_CLIENTS && mvn clean install
+  
+  - name: compiling slicer
+    shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN && mvn clean install -DskipTests
+
+  - debug:
+      msg: Slicer project is available at {{ current_pwd.stdout }}/slicer
