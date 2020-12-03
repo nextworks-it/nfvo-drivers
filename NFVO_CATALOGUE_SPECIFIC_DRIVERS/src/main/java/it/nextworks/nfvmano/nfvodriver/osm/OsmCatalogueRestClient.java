@@ -2,6 +2,7 @@ package it.nextworks.nfvmano.nfvodriver.osm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.client.model.CreateNsdInfoRequest;
+import io.swagger.client.model.CreateVnfPkgInfoRequest;
 import io.swagger.client.model.NsdInfo;
 import io.swagger.client.model.ObjectId;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnBoardVnfPackageRequest;
@@ -26,10 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * REST client to interact with OSM NFVO.
@@ -49,11 +47,10 @@ public class OsmCatalogueRestClient {
     private final VnfPackagesApi vnfPackagesApi;
     private final FileUtilities fileUtilities;
 
-    // second argument is a list if for each couple of <nsd,df> we need to generate
-    // an osm nsd descriptor TODO verify this
-    private final Map<String,List<String>> NsdIfaIdToNsdInfoId;
+    //Map the NSD ID IFA to the list of OSM NSD UUIDs generated after translation
+    private final Map<String,List<UUID>> NsdIfaIdToNsdInfoId;
 
-    private final Map<String,String> NsdInfoIdToOsmNsdId;
+    private final Map<UUID,String> NsdInfoIdToOsmNsdId;
 
     //maybe we need a map to id of a particular nsd and its instantiation level logic
 
@@ -77,27 +74,19 @@ public class OsmCatalogueRestClient {
         Nsd nsd = request.getNsd();
         if(nsd == null) throw new MalformattedElementException("NSD for onboarding is empty");
 
-        List<String> nsdInfoIds = new ArrayList<>();
+        //contains all the OSM NSD UUIDs generated from the IFA NSD
+        List<UUID> nsdInfoIds = new ArrayList<>();
         for (NsDf df : nsd.getNsDf()) { // Generate a OSM NSD for each DF
 
             //call the translation process that return nsd tar file
             File compressFilePath = IfaOsmTranslator.createPackageForNsd(nsd,df);
-
-            /*
-             * TODO after vnfd translation
-             * Since we know the scaling policy for a vnf only at NSD-onboarding-time
-             * we need a data structure that tell us which are the modification to do
-             * on each vnfd in this nsd
-             */
-
-            //File compressFilePath = Paths.get("/home/nextworks/Desktop/osm_export.tar.gz").toFile(); //for testing
-            String nsdInfoId = "";
+            UUID nsdInfoId;
             //this post request create a new ns descriptor resource
             try {
                 nsPackagesApi.setApiClient(getClient());
                 //this will create a new NSD resource
                 ObjectId response = nsPackagesApi.addNSD(new CreateNsdInfoRequest());
-                nsdInfoId = response.getId().toString();
+                nsdInfoId = response.getId();
                 NsdInfoIdToOsmNsdId.put(nsdInfoId,IfaOsmTranslator.getOsmNsdId(nsd,df));
             }
             catch (ApiException e){
@@ -106,19 +95,17 @@ public class OsmCatalogueRestClient {
                 throw new FailedOperationException(e.getMessage());
             }
             try{
-                nsPackagesApi.updateNSDcontent(nsdInfoId, compressFilePath);
+                nsPackagesApi.updateNSDcontent(nsdInfoId.toString(), compressFilePath);
             }
             catch (ApiException e){
                 //the resource pointed by nsdInfoId has not been modified due to exception, need to delete it
-                nsPackagesApi.deleteNSD(nsdInfoId);
+                nsPackagesApi.deleteNSD(nsdInfoId.toString());
                 throw new FailedOperationException("Error on NSD onboarding!" + e.getResponseBody());
             }
             nsdInfoIds.add(nsdInfoId);
         }
         NsdIfaIdToNsdInfoId.put(nsd.getNsdIdentifier(),nsdInfoIds);
-
-        //TODO what to be returned?
-        return null;
+        return nsd.getNsdIdentifier(); //TODO validate this return
     }
 
     /**
@@ -176,13 +163,14 @@ public class OsmCatalogueRestClient {
         }
         if(vnfd == null) throw new MalformattedElementException("VNFD for onboarding is empty");
         //maybe a vnfd for each couple of vnfd,vnfDf?
+
         for(VnfDf vnfdDf : vnfd.getDeploymentFlavour()){
 
             File compressFilePath = IfaOsmTranslator.createPackageForVnfd(vnfd,vnfdDf);
             String vnfdInfoId = "";
 
             //create a new Vnfd resource
-            /*try {
+            try {
                 vnfPackagesApi.setApiClient(getClient());
                 ObjectId response = vnfPackagesApi.addVnfPkg(new CreateVnfPkgInfoRequest());
                 vnfdInfoId = response.getId().toString();
@@ -202,19 +190,15 @@ public class OsmCatalogueRestClient {
                     log.error("Can't delete vnfdInfoId resource", apiException);
                 }
                 throw new FailedOperationException("Error on VNFD onboarding!" + e.getResponseBody());
-            }*/
+            }
         }
 
-        /*
-        FROM DummyNFVO
-        OnboardedVnfPkgInfo pkgInfo = createVnfPkgInfoFromVnfd(vnfd);
-        vnfPkgInfos.add(pkgInfo);
-        OnBoardVnfPackageResponse response = new OnBoardVnfPackageResponse(pkgInfo.getOnboardedVnfPkgInfoId(), vnfd.getVnfdId());
-        return response;
-        */
-        return null;
+        return null; //TODO what to be retured?
     }
 
+    private String getOsmVnfdId(String vnfdId, String flavourId) {
+        return vnfdId +"_"+flavourId;
+    }
 
 
     //******************************** Client API ********************************//

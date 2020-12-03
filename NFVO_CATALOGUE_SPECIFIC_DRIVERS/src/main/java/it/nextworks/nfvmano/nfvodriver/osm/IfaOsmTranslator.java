@@ -8,16 +8,15 @@ import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.*;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.*;
 import it.nextworks.nfvmano.libs.ifa.descriptors.vnfd.*;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.*;
+import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.ScalingGroupDescriptor;
+import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.ScalingPolicy;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.*;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
@@ -46,6 +45,8 @@ public class IfaOsmTranslator {
         HashMap<String,Sapd> nsVirtuaLinkIdToSapd = new HashMap<>();
         // map the virtual link profileId to virtual link descId
         HashMap<String,String> vlProfileIdToVlDescId = new HashMap<>();
+        // map the constituent_vnf_id to the constituent_vnf_id_df_profile_id
+        HashMap<String,String> mappedVnfds = new HashMap<>();
 
         //set generic nsd info
         nsDescriptor.setId(nsd.getNsdIdentifier()+"_"+nsDf.getNsDfId()); // a combination of nsdId and nsdDfId
@@ -66,11 +67,20 @@ public class IfaOsmTranslator {
         for (String vnfdId : nsd.getVnfdId()){
             //mapping for conssituentVNFD
             ConstituentVNFD constituentVNFD = new ConstituentVNFD();
-            constituentVNFD.setVnfdIdentifierReference(vnfdId);
-            constituentVNFD.setMemberVNFIndex(indexOfVnf);
-            constituentVNFDList.add(constituentVNFD);
-            vnfdIdToPosition.put(vnfdId,indexOfVnf);
-            indexOfVnf++;
+            //take the flavour id of this vnf, in order to know which vnf of the mappedVnfs to use
+            String vnfdIdWithFlavour = null;
+            try {
+                vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
+                constituentVNFD.setVnfdIdentifierReference(vnfdIdWithFlavour);
+                constituentVNFD.setMemberVNFIndex(indexOfVnf);
+                constituentVNFDList.add(constituentVNFD);
+                vnfdIdToPosition.put(vnfdIdWithFlavour,indexOfVnf);
+                indexOfVnf++;
+                mappedVnfds.put(vnfdId, vnfdIdWithFlavour);
+            } catch (NotExistingEntityException e) {
+                log.debug("No vnf profile id for vnfdId: " + vnfdId +" found in this DF");
+                e.printStackTrace();
+            }
         }
         nsDescriptor.setConstituentVNFDs(constituentVNFDList);
 
@@ -125,9 +135,10 @@ public class IfaOsmTranslator {
                 if(isVldPresent(vldList, vlDescId)){
                     for(String cpdId : nsVirtualLinkConnectivity.getCpdId()){
                         VNFDConnectionPointReference vnfdConnectionPointReference = new VNFDConnectionPointReference();
-                        vnfdConnectionPointReference.setVnfdIdReference(vnfProfile.getVnfdId()); // vnfdId
+                        String vnfdIdWithFlavour = mappedVnfds.get(vnfProfile.getVnfdId());
+                        vnfdConnectionPointReference.setVnfdIdReference(vnfdIdWithFlavour); // vnfdId
                         vnfdConnectionPointReference.setVnfdConnectionPointReference(cpdId); //cp of the vnf
-                        vnfdConnectionPointReference.setIndexReference(vnfdIdToPosition.get(vnfProfile.getVnfdId())); //position of vnf within the nsd
+                        vnfdConnectionPointReference.setIndexReference(vnfdIdToPosition.get(vnfdIdWithFlavour)); //position of vnf within the nsd
                         //this cp belongs to the vld referenced by vnfProfileId
                         vldIdListHashMap.get(vlDescId) //take the list of cps associated to vlDescvId
                                 .add(vnfdConnectionPointReference);
@@ -142,6 +153,14 @@ public class IfaOsmTranslator {
         //associate the vld list to nsd
         nsDescriptor.setVldList(vldList);
         return nsDescriptor;
+    }
+
+    private static String getFlavourFromVnfdId(NsDf nsDf, String vnfdId) throws NotExistingEntityException {
+        for(VnfProfile vnfProfile : nsDf.getVnfProfile()){
+            if(vnfProfile.getVnfdId().equals(vnfdId))
+                return vnfProfile.getFlavourId();
+        }
+        throw new NotExistingEntityException();
     }
 
     /**
@@ -192,7 +211,28 @@ public class IfaOsmTranslator {
         if(vnfd.getVdu().size() > 1 && vnfd.getLifeCycleManagementScript().size() != 0){
             throw new FailedOperationException("A VNF configuration script is present, but there are multiple vdu");
         }
-        
+
+        //generating cloud_init file TODO how to manage this?
+        for(LifeCycleManagementScript lifeCycleManagementScript : vnfd.getLifeCycleManagementScript()){
+            String script = lifeCycleManagementScript.getScript();
+            if(script.length()>0) {
+                File scriptFile;
+                if (script.contains("bin/bash"))
+                    scriptFile = new File(TEMP_DIR, lifeCycleManagementScript.getEvent().get(0).name().toLowerCase() + ".sh");
+                else
+                    scriptFile = new File(TEMP_DIR, lifeCycleManagementScript.getEvent().get(0).name().toLowerCase() + ".txt");
+                FileWriter fileWriter = null;
+                try {
+                    fileWriter = new FileWriter(scriptFile);
+                    fileWriter.write(script);
+                    fileWriter.flush();
+                    fileWriter.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
         VNFDescriptor vnfDescriptor = new VNFDescriptor();
 
         //map the internalCpd of a vdu to its external Cpd
@@ -310,7 +350,9 @@ public class IfaOsmTranslator {
         }
         vnfDescriptor.setVduList(vduList);
 
-        //TODO why internalConnectionPoint is only one element?
+        /*
+        Not relevant in always one single vdu
+        TODO why internalConnectionPoint is only one element?
         List<InternalVld> internalVlds = new ArrayList<>();
         for(VnfVirtualLinkDesc vnfVirtualLinkDesc : vnfd.getIntVirtualLinkDesc()){
             InternalVld vld = new InternalVld();
@@ -322,6 +364,48 @@ public class IfaOsmTranslator {
             InternalConnectionPointVld internalConnectionPointVld = new InternalConnectionPointVld();
         }
         vnfDescriptor.setInternalVld(internalVlds);
+        */
+
+        //adding scaling rules
+        if(vnfDf.getInstantiationLevel().size() > 1){
+            InstantiationLevel defaultInstantiationLevel = null;
+            try {
+                //assumption the default instantiation level has always the min number of instances
+                defaultInstantiationLevel = vnfDf.getDefaultInstantiationLevel();
+            } catch (NotExistingEntityException e) {
+                e.printStackTrace();
+            }
+            List<ScalingGroupDescriptor> scalingGroupDescriptorList = new ArrayList<>();
+            for(InstantiationLevel instantiationLevel : vnfDf.getInstantiationLevel()){
+                if(!instantiationLevel.getLevelId().equals(defaultInstantiationLevel.getLevelId())){
+                    ScalingGroupDescriptor scalingGroupDescriptor = new ScalingGroupDescriptor();
+                    scalingGroupDescriptor.setName(instantiationLevel.getLevelId());
+                    scalingGroupDescriptor.setMinInstanceCount(0);
+                    // assumption always one vdu in VduLevel List
+                    scalingGroupDescriptor.setMaxInstanceCount(instantiationLevel.getVduLevel().get(0).getNumberOfInstances()+1);
+
+                    List<ScalingPolicy> scalingPolicyList = new ArrayList<>();
+                    ScalingPolicy scalingPolicy = new ScalingPolicy();
+                    scalingPolicy.setName(instantiationLevel.getLevelId());
+                    scalingPolicy.setScalingType("manual");
+                    scalingPolicy.setEnabled(true);
+                    scalingPolicy.setThresholdTime(1);
+                    scalingPolicy.setCooldownTime(10);
+                    scalingPolicyList.add(scalingPolicy);
+                    scalingGroupDescriptor.setScalingPolicies(scalingPolicyList);
+
+                    List<VduReference> vduReferenceList = new ArrayList<>();
+                    VduReference vduReference = new VduReference();
+                    vduReference.setVduIdRef(instantiationLevel.getVduLevel().get(0).getVduId());
+                    vduReference.setCount(instantiationLevel.getVduLevel().get(0).getNumberOfInstances()-defaultInstantiationLevel.getVduLevel().get(0).getNumberOfInstances());
+                    vduReferenceList.add(vduReference);
+                    scalingGroupDescriptor.setVduList(vduReferenceList);
+
+                    scalingGroupDescriptorList.add(scalingGroupDescriptor);
+                }
+            }
+            vnfDescriptor.setScalingGroupDescriptor(scalingGroupDescriptorList);
+        }
 
         return vnfDescriptor;
     }
@@ -386,7 +470,7 @@ public class IfaOsmTranslator {
         return tarNsdFile;
     }
 
-    public static File createPackageForVnfd(Vnfd vnfd, VnfDf vnfdDf) { //TODO modify
+    public static File createPackageForVnfd(Vnfd vnfd, VnfDf vnfdDf) {
         VNFDescriptor vnfdOsm = null;
         try {
             vnfdOsm = translateIfaToOsmVnfd(vnfd,vnfdDf);
@@ -402,8 +486,43 @@ public class IfaOsmTranslator {
         OsmVNFPackage osmVNFPackage = new OsmVNFPackage();
         osmVNFPackage.setVnfdCatalog(vnfdCatalog);
 
-        makeYml(osmVNFPackage, vnfdOsm.getId());
-        return null;
+        //making folder that will contain vnfd
+        File vnfdFolder = makeVnfFolder(vnfdOsm.getId());
+        File cloudInitFolder = makeSubFolder(vnfdFolder,"cloud_init");
+
+        makeYml(osmVNFPackage, vnfdOsm.getId(), vnfdFolder.getAbsolutePath());
+
+        File tarVnfdFile = compress(vnfdFolder);
+        return tarVnfdFile;
+    }
+
+    private static File makeSubFolder(File folder, String subFolder) {
+        File newFolder = new File(folder, subFolder);
+        if (!newFolder.mkdir()) {
+            throw new IllegalArgumentException(
+                    String.format("Cannot create folder %s", newFolder.getAbsolutePath())
+            );
+        }
+        return newFolder;
+    }
+
+    private static File makeVnfFolder(String vnfdId) {
+        String folderPath = TEMP_DIR + File.separator + vnfdId + "_vnf";
+        Path path = Paths.get(folderPath);
+        if(Files.isDirectory(path)){
+            log.debug("Temporary folder " + vnfdId + "_ns already existing. Overwriting");
+            if (!rmRecursively(path.toFile())) {
+                throw new IllegalStateException(
+                        String.format("Could not delete folder %s", path.toFile().getAbsolutePath())
+                );
+            }
+        }
+        try {
+            Files.createDirectories(Paths.get(folderPath));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return path.toFile();
     }
 
     private static File makeNsFolder(String nsdId) {
@@ -461,7 +580,7 @@ public class IfaOsmTranslator {
     } //same of ArchiveBuilder
 
     private static void makeYml(OsmNSPackage osmNSPackage, String nsdId, String nsdFolder) {
-        String yamlFilePath = nsdFolder + File.separator + nsdId + "_nsd.yaml";
+        String yamlFilePath = nsdFolder + File.separator + nsdId + ".yaml";
 
         ObjectMapper ymlMapper = new ObjectMapper(new YAMLFactory());
         try{
@@ -472,8 +591,8 @@ public class IfaOsmTranslator {
         }
     }
 
-    private static void makeYml(OsmVNFPackage osmVNFPackage, String id) {
-        String yamlFilePath = TEMP_DIR + File.separator + "test.yaml";
+    private static void makeYml(OsmVNFPackage osmVNFPackage, String vnfdId, String vnfdFolder) {
+        String yamlFilePath = vnfdFolder + File.separator + vnfdId + ".yaml";
 
         ObjectMapper ymlMapper = new ObjectMapper(new YAMLFactory());
         try{
