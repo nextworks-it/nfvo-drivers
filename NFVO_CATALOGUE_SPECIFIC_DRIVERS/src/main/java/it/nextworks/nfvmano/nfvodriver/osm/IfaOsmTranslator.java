@@ -8,8 +8,6 @@ import it.nextworks.nfvmano.libs.ifa.descriptors.common.elements.*;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.*;
 import it.nextworks.nfvmano.libs.ifa.descriptors.vnfd.*;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.*;
-import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.ScalingGroupDescriptor;
-import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.ScalingPolicy;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.*;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -19,14 +17,18 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 public class IfaOsmTranslator {
 
     private static final Logger log = LoggerFactory.getLogger(IfaOsmTranslator.class);
     private static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
-
+    private static NSDescriptor nsdOsm = null;
+    private static VNFDescriptor vnfdOsm = null;
 
     //******************************** NSD tanslation ********************************//
 
@@ -212,23 +214,14 @@ public class IfaOsmTranslator {
             throw new FailedOperationException("A VNF configuration script is present, but there are multiple vdu");
         }
 
-        //generating cloud_init file TODO how to manage this?
+        //generating cloud_init file
+        boolean isCloudInitPresent = false;
         for(LifeCycleManagementScript lifeCycleManagementScript : vnfd.getLifeCycleManagementScript()){
             String script = lifeCycleManagementScript.getScript();
             if(script.length()>0) {
-                File scriptFile;
-                if (script.contains("bin/bash"))
-                    scriptFile = new File(TEMP_DIR, lifeCycleManagementScript.getEvent().get(0).name().toLowerCase() + ".sh");
-                else
-                    scriptFile = new File(TEMP_DIR, lifeCycleManagementScript.getEvent().get(0).name().toLowerCase() + ".txt");
-                FileWriter fileWriter = null;
-                try {
-                    fileWriter = new FileWriter(scriptFile);
-                    fileWriter.write(script);
-                    fileWriter.flush();
-                    fileWriter.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                if(script.contains("bin/bash")){
+                    generateCloudInitFile(getCommands(script));
+                    isCloudInitPresent = true;
                 }
             }
         }
@@ -282,7 +275,9 @@ public class IfaOsmTranslator {
             //the name of sw image must be the same of the image on OpenStack (for example "ubuntu18.04")
             osmVDU.setImage(ifaVDU.getSwImageDesc().getName()); //TODO validate
 
-            //osmVDU.setCloudInitFile(); //TODO how to set this?
+            if(isCloudInitPresent){
+                osmVDU.setCloudInitFile("cloud-config.txt");
+            }
 
             VirtualComputeDesc virtualComputeDesc = null;
             List<VirtualStorageDesc> virtualStorageDescs = new ArrayList<>();
@@ -365,7 +360,7 @@ public class IfaOsmTranslator {
         }
         vnfDescriptor.setInternalVld(internalVlds);
         */
-
+        /*
         //adding scaling rules
         if(vnfDf.getInstantiationLevel().size() > 1){
             InstantiationLevel defaultInstantiationLevel = null;
@@ -406,8 +401,39 @@ public class IfaOsmTranslator {
             }
             vnfDescriptor.setScalingGroupDescriptor(scalingGroupDescriptorList);
         }
-
+*/
         return vnfDescriptor;
+    }
+
+    private static void generateCloudInitFile(List<String> commands) {
+        String cloudInitPath = TEMP_DIR + File.separator +  "cloud-config.txt";
+        try {
+            File cloudInit = new File(cloudInitPath);
+            FileWriter fw = new FileWriter(cloudInit,true);
+            fw.write("runcmd:\n");
+            fw.flush();
+            for(String cmd : commands){
+                if(cmd.length()>0) {
+                    fw.write("  - " + cmd + "\n");
+                    fw.flush();
+                }
+            }
+            fw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static List<String> getCommands(String script) {
+        script = script.replaceAll(" \n", "\n");
+        String[] token = script.split("#!/bin/bash\n");
+
+        if(token.length != 0){
+            //in commands we have the list of all commands
+            List<String> cmds = Arrays.asList(token[1].split("\\n"));
+            return cmds;
+        }
+        return null;
     }
 
     private static String getIcpNameFromCpd(String cpdId) {
@@ -449,7 +475,7 @@ public class IfaOsmTranslator {
      * @return String
      */
     public static File createPackageForNsd(Nsd nsd, NsDf nsDf) {
-        NSDescriptor nsdOsm = translateIfaToOsmNsd(nsd,nsDf);
+        nsdOsm = translateIfaToOsmNsd(nsd,nsDf);
 
         List<NSDescriptor> nsDescriptorList = new ArrayList<>();
         nsDescriptorList.add(nsdOsm);
@@ -470,8 +496,15 @@ public class IfaOsmTranslator {
         return tarNsdFile;
     }
 
+    public static NSDescriptor getGeneratedOsmNsd(){
+        return nsdOsm;
+    }
+
+    public static VNFDescriptor getGeneratedOsmVnfd(){
+        return vnfdOsm;
+    }
+
     public static File createPackageForVnfd(Vnfd vnfd, VnfDf vnfdDf) {
-        VNFDescriptor vnfdOsm = null;
         try {
             vnfdOsm = translateIfaToOsmVnfd(vnfd,vnfdDf);
         } catch (FailedOperationException e) {
@@ -488,11 +521,50 @@ public class IfaOsmTranslator {
 
         //making folder that will contain vnfd
         File vnfdFolder = makeVnfFolder(vnfdOsm.getId());
+
         File cloudInitFolder = makeSubFolder(vnfdFolder,"cloud_init");
+        String tempCloudInitPath = TEMP_DIR+File.separator+"cloud-config.txt";
+        File tempCloudInitFile = new File(tempCloudInitPath);
+        if(tempCloudInitFile.exists() && !tempCloudInitFile.isDirectory()) {
+            try {
+                String dest = cloudInitFolder.getAbsolutePath() + File.separator + "cloud-config.txt";
+                Files.move(Paths.get(tempCloudInitPath),Paths.get(dest),StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
         makeYml(osmVNFPackage, vnfdOsm.getId(), vnfdFolder.getAbsolutePath());
 
         File tarVnfdFile = compress(vnfdFolder);
+        return tarVnfdFile;
+    }
+
+    public static File updateVnfPackage(VNFDescriptor vnfDescriptor){
+        List<VNFDescriptor> vnfDescriptorList = new ArrayList<>();
+        vnfDescriptorList.add(vnfDescriptor);
+        VNFDCatalog vnfdCatalog = new VNFDCatalog();
+        vnfdCatalog.setVnfd(vnfDescriptorList);
+
+        OsmVNFPackage osmVNFPackage = new OsmVNFPackage();
+        osmVNFPackage.setVnfdCatalog(vnfdCatalog);
+
+        makeYml(osmVNFPackage, vnfDescriptor.getId(), TEMP_DIR);
+        String ymlPath =  TEMP_DIR + File.separator +  vnfDescriptor.getId() + ".yaml";
+
+        String filePath = TEMP_DIR+File.separator+vnfDescriptor.getId()+"_vnf";
+        File vnfFolder = new File(filePath);
+        if(vnfFolder.exists() && vnfFolder.isDirectory()){
+            try {
+                String dest = vnfFolder.getAbsolutePath() + File.separator + vnfDescriptor.getId() +".yaml";
+                Files.move(Paths.get(ymlPath),Paths.get(dest),StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        File tarVnfdFile = compress(vnfFolder);
         return tarVnfdFile;
     }
 
