@@ -1,0 +1,62 @@
+- name: get current working directory
+  shell: echo $(pwd)
+  register: current_pwd
+
+- name: compiling nfv-ifa-libs
+  shell: cd {{ current_pwd.stdout }}/slicer/nfv-ifa-libs && mvn clean install
+
+- name: compiling identity-management
+  shell: cd {{ current_pwd.stdout }}/slicer/identity-management && mvn clean install
+
+- name: compiling nfv-sol-libs
+  shell: cd {{ current_pwd.stdout }}/slicer/nfv-sol-libs && ./install_nfv_sol_libs.sh
+
+############ to be changed ###########
+- name: get 5g-catalogue
+  shell: cd {{ current_pwd.stdout }}/ && git clone git://10.0.2.10:/git/KD/5g-catalogue
+
+- name: compiling OSMr4PlusClient
+  shell: cd {{ current_pwd.stdout }}/5g-catalogue/OSMr4PlusDataModel && mvn clean install
+#######################################
+
+- name: compiling nfvo-driver
+  shell: cd {{ current_pwd.stdout }}/slicer/nfvo-driver && mvn clean install
+
+- name: compiling blueprint-catalogue
+  shell: cd {{ current_pwd.stdout }}/slicer/blueprint-catalogue && mvn clean install
+
+- name: compiling 5geve rest client
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/5GEVE_REST_CLIENTS && mvn clean install
+
+- name: compiling arbitrator interfaces
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/ARBITRATOR_INTERFACES && mvn clean install
+
+- name: compiling arbitrator service
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/ARBITRATOR_SERVICE && mvn clean install
+
+- name: compiling common_element
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/CommonElements && mvn clean install
+
+- name: compiling record services
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/RecordService && mvn clean install
+
+- name: compiling record service im
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/RecordServiceIM && mvn clean install
+
+- name: compiling 5geve rest client
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/5GEVE_REST_CLIENTS && mvn clean install
+
+- name: compiling vsmf_interfaces
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/VSFM_INTERFACES && mvn clean install
+
+- name: compiling vsmf_services
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/VSFM_SERVICE && mvn clean install
+
+- name: compiling nsfm interfaces
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/NSFM_INTERFACES && mvn clean install
+
+- name: compiling nsfm service
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/NSFM_SERVICE && mvn clean install
+
+- name: compiling sebastian core
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/SEBASTIAN_CORE && mvn clean install
