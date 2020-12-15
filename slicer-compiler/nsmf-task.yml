@@ -11,28 +11,31 @@
 - name: compiling nfv-sol-libs
   shell: cd {{ current_pwd.stdout }}/slicer/nfv-sol-libs && ./install_nfv_sol_libs.sh
 
-############à to be changed ###########
-- name: get 5g-catalogue
-  shell: cd {{ current_pwd.stdout }}/ && git clone git://10.0.2.10:/git/KD/5g-catalogue
-
+############ to be changed ###########
 - name: compiling OSMr4PlusClient
   shell: cd {{ current_pwd.stdout }}/5g-catalogue/OSMr4PlusDataModel && mvn clean install
+
+- name: compiling nfvo-driver
+  shell: cd {{ current_pwd.stdout }}/slicer/nfvo-driver && mvn clean install
 #######################################
 
 - name: compiling 5geve rest client
   shell: cd {{ current_pwd.stdout }}/slicer/slicer/5GEVE_REST_CLIENTS && mvn clean install
 
-- name: compiling nfvo-driver
-  shell: cd {{ current_pwd.stdout }}/slicer/nfvo-driver && mvn clean install
-
-- name: compiling record services
-  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/RecordService && mvn clean install
+- name: compiling blueprint-catalogue
+  shell: cd {{ current_pwd.stdout }}/slicer/blueprint-catalogue && mvn clean install
 
 - name: compiling record service im
   shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/RecordServiceIM && mvn clean install
 
+- name: compiling record services
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/RecordService && mvn clean install
+
 - name: compiling nsfm interfaces
   shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/NSFM_INTERFACES && mvn clean install
+
+- name: compiling common elements
+  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/CommonElements && mvn clean install
 
 - name: compiling nsfm service
   shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/NSFM_SERVICE && mvn clean install

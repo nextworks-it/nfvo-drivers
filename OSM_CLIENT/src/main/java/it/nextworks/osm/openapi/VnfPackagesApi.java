@@ -12,27 +12,15 @@
 
 package it.nextworks.osm.openapi;
 
-import it.nextworks.osm.ApiCallback;
-import it.nextworks.osm.ApiClient;
-import it.nextworks.osm.ApiException;
-import it.nextworks.osm.ApiResponse;
-import it.nextworks.osm.Configuration;
-import it.nextworks.osm.Pair;
-import it.nextworks.osm.ProgressRequestBody;
-import it.nextworks.osm.ProgressResponseBody;
-
 import com.google.gson.reflect.TypeToken;
-
-import java.io.IOException;
-
-
 import io.swagger.client.model.ArrayOfVnfPkgInfo;
-import java.io.File;
 import io.swagger.client.model.ObjectId;
-import io.swagger.client.model.ProblemDetails;
 import io.swagger.client.model.VnfPkgInfo;
 import io.swagger.client.model.VnfPkgInfoModifications;
+import it.nextworks.osm.*;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -826,8 +814,10 @@ public class VnfPackagesApi {
 
         Map<String, Object> localVarFormParams = new HashMap<String, Object>();
 
+        //localVarAccepts was modified for OsmLcmDriver
+        // initial state: {"text/plain","application/json"}
         final String[] localVarAccepts = {
-            "text/plain", "application/json"
+            "text/plain"
         };
         final String localVarAccept = apiClient.selectHeaderAccept(localVarAccepts);
         if (localVarAccept != null) localVarHeaderParams.put("Accept", localVarAccept);

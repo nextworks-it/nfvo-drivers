@@ -38,6 +38,13 @@
     when: mode is defined and mode == "VSMF+NSMF"
 
   #start
+  - name: create log directory
+    become: yes
+    file:
+      path: "/var/log/sebastian"
+      state: directory
+    when: start is defined and start == "true"
+    
   - name: start rabbitmq
     shell: service rabbitmq-server start || true
     become: yes
@@ -49,7 +56,7 @@
     when: start is defined and start == "true"
 
   - name: start postgresql
-    shell: psql -c "ALTER USER postgres PASSWORD 'postgres';" && psql -c "CREATE DATABASE timeo;" 2>/dev/null
+    shell: psql -c "ALTER USER postgres PASSWORD 'postgres';" && psql -c "CREATE DATABASE sebastian;" 2>/dev/null
     become: yes
     become_user: postgres
     when: start is defined and start == "true"
@@ -63,7 +70,7 @@
     when: mode is defined and mode == "VSMF"
 
   - name: start VS in NSFM only mode
-    shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/NSMF_APP/target/ && echo finisci_il_path
+    shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/NSMF_APP/target/ && java -jar NsmfCore-0.0.2-SNAPSHOT.jar
     when: mode is defined and mode == "NSMF"
 
   - name: start VS in VSFM+NSMF mode

@@ -11,6 +11,7 @@ import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.*;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.*;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -241,7 +242,7 @@ public class IfaOsmTranslator {
         vnfDescriptor.setShortName(vnfd.getVnfProductName());
         vnfDescriptor.setVendor(vnfd.getVnfProvider());
         vnfDescriptor.setVersion(vnfd.getVnfdVersion());
-
+        vnfDescriptor.setDescription("VNFD template");
         List<it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.ConnectionPoint> connectionPoints = new ArrayList<>();
         VnfExtCpd mgmtConnectionPoint = null; //taking the management ExtCp
         for(VnfExtCpd vnfExtCpd : vnfd.getVnfExtCpd()){
@@ -360,48 +361,6 @@ public class IfaOsmTranslator {
         }
         vnfDescriptor.setInternalVld(internalVlds);
         */
-        /*
-        //adding scaling rules
-        if(vnfDf.getInstantiationLevel().size() > 1){
-            InstantiationLevel defaultInstantiationLevel = null;
-            try {
-                //assumption the default instantiation level has always the min number of instances
-                defaultInstantiationLevel = vnfDf.getDefaultInstantiationLevel();
-            } catch (NotExistingEntityException e) {
-                e.printStackTrace();
-            }
-            List<ScalingGroupDescriptor> scalingGroupDescriptorList = new ArrayList<>();
-            for(InstantiationLevel instantiationLevel : vnfDf.getInstantiationLevel()){
-                if(!instantiationLevel.getLevelId().equals(defaultInstantiationLevel.getLevelId())){
-                    ScalingGroupDescriptor scalingGroupDescriptor = new ScalingGroupDescriptor();
-                    scalingGroupDescriptor.setName(instantiationLevel.getLevelId());
-                    scalingGroupDescriptor.setMinInstanceCount(0);
-                    // assumption always one vdu in VduLevel List
-                    scalingGroupDescriptor.setMaxInstanceCount(instantiationLevel.getVduLevel().get(0).getNumberOfInstances()+1);
-
-                    List<ScalingPolicy> scalingPolicyList = new ArrayList<>();
-                    ScalingPolicy scalingPolicy = new ScalingPolicy();
-                    scalingPolicy.setName(instantiationLevel.getLevelId());
-                    scalingPolicy.setScalingType("manual");
-                    scalingPolicy.setEnabled(true);
-                    scalingPolicy.setThresholdTime(1);
-                    scalingPolicy.setCooldownTime(10);
-                    scalingPolicyList.add(scalingPolicy);
-                    scalingGroupDescriptor.setScalingPolicies(scalingPolicyList);
-
-                    List<VduReference> vduReferenceList = new ArrayList<>();
-                    VduReference vduReference = new VduReference();
-                    vduReference.setVduIdRef(instantiationLevel.getVduLevel().get(0).getVduId());
-                    vduReference.setCount(instantiationLevel.getVduLevel().get(0).getNumberOfInstances()-defaultInstantiationLevel.getVduLevel().get(0).getNumberOfInstances());
-                    vduReferenceList.add(vduReference);
-                    scalingGroupDescriptor.setVduList(vduReferenceList);
-
-                    scalingGroupDescriptorList.add(scalingGroupDescriptor);
-                }
-            }
-            vnfDescriptor.setScalingGroupDescriptor(scalingGroupDescriptorList);
-        }
-*/
         return vnfDescriptor;
     }
 
@@ -540,7 +499,11 @@ public class IfaOsmTranslator {
         return tarVnfdFile;
     }
 
-    public static File updateVnfPackage(VNFDescriptor vnfDescriptor){
+    public static File updateVnfPackage(VNFDescriptor vnfDescriptor, String nsdId){
+        String templateVnfdId = vnfDescriptor.getId();
+        String newId = templateVnfdId.concat("_"+nsdId);
+        vnfDescriptor.setId(newId);
+        vnfDescriptor.setDescription("VNFD for NSD "+nsdId);
         List<VNFDescriptor> vnfDescriptorList = new ArrayList<>();
         vnfDescriptorList.add(vnfDescriptor);
         VNFDCatalog vnfdCatalog = new VNFDCatalog();
@@ -549,22 +512,27 @@ public class IfaOsmTranslator {
         OsmVNFPackage osmVNFPackage = new OsmVNFPackage();
         osmVNFPackage.setVnfdCatalog(vnfdCatalog);
 
-        makeYml(osmVNFPackage, vnfDescriptor.getId(), TEMP_DIR);
-        String ymlPath =  TEMP_DIR + File.separator +  vnfDescriptor.getId() + ".yaml";
+        //making folder that will contain vnfd
+        File newVnfdFolder = makeVnfFolder(newId);
 
-        String filePath = TEMP_DIR+File.separator+vnfDescriptor.getId()+"_vnf";
-        File vnfFolder = new File(filePath);
-        if(vnfFolder.exists() && vnfFolder.isDirectory()){
-            try {
-                String dest = vnfFolder.getAbsolutePath() + File.separator + vnfDescriptor.getId() +".yaml";
-                Files.move(Paths.get(ymlPath),Paths.get(dest),StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                e.printStackTrace();
-                return null;
-            }
+        // now we have to copy the content of the template folder
+        // in this new folder
+        String templateFolderPath = TEMP_DIR + File.separator + templateVnfdId + "_vnf";
+        try {
+            FileUtils.copyDirectory(Paths.get(templateFolderPath).toFile(),newVnfdFolder);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-        File tarVnfdFile = compress(vnfFolder);
+        // now remove the old yaml file with the new
+        try {
+            Files.deleteIfExists(Paths.get(newVnfdFolder.getAbsolutePath()+File.separator+templateVnfdId+".yaml"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        makeYml(osmVNFPackage, newId, newVnfdFolder.getAbsolutePath());
+
+        File tarVnfdFile = compress(newVnfdFolder);
         return tarVnfdFile;
     }
 

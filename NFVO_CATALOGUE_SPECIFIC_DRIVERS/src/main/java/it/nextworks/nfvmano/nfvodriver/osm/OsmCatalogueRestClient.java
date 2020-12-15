@@ -95,7 +95,7 @@ public class OsmCatalogueRestClient {
                 //this will create a new NSD resource
                 ObjectId response = nsPackagesApi.addNSD(new CreateNsdInfoRequest());
                 nsdInfoId = response.getId();
-                log.debug("Created NSD resource with UUID: " + nsdInfoId);
+                log.debug("Created NSD resource with UUID: " + nsdInfoId.toString());
                 NsdInfoIdToOsmNsdId.put(nsdInfoId,IfaOsmTranslator.getOsmNsdId(nsd,df));
             }
             catch (ApiException e){
@@ -113,10 +113,14 @@ public class OsmCatalogueRestClient {
                 log.debug("Deleted NSD Resource with UUID: " + nsdInfoId);
                 throw new FailedOperationException("Error on NSD onboarding!" + e.getResponseBody());
             }
+
             //Now we need to upload the content of each constituent vnfd within this OSM NSD
             //providing the scaling rule
             try {
                 vnfPackagesApi.setApiClient(getClient());
+                ObjectId response = vnfPackagesApi.addVnfPkg(new CreateVnfPkgInfoRequest());
+                UUID vnfdInfoId = response.getId();
+                log.debug("Created a new VNFD Resource with UUID: " + vnfdInfoId);
                 if(df.getNsInstantiationLevel().size()> 1){
                     HashMap<String,String> vnfProfileIdToVnfId = generateVnfProfileIdMapping(nsd,df);
                     for (ConstituentVNFD constituentVNFD : nsdOsm.getConstituentVNFDs()) {
@@ -124,11 +128,19 @@ public class OsmCatalogueRestClient {
                         //add autoscaling for each vnfd that are in this nsd
                         if(addAutoscalingRules(nsd,df,vnfDescriptor,vnfProfileIdToVnfId)){
                             //Vnfd modified. We need to upload it on OSM
-                            File compressVnfdFile = IfaOsmTranslator.updateVnfPackage(vnfDescriptor);
+                            File compressVnfdFile = IfaOsmTranslator.updateVnfPackage(vnfDescriptor,nsdOsm.getId());
                             //vnfpkg id deve essere lo UUID
                             if(compressVnfdFile != null){
-                                vnfPackagesApi.uploadVnfPkgContent(vnfdIdToVnfdUUID.get(vnfDescriptor.getId()).toString(),compressVnfdFile);
-                                log.debug("Update the package content of VNFD with id: " + vnfDescriptor.getId());
+                                try{
+                                    vnfPackagesApi.uploadVnfPkgContent(vnfdInfoId.toString(),compressVnfdFile);
+                                }
+                                catch (ApiException e1){
+                                    log.debug("Cannot onboard new VNFD", e1);
+                                    vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
+                                }
+                                log.debug("Updated the VNFD resource " + vnfdInfoId + " with the VNFD " + vnfDescriptor.getId()+"_"+nsdOsm.getId());
+                                //vnfPackagesApi.uploadVnfPkgContent(vnfdIdToVnfdUUID.get(vnfDescriptor.getId()).toString(),compressVnfdFile);
+                                //log.debug("Update the package content of VNFD with id: " + vnfDescriptor.getId());
                             }
                         }
                     }
@@ -140,6 +152,9 @@ public class OsmCatalogueRestClient {
             }
             nsdInfoIds.add(nsdInfoId);
         }
+
+        // Now change the vnfd refernce in the NSD
+        //TODO
         //NsdIfaIdToNsdInfoIds.put(UUID.fromString(nsd.getNsdIdentifier()),nsdInfoIds);
         return nsd.getNsdIdentifier(); //TODO validate this return
     }
@@ -154,7 +169,8 @@ public class OsmCatalogueRestClient {
     }
 
     private boolean addAutoscalingRules(Nsd nsd, NsDf df, VNFDescriptor vnfDescriptor,HashMap<String,String> vnfProfileIdToVnfId) {
-        //adding scaling rules
+        //adding a scaling rules to this vnfDescriptor
+
         NsLevel defaultInstantiationLevel = null;
         HashMap<String,Integer> defaultNumberOfInstances = new HashMap<>();
         try {
@@ -168,6 +184,7 @@ public class OsmCatalogueRestClient {
             return false;
         }
 
+        //check if there are scaling group to add
         boolean toAdd = false;
         int i=0;
         for(NsLevel nsLevel : df.getNsInstantiationLevel()){
@@ -187,34 +204,36 @@ public class OsmCatalogueRestClient {
         //There at least a scaling rule to add
         List<ScalingGroupDescriptor> scalingGroupDescriptorList = new ArrayList<>();
         for(NsLevel nsLevel : df.getNsInstantiationLevel()){
-            if(!nsLevel.getNsLevelId().equals(defaultInstantiationLevel.getNsLevelId())){
-                for(VnfToLevelMapping vnfToLevelMapping : nsLevel.getVnfToLevelMapping()){
-                    if(vnfProfileIdToVnfId.get(vnfToLevelMapping.getVnfProfileId()).equals(vnfDescriptor.getId())){
-                        //add new scaling group
-                        ScalingGroupDescriptor scalingGroupDescriptor = new ScalingGroupDescriptor();
-                        scalingGroupDescriptor.setName(nsLevel.getNsLevelId());
-                        scalingGroupDescriptor.setMinInstanceCount(0);
-                        scalingGroupDescriptor.setMaxInstanceCount(vnfToLevelMapping.getNumberOfInstances()+1);
+            for(VnfToLevelMapping vnfToLevelMapping : nsLevel.getVnfToLevelMapping()){
+                if(vnfProfileIdToVnfId.get(vnfToLevelMapping.getVnfProfileId()).equals(vnfDescriptor.getId())){
 
-                        List<ScalingPolicy> scalingPolicyList = new ArrayList<>();
-                        ScalingPolicy scalingPolicy = new ScalingPolicy();
-                        scalingPolicy.setName(nsLevel.getNsLevelId());
-                        scalingPolicy.setScalingType("manual");
-                        scalingPolicy.setEnabled(true);
-                        scalingPolicy.setThresholdTime(1);
-                        scalingPolicy.setCooldownTime(10);
-                        scalingPolicyList.add(scalingPolicy);
-                        scalingGroupDescriptor.setScalingPolicies(scalingPolicyList);
+                    //add new scaling group
+                    ScalingGroupDescriptor scalingGroupDescriptor = new ScalingGroupDescriptor();
+                    //encoding of the default instantantiation level in the name of the scaling-group
+                    if(nsLevel.getNsLevelId().equals(defaultInstantiationLevel.getNsLevelId()))
+                        scalingGroupDescriptor.setName(nsLevel.getNsLevelId()+"-default");
+                    else scalingGroupDescriptor.setName(nsLevel.getNsLevelId());
+                    scalingGroupDescriptor.setMinInstanceCount(0);
+                    scalingGroupDescriptor.setMaxInstanceCount(vnfToLevelMapping.getNumberOfInstances()+1);
 
-                        //TODO this will work only if there is always a single vdu
-                        List<VduReference> vduReferenceList = new ArrayList<>();
-                        VduReference vduReference = new VduReference();
-                        vduReference.setVduIdRef(vnfDescriptor.getVduList().get(0).getId());
-                        vduReference.setCount(vnfToLevelMapping.getNumberOfInstances()-defaultNumberOfInstances.get(vnfToLevelMapping.getVnfProfileId()));
-                        vduReferenceList.add(vduReference);
-                        scalingGroupDescriptor.setVduList(vduReferenceList);
-                        scalingGroupDescriptorList.add(scalingGroupDescriptor);
-                    }
+                    List<ScalingPolicy> scalingPolicyList = new ArrayList<>();
+                    ScalingPolicy scalingPolicy = new ScalingPolicy();
+                    scalingPolicy.setName(nsLevel.getNsLevelId());
+                    scalingPolicy.setScalingType("manual");
+                    scalingPolicy.setEnabled(true);
+                    scalingPolicy.setThresholdTime(1);
+                    scalingPolicy.setCooldownTime(10);
+                    scalingPolicyList.add(scalingPolicy);
+                    scalingGroupDescriptor.setScalingPolicies(scalingPolicyList);
+
+                    //TODO this will work only if there is always a single vdu
+                    List<VduReference> vduReferenceList = new ArrayList<>();
+                    VduReference vduReference = new VduReference();
+                    vduReference.setVduIdRef(vnfDescriptor.getVduList().get(0).getId());
+                    vduReference.setCount(vnfToLevelMapping.getNumberOfInstances()-defaultNumberOfInstances.get(vnfToLevelMapping.getVnfProfileId()));
+                    vduReferenceList.add(vduReference);
+                    scalingGroupDescriptor.setVduList(vduReferenceList);
+                    scalingGroupDescriptorList.add(scalingGroupDescriptor);
                 }
             }
         }
