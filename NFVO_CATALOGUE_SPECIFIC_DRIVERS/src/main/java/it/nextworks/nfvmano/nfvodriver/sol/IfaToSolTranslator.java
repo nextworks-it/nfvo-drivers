@@ -256,8 +256,19 @@ public class IfaToSolTranslator {
 
 			}
 		}
+
+		it.nextworks.nfvmano.libs.descriptors.elements.VnfProfile solVnfProfile = null;
+
+		solVnfProfile = new it.nextworks.nfvmano.libs.descriptors.elements.VnfProfile(vnfProfile.getInstantiationLevel(),
+				vnfProfile.getMinNumberOfInstances(),
+				vnfProfile.getMaxNumberOfInstances()
+		) ;
+
+
+
+
 		VNFProperties vnfProperties = new VNFProperties(descriptorId, version, provider, productName, "", productName, "", null, null, null,
-				null, null, null, null, flavourId, "", null);
+				null, null, null, null, flavourId, "", solVnfProfile);
 
 		VNFRequirements vnfRequirements = new VNFRequirements(vnfVirtualLink);
 		VNFNode vnfNode = new VNFNode(null, null, null,null, null, null);
