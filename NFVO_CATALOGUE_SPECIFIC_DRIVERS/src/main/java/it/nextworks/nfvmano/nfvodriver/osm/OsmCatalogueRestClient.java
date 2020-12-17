@@ -1,6 +1,7 @@
 package it.nextworks.nfvmano.nfvodriver.osm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.swagger.client.model.CreateNsdInfoRequest;
 import io.swagger.client.model.CreateVnfPkgInfoRequest;
 import io.swagger.client.model.NsdInfo;
@@ -12,12 +13,8 @@ import it.nextworks.nfvmano.libs.ifa.common.exceptions.*;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.*;
 import it.nextworks.nfvmano.libs.ifa.descriptors.vnfd.VnfDf;
 import it.nextworks.nfvmano.libs.ifa.descriptors.vnfd.Vnfd;
-import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.ConstituentVNFD;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.NSDescriptor;
-import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.ScalingGroupDescriptor;
-import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.ScalingPolicy;
-import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.VNFDescriptor;
-import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.VduReference;
+import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.*;
 import it.nextworks.nfvmano.nfvodriver.dummy.FileUtilities;
 import it.nextworks.osm.ApiClient;
 import it.nextworks.osm.ApiException;
@@ -27,7 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -41,6 +40,7 @@ import java.util.*;
 public class OsmCatalogueRestClient {
 
     private static final Logger log = LoggerFactory.getLogger(OsmCatalogueRestClient.class);
+    private static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
     private final OAuthSimpleClient oAuthSimpleClient;
     private final String nfvoAddress;
     private final String username;
@@ -75,6 +75,11 @@ public class OsmCatalogueRestClient {
 
     //******************************** NSD methods ********************************//
 
+    /**
+     * Takes the onboarding request and generate the NSDs package
+     * @param request
+     * @return String, the UUID of the onboarded NSD
+     */
     public String onboardNsd(OnboardNsdRequest request) throws MethodNotImplementedException,
             MalformattedElementException, AlreadyExistingEntityException, FailedOperationException, ApiException {
 
@@ -85,9 +90,20 @@ public class OsmCatalogueRestClient {
         List<UUID> nsdInfoIds = new ArrayList<>();
         for (NsDf df : nsd.getNsDf()) { // Generate a OSM NSD for each DF
             Map<String,String> vnfProfileId;
+
+            boolean useTemplateVNFDs = true;
+            if(df.getNsInstantiationLevel().size()> 1){
+                //there is at least one scaling rule to add
+                if(!updateVNFD(nsd,df)){
+                    // Error during the update of vnfd package with scaling rule
+                    throw new FailedOperationException("Cannot update VNFD package with autoscaling rule");
+                }
+                useTemplateVNFDs = false;
+            }
+            // Now create and onboard NSD
             //call the translation process that return nsd tar file
-            File compressFilePath = IfaOsmTranslator.createPackageForNsd(nsd,df);
-            NSDescriptor nsdOsm = IfaOsmTranslator.getGeneratedOsmNsd(); //TODO validate if this could change
+            File compressFilePath = IfaOsmTranslator.createPackageForNsd(nsd,df,useTemplateVNFDs);
+            NSDescriptor nsdOsm = IfaOsmTranslator.getGeneratedOsmNsd(); //TODO validate if this could change (maybe no more useful)
             UUID nsdInfoId;
             //this post request create a new ns descriptor resource
             try {
@@ -113,52 +129,130 @@ public class OsmCatalogueRestClient {
                 log.debug("Deleted NSD Resource with UUID: " + nsdInfoId);
                 throw new FailedOperationException("Error on NSD onboarding!" + e.getResponseBody());
             }
-
-            //Now we need to upload the content of each constituent vnfd within this OSM NSD
-            //providing the scaling rule
-            try {
-                vnfPackagesApi.setApiClient(getClient());
-                ObjectId response = vnfPackagesApi.addVnfPkg(new CreateVnfPkgInfoRequest());
-                UUID vnfdInfoId = response.getId();
-                log.debug("Created a new VNFD Resource with UUID: " + vnfdInfoId);
-                if(df.getNsInstantiationLevel().size()> 1){
-                    HashMap<String,String> vnfProfileIdToVnfId = generateVnfProfileIdMapping(nsd,df);
-                    for (ConstituentVNFD constituentVNFD : nsdOsm.getConstituentVNFDs()) {
-                        VNFDescriptor vnfDescriptor = vnfdIdToOsmVnfd.get(constituentVNFD.getVnfdIdentifierReference());
-                        //add autoscaling for each vnfd that are in this nsd
-                        if(addAutoscalingRules(nsd,df,vnfDescriptor,vnfProfileIdToVnfId)){
-                            //Vnfd modified. We need to upload it on OSM
-                            File compressVnfdFile = IfaOsmTranslator.updateVnfPackage(vnfDescriptor,nsdOsm.getId());
-                            //vnfpkg id deve essere lo UUID
-                            if(compressVnfdFile != null){
-                                try{
-                                    vnfPackagesApi.uploadVnfPkgContent(vnfdInfoId.toString(),compressVnfdFile);
-                                }
-                                catch (ApiException e1){
-                                    log.debug("Cannot onboard new VNFD", e1);
-                                    vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
-                                }
-                                log.debug("Updated the VNFD resource " + vnfdInfoId + " with the VNFD " + vnfDescriptor.getId()+"_"+nsdOsm.getId());
-                                //vnfPackagesApi.uploadVnfPkgContent(vnfdIdToVnfdUUID.get(vnfDescriptor.getId()).toString(),compressVnfdFile);
-                                //log.debug("Update the package content of VNFD with id: " + vnfDescriptor.getId());
-                            }
-                        }
-                    }
-                }
-            }
-            catch (ApiException e){
-                System.out.println(e.getResponseBody());
-                //nsPackagesApi.deleteNSD(nsdInfoId.toString());
-            }
             nsdInfoIds.add(nsdInfoId);
         }
 
-        // Now change the vnfd refernce in the NSD
-        //TODO
         //NsdIfaIdToNsdInfoIds.put(UUID.fromString(nsd.getNsdIdentifier()),nsdInfoIds);
         return nsd.getNsdIdentifier(); //TODO validate this return
     }
 
+    /**
+     * Update the content of a VNFD template with scaling rule.
+     * This function actually creates a new vnf descriptor in OSM
+     * starting by the already onboarded VNFD template.
+     *
+     * Id of the new VNFD created.
+     * @param nsd
+     * @param df
+     * @return String
+     */
+    private boolean updateVNFD(Nsd nsd, NsDf df) {
+        String nsdIdWithFlavour = nsd.getNsdIdentifier()+"_"+df.getNsDfId();
+        //We need to upload the content of each constituent vnfd within this nsd by providing the scaling rule
+        try {
+            vnfPackagesApi.setApiClient(getClient());
+        } catch (FailedOperationException e) {
+            e.printStackTrace();
+            return false;
+        }
+        ObjectId response = null;
+        UUID vnfdInfoId = null;
+        try {
+            response = vnfPackagesApi.addVnfPkg(new CreateVnfPkgInfoRequest());
+            vnfdInfoId = response.getId();
+            log.debug("Created a new VNFD Resource with UUID: " + vnfdInfoId);
+        } catch (ApiException e) {
+            e.printStackTrace();
+            return false;
+        }
+        //there is at least a scaling rule to add
+        HashMap<String,String> vnfProfileIdToVnfId = generateVnfProfileIdMapping(nsd,df);
+        for (String vnfdIfaId : nsd.getVnfdId()) {
+            String osmVnfdId = null;
+            //this is the id of vnfd template
+            try {
+                osmVnfdId = getOsmVnfdId(vnfdIfaId,IfaOsmTranslator.getFlavourFromVnfdId(df,vnfdIfaId));
+            } catch (NotExistingEntityException e) {
+                log.error("Cannot obtain id of Osm vnfd from Ifa constituent vnfd");
+                e.printStackTrace();
+                return false;
+            }
+            String yamlDescriptor = null;
+            try {
+                //this is the yaml descriptor of the vnfd template
+                yamlDescriptor = vnfPackagesApi.getVnfPkgVnfd(vnfdIdToVnfdUUID.get(osmVnfdId).toString());
+            } catch (ApiException e) {
+                e.printStackTrace();
+                log.error("Cannot retrieve descriptor for UUID " + vnfdIdToVnfdUUID.get(osmVnfdId).toString());
+                return false;
+            }
+            VNFDescriptor vnfDescriptor = getNewVNFDescriptorFromYamlString(yamlDescriptor);
+            if(vnfDescriptor == null){
+                log.error("Cannot find a vnf package with id " + osmVnfdId);
+                return false;
+            }
+
+            //add autoscaling for each vnfd that are in this nsd
+            if(addAutoscalingRules(nsd,df,vnfDescriptor,vnfProfileIdToVnfId)) {
+                //Vnfd modified. We need to upload it on OSM
+                File compressVnfdFile = IfaOsmTranslator.updateVnfPackage(vnfDescriptor, nsdIdWithFlavour);
+                if (compressVnfdFile != null) {
+                    try {
+                        vnfPackagesApi.uploadVnfPkgContent(vnfdInfoId.toString(), compressVnfdFile);
+                    } catch (ApiException e1) {
+                        //delete package resource
+                        try {
+                            vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
+                            log.error("Cannot onboard new VNFD");
+                            return false;
+                        } catch (ApiException e) {
+                            e.printStackTrace();
+                            log.error("Cannot delete package resource");
+                        }
+                    }
+                    log.debug("Onboarded VNFD " + vnfDescriptor.getId() + "_" + nsdIdWithFlavour);
+                } else {
+                    log.error("Cannot compress file");
+                    return false;
+                }
+            }
+            else{
+                log.error("Cannot add autoscaling rule");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private VNFDescriptor getNewVNFDescriptorFromYamlString(String vnfDescriptor) {
+        PrintWriter out = null;
+        try {
+            out = new PrintWriter(TEMP_DIR+ File.separator+"osmVnfd.yaml");
+            out.print(vnfDescriptor);
+            out.close();
+            ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
+            yamlReader.findAndRegisterModules();
+            File tempFile = new File(TEMP_DIR+ File.separator+"osmVnfd.yaml");
+            OsmVNFPackage vnfDescriptorPackage = null;
+            vnfDescriptorPackage = yamlReader.readValue(tempFile, OsmVNFPackage.class);
+            tempFile.delete();
+            return vnfDescriptorPackage.getVnfdCatalog().getVnfd().get(0);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e){
+            e.printStackTrace();
+            log.info("Cannot generate OsmVNFPackage from string");
+        }
+        return null;
+    }
+
+    /**
+     * Generates an hashmap with the association
+     *      vnf_profile_id_Ifa - vnf_id_Osm
+     * @param nsd the ifa nsd
+     * @param df the df of this nsd
+     * @return hashmap that contains associations
+     */
     private HashMap<String, String> generateVnfProfileIdMapping(Nsd nsd, NsDf df) {
         HashMap<String,String> map = new HashMap<>();
 
@@ -168,13 +262,21 @@ public class OsmCatalogueRestClient {
         return map;
     }
 
+    /**
+     * Takes Nsd Ifa descriptor and generates the autoscaling rule for each constituent VNF
+     * To be moved in IfaOsmTranslator
+     * @param nsd
+     * @param df
+     * @param vnfDescriptor
+     * @param vnfProfileIdToVnfId
+     * @return boolean that represent if the scaling rules have been added
+     */
     private boolean addAutoscalingRules(Nsd nsd, NsDf df, VNFDescriptor vnfDescriptor,HashMap<String,String> vnfProfileIdToVnfId) {
         //adding a scaling rules to this vnfDescriptor
-
         NsLevel defaultInstantiationLevel = null;
         HashMap<String,Integer> defaultNumberOfInstances = new HashMap<>();
         try {
-            //assumption the default instantiation level has always the min number of instances
+            /*assumption the default instantiation level has always the min number of instances*/
             defaultInstantiationLevel = df.getDefaultInstantiationLevel();
             for(VnfToLevelMapping vnfToLevelMapping : defaultInstantiationLevel.getVnfToLevelMapping()){
                 defaultNumberOfInstances.put(vnfToLevelMapping.getVnfProfileId(),vnfToLevelMapping.getNumberOfInstances());
@@ -183,7 +285,6 @@ public class OsmCatalogueRestClient {
             e.printStackTrace();
             return false;
         }
-
         //check if there are scaling group to add
         boolean toAdd = false;
         int i=0;
@@ -200,7 +301,6 @@ public class OsmCatalogueRestClient {
         }
 
         if(!toAdd) return false;
-
         //There at least a scaling rule to add
         List<ScalingGroupDescriptor> scalingGroupDescriptorList = new ArrayList<>();
         for(NsLevel nsLevel : df.getNsInstantiationLevel()){
@@ -260,6 +360,12 @@ public class OsmCatalogueRestClient {
     }
 
     //******************************** VNFD methods ********************************//
+
+    /**
+     * Takes the onboarding request and generate the VNFDs package
+     * @param request
+     * @return OnBoardVnfPackageResponse
+     */
 
     public OnBoardVnfPackageResponse onboardVnfPackage(OnBoardVnfPackageRequest request) throws MalformattedElementException, FailedOperationException {
         log.debug("Getting VNF package");

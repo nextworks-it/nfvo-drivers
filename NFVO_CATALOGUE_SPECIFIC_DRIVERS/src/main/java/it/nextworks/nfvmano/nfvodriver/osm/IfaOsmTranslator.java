@@ -36,9 +36,10 @@ public class IfaOsmTranslator {
     /**
      * Takes Nsd Ifa descriptor and generates the corrispondent Nsd to be onboarded in OSM
      * @param nsd
-     * @return nsDf
+     * @param nsDf
+     * @return NSDescriptor
      */
-    private static NSDescriptor translateIfaToOsmNsd(Nsd nsd, NsDf nsDf) {
+    private static NSDescriptor translateIfaToOsmNsd(Nsd nsd, NsDf nsDf, boolean useTemplateVNFDs) {
 
         NSDescriptor nsDescriptor = new NSDescriptor();
 
@@ -48,7 +49,7 @@ public class IfaOsmTranslator {
         HashMap<String,Sapd> nsVirtuaLinkIdToSapd = new HashMap<>();
         // map the virtual link profileId to virtual link descId
         HashMap<String,String> vlProfileIdToVlDescId = new HashMap<>();
-        // map the constituent_vnf_id to the constituent_vnf_id_df_profile_id
+        // map the constituent_vnf_id ifa to the constituent_vnf_id osm
         HashMap<String,String> mappedVnfds = new HashMap<>();
 
         //set generic nsd info
@@ -65,6 +66,9 @@ public class IfaOsmTranslator {
             nsDescriptor.setDescription("No available description");
         }
 
+        // Due to the mechanism VNFD Template - VNFD Specific Descriptor
+        // the id of the constituent vnfd is (if not default template)
+        //          id_of_vnfd_template + _ + id_of_this_nsd
         List<ConstituentVNFD> constituentVNFDList = new ArrayList<>();
         int indexOfVnf=1;
         for (String vnfdId : nsd.getVnfdId()){
@@ -73,7 +77,8 @@ public class IfaOsmTranslator {
             //take the flavour id of this vnf, in order to know which vnf of the mappedVnfs to use
             String vnfdIdWithFlavour = null;
             try {
-                vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
+                if(useTemplateVNFDs) vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
+                else vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId) + "_" + nsDescriptor.getId();
                 constituentVNFD.setVnfdIdentifierReference(vnfdIdWithFlavour);
                 constituentVNFD.setMemberVNFIndex(indexOfVnf);
                 constituentVNFDList.add(constituentVNFD);
@@ -158,7 +163,7 @@ public class IfaOsmTranslator {
         return nsDescriptor;
     }
 
-    private static String getFlavourFromVnfdId(NsDf nsDf, String vnfdId) throws NotExistingEntityException {
+    public static String getFlavourFromVnfdId(NsDf nsDf, String vnfdId) throws NotExistingEntityException {
         for(VnfProfile vnfProfile : nsDf.getVnfProfile()){
             if(vnfProfile.getVnfdId().equals(vnfdId))
                 return vnfProfile.getFlavourId();
@@ -433,8 +438,8 @@ public class IfaOsmTranslator {
      * @param nsDf
      * @return String
      */
-    public static File createPackageForNsd(Nsd nsd, NsDf nsDf) {
-        nsdOsm = translateIfaToOsmNsd(nsd,nsDf);
+    public static File createPackageForNsd(Nsd nsd, NsDf nsDf, boolean useTemplateVNFDs) {
+        nsdOsm = translateIfaToOsmNsd(nsd,nsDf,useTemplateVNFDs);
 
         List<NSDescriptor> nsDescriptorList = new ArrayList<>();
         nsDescriptorList.add(nsdOsm);
@@ -517,13 +522,14 @@ public class IfaOsmTranslator {
 
         // now we have to copy the content of the template folder
         // in this new folder
+        //TODO if the folder is not present, we need to download zip folder from osm
         String templateFolderPath = TEMP_DIR + File.separator + templateVnfdId + "_vnf";
         try {
             FileUtils.copyDirectory(Paths.get(templateFolderPath).toFile(),newVnfdFolder);
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }
-
         // now remove the old yaml file with the new
         try {
             Files.deleteIfExists(Paths.get(newVnfdFolder.getAbsolutePath()+File.separator+templateVnfdId+".yaml"));
