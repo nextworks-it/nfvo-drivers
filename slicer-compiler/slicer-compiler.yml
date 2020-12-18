@@ -1,6 +1,6 @@
 - hosts: localhost
   connection: local
-  gather_facts: no
+  gather_facts: yes
   tasks:
 
   #$ sudo apt install software-properties-common
@@ -37,14 +37,14 @@
   - include: total-task.yml
     when: mode is defined and mode == "VSMF+NSMF"
 
-  #start
   - name: create log directory
     become: yes
     file:
       path: "/var/log/sebastian"
       state: directory
-    when: start is defined and start == "true"
-    
+    when: mode is defined
+
+  #start
   - name: start rabbitmq
     shell: service rabbitmq-server start || true
     become: yes
@@ -66,14 +66,14 @@
     register: current_pwd
 
   - name: start VS in VSFM only mode
-    shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/VSMF_APP/target/ && echo finisci_il_path
-    when: mode is defined and mode == "VSMF"
+    shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/SEBASTIAN/VSMF_APP/target/ && java -jar VsmfCore-0.0.2-SNAPSHOT.jar
+    when: start is defined and start == "true" and mode == "VSMF"
 
   - name: start VS in NSFM only mode
-    shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/NSMF_APP/target/ && java -jar NsmfCore-0.0.2-SNAPSHOT.jar
-    when: mode is defined and mode == "NSMF"
+    shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/SEBASTIAN/NSMF_APP/target/ && java -jar NsmfCore-0.0.2-SNAPSHOT.jar
+    when: start is defined and start == "true" and mode == "NSMF"
 
   - name: start VS in VSFM+NSMF mode
-    shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/SEBASTIAN_CORE/target/ && echo finisci_il_path
-    when: mode is defined and mode == "VSMF+NSMF"
+    shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/SEBASTIAN/SEBASTIAN_CORE/target/ && java -jar SEBASTIAN_CORE-0.0.2-SNAPSHOT.jar
+    when: start is defined and start == "true" and mode == "VSMF+NSMF"
 

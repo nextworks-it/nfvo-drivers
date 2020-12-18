@@ -373,7 +373,8 @@ public class OsmCatalogueRestClient {
         log.debug("Retrieving VNFD from VNF package");
         String folder = null;
         Vnfd vnfd = null;
-        /*try{ //TODO how to test this?
+        /*
+        try{ //TODO how to test this?
             String downloadedFile = fileUtilities.downloadFile(vnfPackagePath);
             folder = fileUtilities.extractFile(downloadedFile);
             File jsonFile = fileUtilities.findJsonFileInDir(folder);

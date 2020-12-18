@@ -1,44 +1,40 @@
-- name: get current working directory
-  shell: echo $(pwd)
-  register: current_pwd
-
 - name: compiling nfv-ifa-libs
-  shell: cd {{ current_pwd.stdout }}/slicer/nfv-ifa-libs && mvn clean install
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/nfv-ifa-libs && mvn clean install
 
 - name: compiling identity-management
-  shell: cd {{ current_pwd.stdout }}/slicer/identity-management && mvn clean install
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/identity-management && mvn clean install
 
 - name: compiling nfv-sol-libs
-  shell: cd {{ current_pwd.stdout }}/slicer/nfv-sol-libs && ./install_nfv_sol_libs.sh
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/nfv-sol-libs && ./install_nfv_sol_libs.sh
 
 ############ to be changed ###########
 - name: compiling OSMr4PlusClient
-  shell: cd {{ current_pwd.stdout }}/5g-catalogue/OSMr4PlusDataModel && mvn clean install
+  shell: cd {{ ansible_env.HOME }}/5g-catalogue/OSMr4PlusDataModel && mvn clean install
 
 - name: compiling nfvo-driver
-  shell: cd {{ current_pwd.stdout }}/slicer/nfvo-driver && mvn clean install
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/nfvo-driver && mvn clean install
 #######################################
 
 - name: compiling 5geve rest client
-  shell: cd {{ current_pwd.stdout }}/slicer/slicer/5GEVE_REST_CLIENTS && mvn clean install
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/5GEVE_REST_CLIENTS && mvn clean install
 
 - name: compiling blueprint-catalogue
-  shell: cd {{ current_pwd.stdout }}/slicer/blueprint-catalogue && mvn clean install
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/blueprint-catalogue && mvn clean install
 
 - name: compiling record service im
-  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/RecordServiceIM && mvn clean install
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/SEBASTIAN/RecordServiceIM && mvn clean install
 
 - name: compiling record services
-  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/RecordService && mvn clean install
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/SEBASTIAN/RecordService && mvn clean install
 
 - name: compiling nsfm interfaces
-  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/NSFM_INTERFACES && mvn clean install
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/SEBASTIAN/NSFM_INTERFACES && mvn clean install
 
 - name: compiling common elements
-  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/CommonElements && mvn clean install
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/SEBASTIAN/CommonElements && mvn clean install
 
 - name: compiling nsfm service
-  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/NSFM_SERVICE && mvn clean install
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/SEBASTIAN/NSFM_SERVICE && mvn clean install
 
 - name: compiling nsfm app
-  shell: cd {{ current_pwd.stdout }}/slicer/slicer/SEBASTIAN/NSMF_APP && mvn clean install
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/SEBASTIAN/NSMF_APP && mvn clean install

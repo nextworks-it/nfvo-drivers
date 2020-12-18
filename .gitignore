@@ -13,3 +13,4 @@
 modifiche nfvo driver
 NFVO_CATALOGUE_SPECIFIC_DRIVERS/src/main/java/it/nextworks/nfvmano/nfvodriver/osm/OsmClientTest.java
 NFVO_LCM_SPECIFIC_DRIVERS/src/main/java/it/nextworks/nfvmano/nfvodriver/osm/OsmLcmClientTest.java
+.idea/

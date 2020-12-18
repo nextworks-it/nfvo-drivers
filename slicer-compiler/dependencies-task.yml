@@ -46,17 +46,12 @@
   become: yes
   when: "'postgresql' not in ansible_facts.packages"
   
-# get current pwd
-- name: get current working directory
-  shell: echo $(pwd)
-  register: current_pwd
-  
 - debug:
-    msg: "Trying to create 'slicer' directory at {{ current_pwd.stdout }}"
+    msg: "Trying to create 'slicer' directory at {{ ansible_env.HOME }}"
 
 - name: check if working dir already exist
   stat:
-    path: "{{ current_pwd.stdout }}/slicer"
+    path: "{{ ansible_env.HOME }}/slicer-merge"
   register: check_output
 
 - debug:
@@ -65,36 +60,36 @@
 
 - name: create slicer directory
   file:
-    path: "{{ current_pwd.stdout }}/slicer"
+    path: "{{ ansible_env.HOME }}/slicer-merge"
     state: directory
   when: not check_output.stat.exists
   
 #get repos    
 - name: get nfv-ifa-libs
-  shell: cd {{ current_pwd.stdout }}/slicer && git clone --branch dev_5growth git://10.0.2.10:/git/KD/nfv-ifa-libs
+  shell: cd {{ ansible_env.HOME }}/slicer-merge && git clone --branch dev_5growth git://10.0.2.10:/git/KD/nfv-ifa-libs
   when: not check_output.stat.exists
 
 - name: get identity-mangement
-  shell: cd {{ current_pwd.stdout }}/slicer && git clone git://10.0.2.10:/git/KD/identity-management
+  shell: cd {{ ansible_env.HOME }}/slicer-merge && git clone git://10.0.2.10:/git/KD/identity-management
   when: not check_output.stat.exists
 
 - name: get blueprint-catalogue
-  shell: cd {{ current_pwd.stdout }}/slicer && git clone --branch slicer_merge git://10.0.2.10:/git/KD/blueprint-catalogue
+  shell: cd {{ ansible_env.HOME }}/slicer-merge && git clone --branch slicer_merge git://10.0.2.10:/git/KD/blueprint-catalogue
   when: not check_output.stat.exists
 
 - name: get nfv-sol-libs
-  shell: cd {{ current_pwd.stdout }}/slicer && git clone git://10.0.2.10:/git/KD/nfv-sol-libs
+  shell: cd {{ ansible_env.HOME }}/slicer-merge && git clone git://10.0.2.10:/git/KD/nfv-sol-libs
   when: not check_output.stat.exists
 
 #to validate
-- name: get OSMr4PlusClient
-  shell: cd {{ current_pwd.stdout }}/ && git clone git://10.0.2.10:/git/KD/5g-catalogue
+- name: get 5g-catalogue repo
+  shell: cd {{ ansible_env.HOME }}/ && git clone git://10.0.2.10:/git/KD/5g-catalogue
   when: not check_output.stat.exists
 
 - name: get nfvo-driver
-  shell: cd {{ current_pwd.stdout }}/slicer && git clone git://10.0.2.10:/git/KD/nfvo-driver
+  shell: cd {{ ansible_env.HOME }}/slicer-merge && git clone git://10.0.2.10:/git/KD/nfvo-driver
   when: not check_output.stat.exists
 
 - name: get slicer
-  shell: cd {{ current_pwd.stdout }}/slicer && git clone --branch slicer_merge git://10.0.2.10:/git/KD/slicer
+  shell: cd {{ ansible_env.HOME }}/slicer-merge && git clone --branch slicer_merge git://10.0.2.10:/git/KD/slicer
   when: not check_output.stat.exists
