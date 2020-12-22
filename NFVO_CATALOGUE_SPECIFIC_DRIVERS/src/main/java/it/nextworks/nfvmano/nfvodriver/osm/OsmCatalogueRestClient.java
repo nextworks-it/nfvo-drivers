@@ -20,6 +20,8 @@ import it.nextworks.osm.ApiClient;
 import it.nextworks.osm.ApiException;
 import it.nextworks.osm.openapi.NsPackagesApi;
 import it.nextworks.osm.openapi.VnfPackagesApi;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +29,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Paths;
+import java.nio.charset.Charset;
 import java.util.*;
 
 /**
@@ -150,6 +152,7 @@ public class OsmCatalogueRestClient {
         String nsdIdWithFlavour = nsd.getNsdIdentifier()+"_"+df.getNsDfId();
         //We need to upload the content of each constituent vnfd within this nsd by providing the scaling rule
         try {
+
             vnfPackagesApi.setApiClient(getClient());
         } catch (FailedOperationException e) {
             e.printStackTrace();
@@ -373,8 +376,7 @@ public class OsmCatalogueRestClient {
         log.debug("Retrieving VNFD from VNF package");
         String folder = null;
         Vnfd vnfd = null;
-        /*
-        try{ //TODO how to test this?
+        try{
             String downloadedFile = fileUtilities.downloadFile(vnfPackagePath);
             folder = fileUtilities.extractFile(downloadedFile);
             File jsonFile = fileUtilities.findJsonFileInDir(folder);
@@ -394,13 +396,13 @@ public class OsmCatalogueRestClient {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        }*/
-        ObjectMapper mapper = new ObjectMapper();
+        }
+        /*ObjectMapper mapper = new ObjectMapper();
         try {
             vnfd = (Vnfd) mapper.readValue(Paths.get("/home/nextworks/Desktop/vnfd.json").toFile(), Vnfd.class);
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
         if(vnfd == null) throw new MalformattedElementException("VNFD for onboarding is empty");
         //maybe a vnfd for each couple of vnfd,vnfDf?
         for(VnfDf vnfdDf : vnfd.getDeploymentFlavour()){
@@ -437,7 +439,10 @@ public class OsmCatalogueRestClient {
             vnfdIdToVnfdUUID.put(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId(),vnfdInfoId);
             vnfdIdToOsmVnfd.put(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId(),vnfdOsm);
         }
-        return null; //TODO what to be retured?
+        UUID randomUUID = UUID.randomUUID();
+        //maybe a map
+        OnBoardVnfPackageResponse onBoardVnfPackageResponse = new OnBoardVnfPackageResponse(randomUUID.toString(),vnfd.getVnfdId());
+        return onBoardVnfPackageResponse;
     }
 
     private String getOsmVnfdId(String vnfdId, String flavourId) {
