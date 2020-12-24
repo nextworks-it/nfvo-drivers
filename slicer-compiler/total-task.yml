@@ -48,5 +48,8 @@
 - name: compiling nsfm service
   shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/SEBASTIAN/NSFM_SERVICE && mvn clean install
 
+- name: compiling nsfm service
+  shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/SEBASTIAN/NFVO_CATALOGUE_REST && mvn clean install
+
 - name: compiling sebastian core
   shell: cd {{ ansible_env.HOME }}/slicer-merge/slicer/SEBASTIAN/SEBASTIAN_CORE && mvn clean install

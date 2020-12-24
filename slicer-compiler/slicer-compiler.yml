@@ -28,6 +28,14 @@
   - include: dependencies-task.yml
     when: mode is defined or start is defined
 
+  - name: start rabbitmq
+    shell: service rabbitmq-server start || true
+    become: yes
+
+  - name: start postgresql
+    shell: service postgresql start || true
+    become: yes
+
   - include: vsmf-task.yml
     when: mode is defined and mode == "VSMF"
 
@@ -37,6 +45,16 @@
   - include: total-task.yml
     when: mode is defined and mode == "VSMF+NSMF"
 
+  - name: start rabbitmq
+    shell: service rabbitmq-server stop || true
+    become: yes
+    when: start is not defined
+
+  - name: start postgresql
+    shell: service postgresql stop || true
+    become: yes
+    when: start is not defined
+
   - name: create log directory
     become: yes
     file:
@@ -45,16 +63,6 @@
     when: mode is defined
 
   #start
-  - name: start rabbitmq
-    shell: service rabbitmq-server start || true
-    become: yes
-    when: start is defined and start == "true"
-
-  - name: start postgresql
-    shell: service postgresql start || true
-    become: yes
-    when: start is defined and start == "true"
-
   - name: start postgresql
     shell: psql -c "ALTER USER postgres PASSWORD 'postgres';" && psql -c "CREATE DATABASE sebastian;" 2>/dev/null
     become: yes
