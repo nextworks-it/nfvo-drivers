@@ -20,8 +20,6 @@ import it.nextworks.osm.ApiClient;
 import it.nextworks.osm.ApiException;
 import it.nextworks.osm.openapi.NsPackagesApi;
 import it.nextworks.osm.openapi.VnfPackagesApi;
-import org.apache.commons.compress.archivers.ArchiveException;
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +27,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -93,14 +91,13 @@ public class OsmCatalogueRestClient {
         for (NsDf df : nsd.getNsDf()) { // Generate a OSM NSD for each DF
             Map<String,String> vnfProfileId;
 
-            boolean useTemplateVNFDs = true;
+            HashMap<String,Boolean> useTemplateVNFDs = new HashMap<>();
             if(df.getNsInstantiationLevel().size()> 1){
                 //there is at least one scaling rule to add
-                if(!updateVNFD(nsd,df)){
+                if(!updateVNFDs(nsd,df,useTemplateVNFDs)){
                     // Error during the update of vnfd package with scaling rule
                     throw new FailedOperationException("Cannot update VNFD package with autoscaling rule");
                 }
-                useTemplateVNFDs = false;
             }
             // Now create and onboard NSD
             //call the translation process that return nsd tar file
@@ -146,35 +143,29 @@ public class OsmCatalogueRestClient {
      * Id of the new VNFD created.
      * @param nsd
      * @param df
+     * @param useTemplateVNFDs
      * @return String
      */
-    private boolean updateVNFD(Nsd nsd, NsDf df) {
+    private boolean updateVNFDs(Nsd nsd, NsDf df, HashMap<String, Boolean> useTemplateVNFDs) {
         String nsdIdWithFlavour = nsd.getNsdIdentifier()+"_"+df.getNsDfId();
         //We need to upload the content of each constituent vnfd within this nsd by providing the scaling rule
-        try {
 
-            vnfPackagesApi.setApiClient(getClient());
-        } catch (FailedOperationException e) {
-            e.printStackTrace();
-            return false;
-        }
-        ObjectId response = null;
-        UUID vnfdInfoId = null;
+        //get default IL
+        NsLevel defaultIL = null;
         try {
-            response = vnfPackagesApi.addVnfPkg(new CreateVnfPkgInfoRequest());
-            vnfdInfoId = response.getId();
-            log.debug("Created a new VNFD Resource with UUID: " + vnfdInfoId);
-        } catch (ApiException e) {
+            defaultIL = df.getDefaultInstantiationLevel();
+        } catch (NotExistingEntityException e) {
             e.printStackTrace();
+            log.error("Cannot retrieve default IL from IFA NSD");
             return false;
         }
-        //there is at least a scaling rule to add
+
         HashMap<String,String> vnfProfileIdToVnfId = generateVnfProfileIdMapping(nsd,df);
         for (String vnfdIfaId : nsd.getVnfdId()) {
             String osmVnfdId = null;
             //this is the id of vnfd template
             try {
-                osmVnfdId = getOsmVnfdId(vnfdIfaId,IfaOsmTranslator.getFlavourFromVnfdId(df,vnfdIfaId));
+                osmVnfdId = getOsmVnfdId(vnfdIfaId, IfaOsmTranslator.getFlavourFromVnfdId(df, vnfdIfaId));
             } catch (NotExistingEntityException e) {
                 log.error("Cannot obtain id of Osm vnfd from Ifa constituent vnfd");
                 e.printStackTrace();
@@ -190,37 +181,68 @@ public class OsmCatalogueRestClient {
                 return false;
             }
             VNFDescriptor vnfDescriptor = getNewVNFDescriptorFromYamlString(yamlDescriptor);
-            if(vnfDescriptor == null){
+            if (vnfDescriptor == null) {
                 log.error("Cannot find a vnf package with id " + osmVnfdId);
                 return false;
             }
 
+            //creating new  VNFD resource
+            try {
+                vnfPackagesApi.setApiClient(getClient());
+            } catch (FailedOperationException e) {
+                e.printStackTrace();
+                return false;
+            }
+            ObjectId response = null;
+            UUID vnfdInfoId = null;
+            try {
+                response = vnfPackagesApi.addVnfPkg(new CreateVnfPkgInfoRequest());
+                vnfdInfoId = response.getId();
+                log.debug("Created a new VNFD Resource with UUID: " + vnfdInfoId);
+            } catch (ApiException e) {
+                e.printStackTrace();
+                return false;
+            }
+
+            boolean deleteResource = false;
             //add autoscaling for each vnfd that are in this nsd
-            if(addAutoscalingRules(nsd,df,vnfDescriptor,vnfProfileIdToVnfId)) {
+            if (addAutoscalingRules(df, defaultIL, vnfDescriptor, vnfProfileIdToVnfId)) {
                 //Vnfd modified. We need to upload it on OSM
                 File compressVnfdFile = IfaOsmTranslator.updateVnfPackage(vnfDescriptor, nsdIdWithFlavour);
                 if (compressVnfdFile != null) {
                     try {
                         vnfPackagesApi.uploadVnfPkgContent(vnfdInfoId.toString(), compressVnfdFile);
                     } catch (ApiException e1) {
-                        //delete package resource
-                        try {
-                            vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
-                            log.error("Cannot onboard new VNFD");
-                            return false;
-                        } catch (ApiException e) {
-                            e.printStackTrace();
-                            log.error("Cannot delete package resource");
-                        }
+                        log.error("Cannot onboard updated VNFD");
+                        deleteResource = true;
                     }
                     log.debug("Onboarded VNFD " + vnfDescriptor.getId() + "_" + nsdIdWithFlavour);
+                    useTemplateVNFDs.put(vnfdIfaId,false);
                 } else {
                     log.error("Cannot compress file");
-                    return false;
+                    deleteResource = true;
+                }
+            } else {
+                //autoscaling rule not needed for this vnfd
+                useTemplateVNFDs.put(vnfdIfaId,true);
+                //delete package resource
+                try {
+                    vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
+                    log.error("Cannot onboard new VNFD");
+                } catch (ApiException e) {
+                    e.printStackTrace();
+                    log.error("Cannot delete package resource");
                 }
             }
-            else{
-                log.error("Cannot add autoscaling rule");
+            if (deleteResource) {
+                //delete package resource
+                try {
+                    vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
+                    log.error("Cannot onboard new VNFD");
+                } catch (ApiException e) {
+                    e.printStackTrace();
+                    log.error("Cannot delete package resource");
+                }
                 return false;
             }
         }
@@ -268,33 +290,27 @@ public class OsmCatalogueRestClient {
     /**
      * Takes Nsd Ifa descriptor and generates the autoscaling rule for each constituent VNF
      * To be moved in IfaOsmTranslator
-     * @param nsd
      * @param df
      * @param vnfDescriptor
      * @param vnfProfileIdToVnfId
      * @return boolean that represent if the scaling rules have been added
      */
-    private boolean addAutoscalingRules(Nsd nsd, NsDf df, VNFDescriptor vnfDescriptor,HashMap<String,String> vnfProfileIdToVnfId) {
+    private boolean addAutoscalingRules(NsDf df, NsLevel defaultIL, VNFDescriptor vnfDescriptor, HashMap<String, String> vnfProfileIdToVnfId) {
         //adding a scaling rules to this vnfDescriptor
-        NsLevel defaultInstantiationLevel = null;
         HashMap<String,Integer> defaultNumberOfInstances = new HashMap<>();
-        try {
-            /*assumption the default instantiation level has always the min number of instances*/
-            defaultInstantiationLevel = df.getDefaultInstantiationLevel();
-            for(VnfToLevelMapping vnfToLevelMapping : defaultInstantiationLevel.getVnfToLevelMapping()){
-                defaultNumberOfInstances.put(vnfToLevelMapping.getVnfProfileId(),vnfToLevelMapping.getNumberOfInstances());
-            }
-        } catch (NotExistingEntityException e) {
-            e.printStackTrace();
-            return false;
+        /*assumption the default instantiation level has always the min number of instances*/
+        for(VnfToLevelMapping vnfToLevelMapping : defaultIL.getVnfToLevelMapping()){
+            defaultNumberOfInstances.put(vnfToLevelMapping.getVnfProfileId(),vnfToLevelMapping.getNumberOfInstances());
         }
         //check if there are scaling group to add
         boolean toAdd = false;
         int i=0;
         for(NsLevel nsLevel : df.getNsInstantiationLevel()){
-            if(!nsLevel.getNsLevelId().equals(defaultInstantiationLevel.getNsLevelId())){
+            if(!nsLevel.getNsLevelId().equals(defaultIL.getNsLevelId())){
                 for(VnfToLevelMapping vnfToLevelMapping : nsLevel.getVnfToLevelMapping()){
-                    if(vnfProfileIdToVnfId.get(vnfToLevelMapping.getVnfProfileId()).equals(vnfDescriptor.getId())){
+                    if(vnfProfileIdToVnfId.get(vnfToLevelMapping.getVnfProfileId()).equals(vnfDescriptor.getId())
+                        && vnfToLevelMapping.getNumberOfInstances() > defaultNumberOfInstances.get(vnfToLevelMapping.getVnfProfileId())){
+                        //check if the vnf is in the IL and if the number of istances is different from default IL
                         toAdd = true;
                         break;
                     }
@@ -304,6 +320,7 @@ public class OsmCatalogueRestClient {
         }
 
         if(!toAdd) return false;
+
         //There at least a scaling rule to add
         List<ScalingGroupDescriptor> scalingGroupDescriptorList = new ArrayList<>();
         for(NsLevel nsLevel : df.getNsInstantiationLevel()){
@@ -313,7 +330,7 @@ public class OsmCatalogueRestClient {
                     //add new scaling group
                     ScalingGroupDescriptor scalingGroupDescriptor = new ScalingGroupDescriptor();
                     //encoding of the default instantantiation level in the name of the scaling-group
-                    if(nsLevel.getNsLevelId().equals(defaultInstantiationLevel.getNsLevelId()))
+                    if(nsLevel.getNsLevelId().equals(defaultIL.getNsLevelId()))
                         scalingGroupDescriptor.setName(nsLevel.getNsLevelId()+"-default");
                     else scalingGroupDescriptor.setName(nsLevel.getNsLevelId());
                     scalingGroupDescriptor.setMinInstanceCount(0);
@@ -376,7 +393,7 @@ public class OsmCatalogueRestClient {
         log.debug("Retrieving VNFD from VNF package");
         String folder = null;
         Vnfd vnfd = null;
-        try{
+        /*try{
             String downloadedFile = fileUtilities.downloadFile(vnfPackagePath);
             folder = fileUtilities.extractFile(downloadedFile);
             File jsonFile = fileUtilities.findJsonFileInDir(folder);
@@ -396,13 +413,13 @@ public class OsmCatalogueRestClient {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        }
-        /*ObjectMapper mapper = new ObjectMapper();
+        }*/
+        ObjectMapper mapper = new ObjectMapper();
         try {
-            vnfd = (Vnfd) mapper.readValue(Paths.get("/home/nextworks/Desktop/vnfd.json").toFile(), Vnfd.class);
+            vnfd = (Vnfd) mapper.readValue(Paths.get(request.getName()).toFile(), Vnfd.class);
         } catch (IOException e) {
             e.printStackTrace();
-        }*/
+        }
         if(vnfd == null) throw new MalformattedElementException("VNFD for onboarding is empty");
         //maybe a vnfd for each couple of vnfd,vnfDf?
         for(VnfDf vnfdDf : vnfd.getDeploymentFlavour()){

@@ -39,7 +39,7 @@ public class IfaOsmTranslator {
      * @param nsDf
      * @return NSDescriptor
      */
-    private static NSDescriptor translateIfaToOsmNsd(Nsd nsd, NsDf nsDf, boolean useTemplateVNFDs) {
+    private static NSDescriptor translateIfaToOsmNsd(Nsd nsd, NsDf nsDf, HashMap<String, Boolean> useTemplateVNFDs) {
 
         NSDescriptor nsDescriptor = new NSDescriptor();
 
@@ -77,7 +77,7 @@ public class IfaOsmTranslator {
             //take the flavour id of this vnf, in order to know which vnf of the mappedVnfs to use
             String vnfdIdWithFlavour = null;
             try {
-                if(useTemplateVNFDs) vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
+                if(useTemplateVNFDs.get(vnfdId)) vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
                 else vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId) + "_" + nsDescriptor.getId();
                 constituentVNFD.setVnfdIdentifierReference(vnfdIdWithFlavour);
                 constituentVNFD.setMemberVNFIndex(indexOfVnf);
@@ -438,7 +438,7 @@ public class IfaOsmTranslator {
      * @param nsDf
      * @return String
      */
-    public static File createPackageForNsd(Nsd nsd, NsDf nsDf, boolean useTemplateVNFDs) {
+    public static File createPackageForNsd(Nsd nsd, NsDf nsDf, HashMap<String,Boolean> useTemplateVNFDs) {
         nsdOsm = translateIfaToOsmNsd(nsd,nsDf,useTemplateVNFDs);
 
         List<NSDescriptor> nsDescriptorList = new ArrayList<>();
