@@ -371,6 +371,20 @@ public class IfaOsmTranslator {
 
     private static void generateCloudInitFile(List<String> commands) {
         String cloudInitPath = TEMP_DIR + File.separator +  "cloud-config.txt";
+
+        //Uncomment in order to set ubuntu pwd on vdu
+        try{
+            File cloudInit = new File(cloudInitPath);
+            FileWriter fw = new FileWriter(cloudInit,true);
+            fw.write("password: ubuntu\n");
+            fw.write("chpasswd: { expire: False }\n");
+            fw.write("ssh_pwauth: True\n");
+            fw.flush();
+            fw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        
         try {
             File cloudInit = new File(cloudInitPath);
             FileWriter fw = new FileWriter(cloudInit,true);
