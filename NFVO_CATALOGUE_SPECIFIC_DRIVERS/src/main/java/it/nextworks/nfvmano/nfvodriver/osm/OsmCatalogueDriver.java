@@ -24,6 +24,8 @@ import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
 import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueAbstractDriver;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueDriverType;
+import it.nextworks.nfvmano.nfvodriver.file.NsdFileRegistryService;
+import it.nextworks.nfvmano.nfvodriver.file.VnfdFileRegistryService;
 import it.nextworks.osm.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,19 +43,24 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	private String project;
 	private UUID vimId;
 	private OsmCatalogueRestClient osmCatalogueRestClient;
-
+	private NsdFileRegistryService nsdFileRegistryService;
+	private VnfdFileRegistryService vnfdFileRegistryService;
 	public OsmCatalogueDriver(String nfvoAddress,
 							  String username,
 							  String password,
 							  String project,
-							  UUID vimId) {
+							  UUID vimId,
+							  NsdFileRegistryService nsdFileRegistryService,
+							  VnfdFileRegistryService vnfdFileRegistryService) {
 
 		super(NfvoCatalogueDriverType.OSM, nfvoAddress, null);
 		this.username = username;
 		this.password = password;
 		this.project = project;
 		this.oAuthSimpleClient = new OAuthSimpleClient(nfvoAddress+"/osm/admin/v1/tokens", username, password, project);
-		this.osmCatalogueRestClient = new OsmCatalogueRestClient(nfvoAddress, username, password, oAuthSimpleClient);
+		this.vnfdFileRegistryService = vnfdFileRegistryService;
+		this.nsdFileRegistryService = nsdFileRegistryService;
+		this.osmCatalogueRestClient = new OsmCatalogueRestClient(nfvoAddress, username, password, oAuthSimpleClient, nsdFileRegistryService, vnfdFileRegistryService);
 	}
 
 	@Override
@@ -159,8 +166,8 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public QueryNsdResponse queryNsd(GeneralizedQueryRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
-		// TODO Auto-generated method stub
-		return null;
+		log.debug("Building request to query NSD.");
+		return osmCatalogueRestClient.queryNsd(request);
 	}
 
 	@Override
@@ -229,7 +236,8 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public QueryOnBoardedVnfPkgInfoResponse queryVnfPackageInfo(GeneralizedQueryRequest request)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
-		throw new MethodNotImplementedException();
+		log.debug("Building request to query NSD.");
+		return osmCatalogueRestClient.queryVnfPackageInfo(request);
 	}
 
 	@Override

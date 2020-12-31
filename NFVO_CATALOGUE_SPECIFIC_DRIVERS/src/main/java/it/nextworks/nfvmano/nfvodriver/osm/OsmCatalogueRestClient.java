@@ -6,20 +6,24 @@ import io.swagger.client.model.CreateNsdInfoRequest;
 import io.swagger.client.model.CreateVnfPkgInfoRequest;
 import io.swagger.client.model.NsdInfo;
 import io.swagger.client.model.ObjectId;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnBoardVnfPackageRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnBoardVnfPackageResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardNsdRequest;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.*;
+import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.*;
+import it.nextworks.nfvmano.libs.ifa.descriptors.onboardedvnfpackage.OnboardedVnfPkgInfo;
 import it.nextworks.nfvmano.libs.ifa.descriptors.vnfd.VnfDf;
 import it.nextworks.nfvmano.libs.ifa.descriptors.vnfd.Vnfd;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.NSDescriptor;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.*;
 import it.nextworks.nfvmano.nfvodriver.dummy.FileUtilities;
+import it.nextworks.nfvmano.nfvodriver.file.NsdFileRegistryService;
+import it.nextworks.nfvmano.nfvodriver.file.VnfdFileRegistryService;
 import it.nextworks.osm.ApiClient;
 import it.nextworks.osm.ApiException;
 import it.nextworks.osm.openapi.NsPackagesApi;
 import it.nextworks.osm.openapi.VnfPackagesApi;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +31,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Paths;
+import java.nio.charset.Charset;
 import java.util.*;
 
 /**
@@ -49,15 +53,30 @@ public class OsmCatalogueRestClient {
     private final VnfPackagesApi vnfPackagesApi;
     private final FileUtilities fileUtilities; //don't delete. Used in download of vnf package
 
+    private final NsdFileRegistryService nsdFileRegistryService;
+    private final VnfdFileRegistryService vnfdFileRegistryService;
+
+    // map the uuid generated from storing nsd to the ifa nds name
+    private final Map<String,String> storedIfaNsdName;
+    // map the uuid generated from storing nsd to the ifa nds name
+    private final Map<String,String> storedIfaVnfdName;
+
+    //map the vnfd ifa id to the vnfd ifa
+    private final Map<String,Vnfd> ifaVnfdIdToIfaVnfd;
+
     //Map the NSD ID IFA to the list of OSM NSD UUIDs generated after translation
-    private final Map<UUID,List<UUID>> NsdIfaIdToNsdInfoIds;
+    private final Map<Nsd,List<UUID>> NsdIfaIdToNsdInfoIds;
     private final Map<UUID,String> NsdInfoIdToOsmNsdId;
 
+    //this map the osm vnfd id to the osm vnfd UUID
     private final Map<String,UUID> vnfdIdToVnfdUUID;
+    //to be deleted
     private final Map<String, VNFDescriptor> vnfdIdToOsmVnfd;
 
 
-    public OsmCatalogueRestClient(String nfvoAddress, String username, String password, OAuthSimpleClient oAuthSimpleClient){
+    public OsmCatalogueRestClient(String nfvoAddress, String username, String password, OAuthSimpleClient oAuthSimpleClient,
+                                  NsdFileRegistryService nsdFileRegistryService,
+                                  VnfdFileRegistryService vnfdFileRegistryService){
         this.oAuthSimpleClient = oAuthSimpleClient;
         this.nfvoAddress = nfvoAddress;
         this.username = username;
@@ -66,6 +85,14 @@ public class OsmCatalogueRestClient {
         this.vnfPackagesApi = new VnfPackagesApi();
         this.fileUtilities = new FileUtilities(System.getProperty("java.io.tmpdir"));
 
+        this.nsdFileRegistryService = nsdFileRegistryService;
+        this.vnfdFileRegistryService = vnfdFileRegistryService;
+
+        this.storedIfaNsdName = new HashMap<>();
+        this.storedIfaVnfdName = new HashMap<>();
+
+        this.ifaVnfdIdToIfaVnfd = new HashMap<>();
+
         this.NsdIfaIdToNsdInfoIds = new HashMap<>();
         this.NsdInfoIdToOsmNsdId = new HashMap<>();
 
@@ -73,7 +100,8 @@ public class OsmCatalogueRestClient {
         this.vnfdIdToOsmVnfd = new HashMap<>();
     }
 
-    //******************************** NSD methods ********************************//
+
+    //******************************** NSD onboarding methods ********************************//
 
     /**
      * Takes the onboarding request and generate the NSDs package
@@ -85,6 +113,9 @@ public class OsmCatalogueRestClient {
 
         Nsd nsd = request.getNsd();
         if(nsd == null) throw new MalformattedElementException("NSD for onboarding is empty");
+        //this store the nsd with random uuid name for the json file
+        String uuidStoredNsd = nsdFileRegistryService.storeNsd(nsd);
+        storedIfaNsdName.put(uuidStoredNsd,nsd.getNsdIdentifier());
 
         //contains all the OSM NSD UUIDs generated from the IFA NSD
         List<UUID> nsdInfoIds = new ArrayList<>();
@@ -130,6 +161,9 @@ public class OsmCatalogueRestClient {
             }
             nsdInfoIds.add(nsdInfoId);
         }
+
+        //saving nsd descriptor named with nsd_id
+        //storeIfaNsd(nsd,folderIfaDescriptors);
 
         //NsdIfaIdToNsdInfoIds.put(UUID.fromString(nsd.getNsdIdentifier()),nsdInfoIds);
         return nsd.getNsdIdentifier(); //TODO validate this return
@@ -379,7 +413,34 @@ public class OsmCatalogueRestClient {
         }
     }
 
-    //******************************** VNFD methods ********************************//
+    public QueryNsdResponse queryNsd(GeneralizedQueryRequest request) throws NotExistingEntityException, FailedOperationException {
+        List<it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo> nsdInfoList = new ArrayList<>();
+        //this is the id of the NSD IFA requested
+        String nsdId = request.getFilter().getParameters().get("NSD_ID");
+        String nsdVersion = request.getFilter().getParameters().get("NSD_VERSION");
+        it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo nsdInfo = nsdFileRegistryService.queryNsd(nsdId,nsdVersion);
+        it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo newNsdInfo = new it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo(
+                storedIfaNsdName.get(nsdInfo.getNsdInfoId()),
+                nsdInfo.getNsdId(),
+                nsdInfo.getName(),
+                nsdInfo.getVersion(),
+                nsdInfo.getDesigner(),
+                nsdInfo.getNsd(),
+                nsdInfo.getOnboardedVnfPkgInfoId(),
+                nsdInfo.getPnfdInfoId(),
+                nsdInfo.getPreviousNsdVersionId(),
+                nsdInfo.getOperationalState(),
+                nsdInfo.getUsageState(),
+                nsdInfo.isDeletionPending(),
+                nsdInfo.getUserDefinedData()
+        );
+        nsdInfoList.add(newNsdInfo);
+        QueryNsdResponse queryNsdResponse = new QueryNsdResponse(nsdInfoList);
+        log.debug("Retrieved NSD " + nsdId);
+        return queryNsdResponse;
+    }
+
+    //******************************** VNFD onboarding methods ********************************//
 
     /**
      * Takes the onboarding request and generate the VNFDs package
@@ -393,7 +454,7 @@ public class OsmCatalogueRestClient {
         log.debug("Retrieving VNFD from VNF package");
         String folder = null;
         Vnfd vnfd = null;
-        /*try{
+        try{
             String downloadedFile = fileUtilities.downloadFile(vnfPackagePath);
             folder = fileUtilities.extractFile(downloadedFile);
             File jsonFile = fileUtilities.findJsonFileInDir(folder);
@@ -413,14 +474,22 @@ public class OsmCatalogueRestClient {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        }*/
-        ObjectMapper mapper = new ObjectMapper();
+        }
+        /*ObjectMapper mapper = new ObjectMapper();
         try {
             vnfd = (Vnfd) mapper.readValue(Paths.get(request.getName()).toFile(), Vnfd.class);
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
         if(vnfd == null) throw new MalformattedElementException("VNFD for onboarding is empty");
+        try {
+            String uuidStoredVnfd = vnfdFileRegistryService.storeVnfd(request,vnfd);
+            storedIfaVnfdName.put(uuidStoredVnfd,vnfd.getVnfdId());
+        } catch (AlreadyExistingEntityException e) {
+            e.printStackTrace();
+            //TODO se è già presente necessità di essere refreshato?
+        }
+        ifaVnfdIdToIfaVnfd.put(vnfd.getVnfdId(),vnfd);
         //maybe a vnfd for each couple of vnfd,vnfDf?
         for(VnfDf vnfdDf : vnfd.getDeploymentFlavour()){
             File compressFilePath = IfaOsmTranslator.createPackageForVnfd(vnfd,vnfdDf);
@@ -443,6 +512,7 @@ public class OsmCatalogueRestClient {
                 vnfPackagesApi.uploadVnfPkgContent(vnfdInfoId.toString(),compressFilePath);
                 log.debug("Updated the VNFD resource with UUID: " + vnfdInfoId + "\n  with the VNFD of id: " + vnfdOsm.getId());
             } catch (ApiException e) {
+                //TODO to log error
                 //the resource pointed by nsdInfoId has not been modified due to exception, need to delete it
                 try {
                     vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
@@ -454,7 +524,7 @@ public class OsmCatalogueRestClient {
                 throw new FailedOperationException("Error on VNFD onboarding!" + e.getResponseBody());
             }
             vnfdIdToVnfdUUID.put(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId(),vnfdInfoId);
-            vnfdIdToOsmVnfd.put(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId(),vnfdOsm);
+            //vnfdIdToOsmVnfd.put(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId(),vnfdOsm);
         }
         UUID randomUUID = UUID.randomUUID();
         //maybe a map
@@ -466,7 +536,31 @@ public class OsmCatalogueRestClient {
         return vnfdId +"_"+flavourId;
     }
 
-
+    public QueryOnBoardedVnfPkgInfoResponse queryVnfPackageInfo(GeneralizedQueryRequest request) throws NotExistingEntityException {
+        List<OnboardedVnfPkgInfo> onboardedVnfPkgInfoList = new ArrayList<>();
+        //this is the id of the VNFD IFA requested
+        String vnfdId = request.getFilter().getParameters().get("VNFD_ID");
+        OnboardedVnfPkgInfo onboardedVnfPkgInfo = vnfdFileRegistryService.queryVnf(vnfdId);
+        OnboardedVnfPkgInfo newOnboardedVnfPkgInfo = new OnboardedVnfPkgInfo(
+                storedIfaVnfdName.get(onboardedVnfPkgInfo.getVnfdId()),
+                onboardedVnfPkgInfo.getVnfdId(),
+                onboardedVnfPkgInfo.getVnfProvider(),
+                onboardedVnfPkgInfo.getVnfProductName(),
+                onboardedVnfPkgInfo.getVnfSoftwareVersion(),
+                onboardedVnfPkgInfo.getVnfdVersion(),
+                onboardedVnfPkgInfo.getChecksum(),
+                onboardedVnfPkgInfo.getVnfd(),
+                onboardedVnfPkgInfo.getSoftwareImage(),
+                onboardedVnfPkgInfo.getAdditionalArtifact(),
+                onboardedVnfPkgInfo.getOperationalState(),
+                onboardedVnfPkgInfo.getUsageState(),
+                onboardedVnfPkgInfo.isDeletionPending(),
+                onboardedVnfPkgInfo.getUserDefinedData()
+        );
+        onboardedVnfPkgInfoList.add(newOnboardedVnfPkgInfo);
+        QueryOnBoardedVnfPkgInfoResponse queryOnBoardedVnfPkgInfoResponse = new QueryOnBoardedVnfPkgInfoResponse(onboardedVnfPkgInfoList);
+        return queryOnBoardedVnfPkgInfoResponse;
+    }
     //******************************** Client API ********************************//
 
     private ApiClient getClient() throws FailedOperationException {
@@ -479,6 +573,5 @@ public class OsmCatalogueRestClient {
         apiClient.setAccessToken(oAuthSimpleClient.getToken());
         return apiClient;
     }
-
 
 }

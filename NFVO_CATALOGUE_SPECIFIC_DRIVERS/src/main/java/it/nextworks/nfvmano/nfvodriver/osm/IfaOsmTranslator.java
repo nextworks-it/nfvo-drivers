@@ -130,7 +130,7 @@ public class IfaOsmTranslator {
             boolean isVLMgmt = isVirtualLinkManagement(nsVirtuaLinkIdToSapd.get(vld.getId()), vld.getId());
             vld.setMgmtNetwork(isVLMgmt);
             if(isVLMgmt) vld.setVimNetworkName("VM_MGMT");
-            else vld.setVimNetworkName(vld.getId());
+            //else vld.setVimNetworkName(vld.getId());
 
             vldIdListHashMap.put(vld.getId(), new ArrayList<>());
             vldList.add(vld);
@@ -604,7 +604,7 @@ public class IfaOsmTranslator {
         return path.toFile();
     }
 
-    private static boolean rmRecursively(File folder) {
+    public static boolean rmRecursively(File folder) {
         SimpleFileVisitor<Path> deleter = new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
