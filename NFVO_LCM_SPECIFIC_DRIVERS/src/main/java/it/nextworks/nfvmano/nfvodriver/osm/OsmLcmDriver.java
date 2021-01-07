@@ -214,8 +214,10 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 
 		NsdInfo nsdPackage = getOsmNsdPackage(ifaNsdId +"_"+ ifaNsdFlavourId);
 
-		if(nsdPackage == null)
-			throw new NotExistingEntityException("Osm nsd package with id: "+ifaNsdId+"_"+ifaNsdFlavourId+" doesn't exists");
+		if(nsdPackage == null){
+			log.error("Osm nsd package with id: " +ifaNsdId+"_"+ifaNsdFlavourId+" doesn't exists");
+			throw new NotExistingEntityException();
+		}
 
 		UUID nsdPackageId = nsdPackage.getIdentifier();
 
@@ -231,8 +233,10 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 		String osmNsInstanceId = createNsResource(createNsIdentifierRequest,nsdPackageId);
 
 		//this is the UUID of the NS Instance resource associated to the NSD <nsdId_nsdDfId>(full_01_df_vCDN)
-		if(osmNsInstanceId == null)
-			throw new FailedOperationException("Cannot create a new NSD resource");
+		if(osmNsInstanceId == null){
+			log.error("Cannot create a new NSD resource");
+			throw new FailedOperationException();
+		}
 
 		//Now we can instantiate NSD
 		try {
@@ -330,8 +334,10 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			e.printStackTrace();
 		}
 
-		if(constituentVNFDList == null)
-			throw new FailedOperationException("Cannot retrieve constituent VNF list for OSM NSD " + osmNsPackageId);
+		if(constituentVNFDList == null){
+			log.error("Cannot retrieve constituent VNF list for OSM NSD " + osmNsPackageId);
+			throw new FailedOperationException();
+		}
 
 		//retrieve the VNFDescriptor of the constituent VNF list
 		HashMap<String, VNFDescriptor> vnfDescriptorList = new HashMap<>();
@@ -364,16 +370,12 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 		String instantiationLevelId = request.getScaleNsData().getScaleNsToLevelData().getNsInstantiationLevel();
 		String currentIl = currentIlMapping.get(UUID.fromString(osmNsInstanceId));
 		if(currentIl.equals(instantiationLevelId)) {
-			log.info("Cannot scale to the same instantiation level");
-			return request.getNsInstanceId();
+			log.error("Cannot scale to the same instantiation level");
+			throw new FailedOperationException();
 		}
 		boolean isFinalIlDefault = true;
 		//Now for each consistuent VNF that has the same IL id we need to trigger a scaling action
 		for(ConstituentVNFD constituentVNFD : constituentVNFDList){
-			/*
-			 * Assumption: the id of the IL is always present in the vnfd.
-			 * 			Is there the possibility this is not true?
-			 */
 			String indexConstituentVnf = constituentVNFD.getMemberVNFIndex().toString();
 			VNFDescriptor vnfDescriptor = vnfDescriptorList.get(constituentVNFD.getVnfdIdentifierReference());
 			//check if this vnf is within this scaling group
@@ -391,7 +393,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 						nsInstancesApi.setApiClient(getClient());
 						nsInstancesApi.scaleNSinstance(osmNsInstanceId,scaleInNsRequest);
 					} catch (ApiException e) {
-						log.info("An error occured when try to scale-in the ns instance: " + request.getNsInstanceId());
+						log.error("An error occured when try to scale-in the ns instance: " + request.getNsInstanceId());
 						log.debug(e.getResponseBody());
 						throw new FailedOperationException();
 					}
@@ -403,7 +405,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 							nsInstancesApi.setApiClient(getClient());
 							nsInstancesApi.scaleNSinstance(osmNsInstanceId,scaleOutNsRequest);
 						} catch (ApiException e) {
-							log.info("An error occured when try to scale-out the ns instance: " + request.getNsInstanceId());
+							log.error("An error occured when try to scale-out the ns instance: " + request.getNsInstanceId());
 							log.debug(e.getResponseBody());
 							throw new FailedOperationException();
 						}
@@ -418,7 +420,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 						nsInstancesApi.setApiClient(getClient());
 						nsInstancesApi.scaleNSinstance(osmNsInstanceId,scaleOutNsRequest);
 					} catch (ApiException e) {
-						log.info("An error occured when try to scale-out the ns instance: " + request.getNsInstanceId());
+						log.error("An error occured when try to scale-out the ns instance: " + request.getNsInstanceId());
 						log.debug(e.getResponseBody());
 						throw new FailedOperationException();
 					}
@@ -440,7 +442,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 		if(arrayOfNsLcmOpOcc != null && arrayOfNsLcmOpOcc.size() > 0)
 			nsLcmOpOcc = arrayOfNsLcmOpOcc.get(arrayOfNsLcmOpOcc.size()-1);
 		else{
-			log.debug("Cannot retrieve list of lcm operations");
+			log.error("Cannot retrieve list of lcm operations");
 			throw new FailedOperationException();
 		}
 		if(nfvoLcmOperationPollingManager!=null)
@@ -553,14 +555,14 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 		String osmNsPackageId = ifaNsdIdToOsmNsdPackageId.get(UUID.fromString(ifaNsdUuid)).toString();
 		//Check if there is an osm nsd package associated to the uuid
 		if(osmNsPackageId == null){
-			log.debug("There is no nsd package associated to id " + ifaNsdUuid);
+			log.error("There is no nsd package associated to id " + ifaNsdUuid);
 			throw new FailedOperationException();
 		}
 
 		String osmNsInstanceId = getAssociatedNsInstance(osmNsIdToOsmNsdPackageId,osmNsPackageId);
 		//Check if there is an active osm ns instance for this osm nsd
 		if(osmNsInstanceId == null){
-			log.debug("Cannot perform scaling action for osm nsd package. No corresponding instance found!");
+			log.error("Cannot perform scaling action for osm nsd package. No corresponding instance found!");
 			throw new FailedOperationException();
 		}
 

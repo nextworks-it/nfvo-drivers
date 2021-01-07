@@ -112,7 +112,10 @@ public class OsmCatalogueRestClient {
             MalformattedElementException, AlreadyExistingEntityException, FailedOperationException, ApiException {
 
         Nsd nsd = request.getNsd();
-        if(nsd == null) throw new MalformattedElementException("NSD for onboarding is empty");
+        if(nsd == null){
+            log.error("NSD for onboarding is empty");
+            throw new MalformattedElementException();
+        }
         //this store the nsd with random uuid name for the json file
         String uuidStoredNsd = nsdFileRegistryService.storeNsd(nsd);
         storedIfaNsdName.put(uuidStoredNsd,nsd.getNsdIdentifier());
@@ -127,7 +130,8 @@ public class OsmCatalogueRestClient {
                 //there is at least one scaling rule to add
                 if(!updateVNFDs(nsd,df,useTemplateVNFDs)){
                     // Error during the update of vnfd package with scaling rule
-                    throw new FailedOperationException("Cannot update VNFD package with autoscaling rule");
+                    log.error("Cannot update VNFD package with autoscaling rule");
+                    throw new FailedOperationException();
                 }
             }
             // Now create and onboard NSD
@@ -180,7 +184,7 @@ public class OsmCatalogueRestClient {
      * @param useTemplateVNFDs
      * @return String
      */
-    private boolean updateVNFDs(Nsd nsd, NsDf df, HashMap<String, Boolean> useTemplateVNFDs) {
+    private boolean updateVNFDs(Nsd nsd, NsDf df, HashMap<String, Boolean> useTemplateVNFDs) throws FailedOperationException {
         String nsdIdWithFlavour = nsd.getNsdIdentifier()+"_"+df.getNsDfId();
         //We need to upload the content of each constituent vnfd within this nsd by providing the scaling rule
 
@@ -329,7 +333,7 @@ public class OsmCatalogueRestClient {
      * @param vnfProfileIdToVnfId
      * @return boolean that represent if the scaling rules have been added
      */
-    private boolean addAutoscalingRules(NsDf df, NsLevel defaultIL, VNFDescriptor vnfDescriptor, HashMap<String, String> vnfProfileIdToVnfId) {
+    private boolean addAutoscalingRules(NsDf df, NsLevel defaultIL, VNFDescriptor vnfDescriptor, HashMap<String, String> vnfProfileIdToVnfId) throws FailedOperationException {
         //adding a scaling rules to this vnfDescriptor
         HashMap<String,Integer> defaultNumberOfInstances = new HashMap<>();
         /*assumption the default instantiation level has always the min number of instances*/
@@ -360,7 +364,10 @@ public class OsmCatalogueRestClient {
         for(NsLevel nsLevel : df.getNsInstantiationLevel()){
             for(VnfToLevelMapping vnfToLevelMapping : nsLevel.getVnfToLevelMapping()){
                 if(vnfProfileIdToVnfId.get(vnfToLevelMapping.getVnfProfileId()).equals(vnfDescriptor.getId())){
-
+                    if(vnfDescriptor.getVduList().size() >= 2){
+                        log.error("Scaling group definition for multi-vdu vnf is not yet supported");
+                        throw new FailedOperationException();
+                    }
                     //add new scaling group
                     ScalingGroupDescriptor scalingGroupDescriptor = new ScalingGroupDescriptor();
                     //encoding of the default instantantiation level in the name of the scaling-group
@@ -574,4 +581,40 @@ public class OsmCatalogueRestClient {
         return apiClient;
     }
 
+    //******************************** Test Functions ********************************//
+
+    /*public List<KeyPair> getKeyPair(String packageId) throws FailedOperationException {
+        String yamlDescriptor = null;
+        try {
+            nsPackagesApi.setApiClient(getClient());
+            //this is the yaml descriptor of the vnfd template
+            yamlDescriptor = nsPackagesApi.getNsPkgNsd(packageId);
+        } catch (ApiException e) {
+           throw new FailedOperationException();
+        }
+        NSDescriptor nsDescriptor = getNewNSDescriptorFromYamlString(yamlDescriptor);
+        return nsDescriptor.getKeyPairs();
+    }
+
+    private NSDescriptor getNewNSDescriptorFromYamlString(String nsDescriptor) {
+        PrintWriter out = null;
+        try {
+            out = new PrintWriter(TEMP_DIR+ File.separator+"osmNsd.yaml");
+            out.print(nsDescriptor);
+            out.close();
+            ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
+            yamlReader.findAndRegisterModules();
+            File tempFile = new File(TEMP_DIR+ File.separator+"osmNsd.yaml");
+            OsmNSPackage vnfDescriptorPackage = null;
+            vnfDescriptorPackage = yamlReader.readValue(tempFile, OsmNSPackage.class);
+            tempFile.delete();
+            return vnfDescriptorPackage.getNsdCatalog().getNsds().get(0);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e){
+            e.printStackTrace();
+            log.info("Cannot generate OsmVNFPackage from string");
+        }
+        return null;
+    }*/
 }

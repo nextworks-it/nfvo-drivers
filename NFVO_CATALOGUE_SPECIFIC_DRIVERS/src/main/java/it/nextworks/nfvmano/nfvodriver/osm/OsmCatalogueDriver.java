@@ -236,7 +236,7 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public QueryOnBoardedVnfPkgInfoResponse queryVnfPackageInfo(GeneralizedQueryRequest request)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
-		log.debug("Building request to query NSD.");
+		log.debug("Building request to query VNFD.");
 		return osmCatalogueRestClient.queryVnfPackageInfo(request);
 	}
 
@@ -275,5 +275,5 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
 		throw new MethodNotImplementedException();
 	}
-	
+
 }

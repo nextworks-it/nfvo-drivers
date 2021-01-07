@@ -62,7 +62,6 @@ public class IfaOsmTranslator {
             nsDescriptor.setDescription(nsDf.getDefaultInstantiationLevel().getDescription());
         } catch (NotExistingEntityException e) {
             log.debug("No description found for nsDescriptor: " + nsDescriptor.getId());
-            e.printStackTrace();
             nsDescriptor.setDescription("No available description");
         }
 
@@ -228,6 +227,9 @@ public class IfaOsmTranslator {
                 if(script.contains("bin/bash")){
                     generateCloudInitFile(getCommands(script));
                     isCloudInitPresent = true;
+                }
+                else{
+                    log.warn("Skipped generation of cloud-init. Initial configuration is supported only through bash script.");
                 }
             }
         }
