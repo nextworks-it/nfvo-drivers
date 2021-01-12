@@ -119,9 +119,12 @@ public class IfaSolLcmTranslator {
 		String flavourId = nsInstance.getFlavourId();
 		List<String> vnfInfoId = new ArrayList<>();
 		List<VnfInstance> vnfis = nsInstance.getVnfInstance();
-		for (VnfInstance vnfi : vnfis) {
-			vnfInfoId.add(vnfi.getId());					//TODO: shall we keep this aligned with SOL instead of IFA? Otherwise no way to get info about VNFs
+		if(vnfis!=null){
+			for (VnfInstance vnfi : vnfis) {
+				vnfInfoId.add(vnfi.getId());					//TODO: shall we keep this aligned with SOL instead of IFA? Otherwise no way to get info about VNFs
+			}
 		}
+
 		List<PnfInfo> pnfInfos = new ArrayList<>();
 		List<it.nextworks.openapi.msno.model.PnfInfo> inPnfInfo = nsInstance.getPnfInfo();
 		if(inPnfInfo!=null &&!inPnfInfo.isEmpty()){
@@ -244,23 +247,23 @@ public class IfaSolLcmTranslator {
 
 	private static List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo> getSapInfoFromVnfInstance(List<VnfInstance> vnfis){
         List<it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo> sapInfos = new ArrayList<>();
-        for(VnfInstance vnfI: vnfis){
-            VnfInstanceInstantiatedVnfInfo instanceInfo = vnfI.getInstantiatedVnfInfo();
-            List<VnfExtCpInfo> extCpInfos = instanceInfo.getExtCpInfo();
-            for(VnfExtCpInfo cpInfo: extCpInfos){
-                List<CpProtocolInfo> cpProtocolInfos = cpInfo.getCpProtocolInfo();
-                String address = cpProtocolInfos.get(0).getIpOverEthernet().getIpAddresses().get(0).getAddresses().get(0);
-                String sapName = vnfI.getVnfdId()+"-"+cpInfo.getCpdId();
-                it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo sapInfo
-                        = new it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo(null, cpInfo.getId(), cpInfo.getCpdId(),sapName, sapName,address, null );
-                sapInfos.add(sapInfo);
+        if(vnfis!=null){
+			for(VnfInstance vnfI: vnfis){
+				VnfInstanceInstantiatedVnfInfo instanceInfo = vnfI.getInstantiatedVnfInfo();
+				List<VnfExtCpInfo> extCpInfos = instanceInfo.getExtCpInfo();
+				for(VnfExtCpInfo cpInfo: extCpInfos){
+					List<CpProtocolInfo> cpProtocolInfos = cpInfo.getCpProtocolInfo();
+					String address = cpProtocolInfos.get(0).getIpOverEthernet().getIpAddresses().get(0).getAddresses().get(0);
+					String sapName = vnfI.getVnfdId()+"-"+cpInfo.getCpdId();
+					it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo sapInfo
+							= new it.nextworks.nfvmano.libs.ifa.records.nsinfo.SapInfo(null, cpInfo.getId(), cpInfo.getCpdId(),sapName, sapName,address, null );
+					sapInfos.add(sapInfo);
 
+				}
 
+			}
+		}
 
-
-            }
-
-        }
         return sapInfos;
 
     }
