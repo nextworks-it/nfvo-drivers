@@ -12,17 +12,10 @@
 
 package io.swagger.client.model;
 
-import java.util.Objects;
-import java.util.Arrays;
-
-
-import com.google.gson.TypeAdapter;
-import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.annotations.SerializedName;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.io.IOException;
+
+import java.util.Objects;
 import java.util.UUID;
 /**
  * VNF Instance Information Only generic fields (_id, id) are described For a full specification of the VNF Instance see: http://osm-download.etsi.org/ftp/osm-doc/vnfr.html 
@@ -35,6 +28,22 @@ public class VnfInstanceInfo {
 
   @SerializedName("id")
   private UUID id = null;
+
+  //not standard
+  @SerializedName("nsr-id-ref")
+  private String nsrIdRef = null;
+
+  //not standard
+  @SerializedName("ip-address")
+  private String ipAddress = null;
+
+  //not standard
+  @SerializedName("vnfd-ref")
+  private String vnfdRef = null;
+
+  //not standard
+  @SerializedName("vnfd-id")
+  private String vnfdId = null;
 
   public VnfInstanceInfo _id(UUID _id) {
     this._id = _id;
@@ -73,6 +82,81 @@ public class VnfInstanceInfo {
     this.id = id;
   }
 
+  //############################ not standard ############################
+
+  public VnfInstanceInfo ipAddress(String ipAddress){
+    this.ipAddress = ipAddress;
+    return this;
+  }
+
+  /**
+   * Ip of the vnf instance (on mgmt network).
+   * @return ip_address
+   **/
+  @Schema(description = "Ip of the vnf instance. ")
+  public String geIpAddress() {
+    return ipAddress;
+  }
+
+  public void setIpAddress(String ipAddress) {
+    this.ipAddress = ipAddress;
+  }
+
+  public VnfInstanceInfo nsrIdRef(String nsrIdRef){
+    this.nsrIdRef = nsrIdRef;
+    return this;
+  }
+
+  /**
+   * Reference to ns instance
+   * @return nsrIdRef
+   **/
+  @Schema(description = "Reference to the ns instance. ")
+  public String getNsrIdRef() {
+    return nsrIdRef;
+  }
+
+  public void setNsrIdRef(String nsrIdRef) {
+    this.nsrIdRef = nsrIdRef;
+  }
+
+  public VnfInstanceInfo vnfdRef(String vnfdRef){
+    this.vnfdRef = vnfdRef;
+    return this;
+  }
+
+  /**
+   * Reference to id of the vnfd.
+   * @return nsrIdRef
+   **/
+  @Schema(description = "Reference to id of the vnfd. ")
+  public String getVnfdRef() {
+    return vnfdRef;
+  }
+
+  public void setVnfdRef(String vnfdRef) {
+    this.vnfdRef = vnfdRef;
+  }
+
+  public VnfInstanceInfo vnfdId(String vnfdId){
+    this.vnfdId = vnfdId;
+    return this;
+  }
+
+  /**
+   * Reference to uuid of the vnfd.
+   * @return nsrIdRef
+   **/
+  @Schema(description = "Reference to uuid of the vnfd. ")
+  public String getVnfdId() {
+    return vnfdId;
+  }
+
+  public void setVnfdId(String vnfdId) {
+    this.vnfdId = vnfdId;
+  }
+
+  //############################ not standard ############################
 
   @Override
   public boolean equals(java.lang.Object o) {
@@ -84,7 +168,8 @@ public class VnfInstanceInfo {
     }
     VnfInstanceInfo vnfInstanceInfo = (VnfInstanceInfo) o;
     return Objects.equals(this._id, vnfInstanceInfo._id) &&
-        Objects.equals(this.id, vnfInstanceInfo.id);
+        Objects.equals(this.id, vnfInstanceInfo.id) &&
+        Objects.equals(this.ipAddress, vnfInstanceInfo.ipAddress);
   }
 
   @Override
@@ -100,6 +185,7 @@ public class VnfInstanceInfo {
     
     sb.append("    _id: ").append(toIndentedString(_id)).append("\n");
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
+    sb.append("    ip: ").append(toIndentedString(ipAddress)).append("\n");
     sb.append("}");
     return sb.toString();
   }

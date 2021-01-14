@@ -425,7 +425,12 @@ public class OsmCatalogueRestClient {
         //this is the id of the NSD IFA requested
         String nsdId = request.getFilter().getParameters().get("NSD_ID");
         String nsdVersion = request.getFilter().getParameters().get("NSD_VERSION");
-        it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo nsdInfo = nsdFileRegistryService.queryNsd(nsdId,nsdVersion);
+        it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo nsdInfo;
+        //here the nsdInfoId of nsdInfo is a combination of nsdId + nsdVersion to uuid
+        if(nsdVersion == null) nsdInfo = nsdFileRegistryService.queryNsd(nsdId);
+        else nsdInfo = nsdFileRegistryService.queryNsd(nsdId,nsdVersion);
+        //workaround because if we answer with nsdInfo, then at instantiation time OsmLcmDriver will receive as id the id corresponding to
+        //the random uuid generated when storing the nsd
         it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo newNsdInfo = new it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo(
                 storedIfaNsdName.get(nsdInfo.getNsdInfoId()),
                 nsdInfo.getNsdId(),
