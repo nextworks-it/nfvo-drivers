@@ -350,10 +350,42 @@ public class IfaSolLcmTranslator {
 		x.setLayerProtocol(LayerProtocolEnum.IP_OVER_ETHERNET);
 		//sapProtocolData.add(x);
 		Map<String, String> values = new HashMap<>();
-		for(String key: input.getSliceParameters().keySet()){
-			values.put(key, input.getSliceParameters().get(key).toString());
-		}
-		output.setRadioSliceProfile(values);
+		String sST = null;
+		String coverageArea=null;
+		int uLThptPerSlice =0;
+		int dLThptPerSlice =0;
+		int latency =0;
+		String radioAccessTechnology=null;
+
+		Map<String, Object> sliceParameters = input.getSliceParameters();
+		if(sliceParameters.containsKey("sST")&& sliceParameters.get("sST")!=null)
+			sST=sliceParameters.get("sST").toString();
+
+		if(sliceParameters.containsKey("coverageArea")&& sliceParameters.get("coveraArea")!=null)
+			coverageArea=sliceParameters.get("coverageArea").toString();
+
+		if(sliceParameters.containsKey("radioAccessTechnology")&& sliceParameters.get("radioAccessTechnology")!=null)
+			radioAccessTechnology=sliceParameters.get("radioAccessTechnology").toString();
+
+		if(sliceParameters.containsKey("latency")&& sliceParameters.get("latency")!=null)
+			latency= Integer.parseInt(sliceParameters.get("latency").toString());
+
+		if(sliceParameters.containsKey("uLThptPerSlice")&& sliceParameters.get("uLThptPerSlice")!=null)
+			uLThptPerSlice= Integer.parseInt(sliceParameters.get("uLThptPerSlice").toString());
+
+		if(sliceParameters.containsKey("dLThptPerSlice")&& sliceParameters.get("dLThptPerSlice")!=null)
+			dLThptPerSlice= Integer.parseInt(sliceParameters.get("dLThptPerSlice").toString());
+
+
+		/*
+		  radioSliceProfile.put("coverageArea", coverageArea);
+                                radioSliceProfile.put("latency", latency);
+                                radioSliceProfile.put("uLThptPerSlice", uL);
+                                radioSliceProfile.put("dLThptPerSlice", dL);
+                                radioSliceProfile.put("radioAccessTechnology", rAT);
+		 */
+
+		output.setRadioSliceProfile(new RadioSliceProfile(sST, coverageArea, latency, uLThptPerSlice, dLThptPerSlice));
 		output.setSapProtocolData(sapProtocolData);
 		return output;
 	}

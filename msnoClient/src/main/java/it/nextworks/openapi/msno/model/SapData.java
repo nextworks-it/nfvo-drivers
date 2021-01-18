@@ -22,6 +22,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import it.nextworks.nfvmano.catalogue.blueprint.elements.RadioAccessTechnology;
 import it.nextworks.openapi.msno.model.CpProtocolData;
 
 import java.io.IOException;
@@ -45,7 +46,7 @@ public class SapData {
   private List<CpProtocolData> sapProtocolData = null;
 
   @SerializedName("radioSliceProfile")
-  private Map<String, String> radioSliceProfile= new HashMap<>();
+  private RadioSliceProfile radioSliceProfile;
 
   public SapData sapdId(String sapdId) {
     this.sapdId = sapdId;
@@ -84,11 +85,11 @@ public class SapData {
   }
 
 
-  public Map<String, String> getRadioSliceProfile() {
+  public RadioSliceProfile getRadioSliceProfile() {
     return radioSliceProfile;
   }
 
-  public void setRadioSliceProfile(Map<String, String> radioSliceProfile) {
+  public void setRadioSliceProfile(RadioSliceProfile radioSliceProfile) {
     this.radioSliceProfile = radioSliceProfile;
   }
 
