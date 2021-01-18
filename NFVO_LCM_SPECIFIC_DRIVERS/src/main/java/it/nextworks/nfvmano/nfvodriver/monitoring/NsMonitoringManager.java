@@ -8,6 +8,9 @@ import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityExceptio
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.MonitoredData;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.Nsd;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.VnfIndicatorData;
+import it.nextworks.nfvmano.libs.ifa.monit.interfaces.elements.ObjectSelection;
+import it.nextworks.nfvmano.libs.ifa.monit.interfaces.enums.MonitoringObjectType;
+import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.CreatePmJobRequest;
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsInfo;
 import it.nextworks.nfvmano.libs.ifa.records.vnfinfo.VnfInfo;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.PrometheusDriver;
@@ -15,21 +18,49 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class NsMonitoringManager {
 
     private static final Logger log = LoggerFactory.getLogger(NsMonitoringManager.class);
 
-    private String nsInstanceId;
-    private VnfInfo vnfInfo;
-    private Nsd nsd;
-    private PrometheusDriver prometheusDriver;
+    private final String nsInstanceId;
 
-    public NsMonitoringManager(String nsInstanceId,Nsd nsd, PrometheusDriver prometheusDriver){
+    private final Nsd nsd;
+
+    private final List<VnfInfo> vnfInfoList;
+
+    private final PrometheusDriver prometheusDriver;
+
+    //Key: pm job ID; Value: Monitoring Parameter ID - This is for pm jobs associated to the NSD monitoring parameters
+    private final Map<String, String> pmJobIdToMpIdMap = new HashMap<>();
+
+    //Key: Monitoring Parameter ID; Value: pm job ID - This is for pm jobs associated to the NSD monitoring parameters
+    private final Map<String, String> mpIdToPmJobIdMap = new HashMap<>();
+
+    //This list includes the pm jobs associated to NSD monitoring parameters or the ones requested out of the NS instance management
+    private final List<String> pmJobIds = new ArrayList<>();
+
+    //private MonitoringGui monitoringGui;
+
+    public NsMonitoringManager(String nsInstanceId,
+                               Nsd nsd,
+                               List<VnfInfo> vnfInfoList,
+                               PrometheusDriver prometheusDriver){
         this.nsInstanceId = nsInstanceId;
         this.nsd = nsd;
+        this.vnfInfoList = vnfInfoList;
         this.prometheusDriver = prometheusDriver;
+    }
+
+    public String createPmJob(CreatePmJobRequest request, VnfInfo vnfInfo)
+            throws MethodNotImplementedException, FailedOperationException, MalformattedElementException {
+        //VnfInfo will contains ip infos
+        String pmJobId = prometheusDriver.createPmJob(request, vnfInfo);
+        pmJobIds.add(pmJobId);
+        return pmJobId;
     }
 
     public void activateNsMonitoring(NsInfo nsInfo) {
@@ -52,24 +83,6 @@ public class NsMonitoringManager {
         }
         log.debug("Finished creation of monitoring jobs for NS instance " + nsInstanceId);
         /*
-        log.debug("Starting monitoring activation for NS instance " + nsInstanceId + ". Reading NSD.");
-		if ((nsd.getMonitoredInfo() == null) || (nsd.getMonitoredInfo().isEmpty())) {
-			log.debug("No monitored info specified in the NSD " + nsd.getNsdName() + " for NS instance " + nsInstanceId + ". Nothing to do.");
-			return;
-		}
-		List<MonitoredData> monitoredData = nsd.getMonitoredInfo();
-		for (MonitoredData md : monitoredData) {
-			try {
-				if (md.getVnfIndicatorInfo() != null)
-					startMonitoringJobForVnfIndicator(md.getVnfIndicatorInfo(), nsInfo);
-				if (md.getMonitoringParameter() != null)
-					startMonitoringJobForMonitoringParameter(md.getMonitoringParameter(), nsInfo);
-			} catch (Exception e) {
-				log.error("Error while starting a monitoring job: " + e.getMessage() + ". Skipping it.");
-				log.error(e.getMessage());
-			}
-		}
-		log.debug("Finished creation of monitoring jobs for NS instance " + nsInstanceId);
 		log.debug("Starting building monitoring dashboard for NS instance " + nsInstanceId);
 		buildMonitoringDashboard();
 		String url = monitoringGui.getUrl();
@@ -126,13 +139,15 @@ public class NsMonitoringManager {
         String metricType = splits[0];
         String vnfdId = splits[1];
         log.debug("Monitoring metric successfully parsed. Metric type: " + metricType + " - VNFD ID: " + vnfdId);
-
+        Map<String,String> vnfInfoVnfdIdMap = nsInfo.getVnfInfoVnfdIdMap();
+        vnfdId = getEffectiveVnfdId(vnfInfoVnfdIdMap,vnfdId);
         List<String> vnfInfoIds = nsInfo.getVnfInfoIdFromVnfdId(vnfdId);
         if (vnfInfoIds.size() == 0) throw new NotExistingEntityException("VNF info for VNFD " + vnfdId + " not found.");
         if (vnfInfoIds.size() > 1) throw new MethodNotImplementedException("Found multiple VNF infos for the given VNFD in the NS info. Monitoring for multiple VNFs with same type not yet supported.");
+        //this is the uuid of the vnf instance for which are specified monitoring parameters
         String vnfInfoId = vnfInfoIds.get(0);
 
-        /*ObjectSelection vnfSelector = new ObjectSelection();
+        ObjectSelection vnfSelector = new ObjectSelection();
         //TODO: this must be updated
         if ( (metricType.equals("VcpuUsageMean")) || (metricType.equals("VmemoryUsageMean")) || (metricType.equals("VdiskUsageMean"))
                 || (metricType.equals("CurrentClientConnections")) || (metricType.equals("CurrentActiveClientConnections")) || (metricType.equals("UserAgentCurrentConnectionsCount"))
@@ -146,14 +161,16 @@ public class NsMonitoringManager {
             throw new MethodNotImplementedException("ByteIncoming metric not yet supported");
         } else throw new MalformattedElementException(metricType + " not supported");
         log.debug("Built target object to be monitored.");
-        */
+
         List<String> performanceMetric = new ArrayList<>();
         performanceMetric.add(metricType);
         //workaround to provide NSD name and NS ID
         List<String> performanceMetricGroup = new ArrayList<>();
-        performanceMetricGroup.add(vnfInfo.getVnfdId());
+        //TODO validate this
+        VnfInfo vnfInfo = getVnfInfoByInfoId(vnfInfoList,vnfInfoId);
+        if(vnfInfo != null) performanceMetricGroup.add(vnfInfo.getVnfdId());
         performanceMetricGroup.add(nsInstanceId);
-        /*CreatePmJobRequest pmJobRequest = new CreatePmJobRequest(null,	//NS selector
+        CreatePmJobRequest pmJobRequest = new CreatePmJobRequest(null,	//NS selector
                 null, 													//resource selector
                 vnfSelector,											//VNF selector
                 performanceMetric, 										//performance metric
@@ -161,11 +178,42 @@ public class NsMonitoringManager {
                 0, 														//collection period
                 0, 														//reporting period
                 null);													//reporting boundary
-        String pmJobId = createPmJob(pmJobRequest);
-        log.debug("Created PM job with ID " + pmJobId + " for monitoring parameter " + mpId);*/
-
-        //this.pmJobIdToMpIdMap.put(pmJobId, mpId);
-        //this.mpIdToPmJobIdMap.put(mpId, pmJobId);
+        String pmJobId = createPmJob(pmJobRequest,vnfInfo);
+        log.debug("Created PM job with ID " + pmJobId + " for monitoring parameter " + mpId);
+        this.pmJobIdToMpIdMap.put(pmJobId, mpId);
+        this.mpIdToPmJobIdMap.put(mpId, pmJobId);
         log.debug("Updated internal maps with PM job and MP IDs");
+    }
+
+    /**
+     * Scan over the Vnf Info List in order to obtain the Vnf Info
+     * associated to this vnfInfoId
+     * @param vnfInfoList
+     * @param vnfInfoId
+     * @return VnfInfo
+     */
+    private VnfInfo getVnfInfoByInfoId(List<VnfInfo> vnfInfoList, String vnfInfoId) {
+        for(VnfInfo vnfInfo : vnfInfoList){
+            if(vnfInfo.getVnfInstanceId().equals(vnfInfoId))
+                return vnfInfo;
+        }
+        return null;
+    }
+
+    /**
+     * This method returns the effective osm vnfd package id
+     * used by this ns. This is needed because the vnfdId parameter
+     * taken from ifa nsd doesn't contain the information on which
+     * osm vnfd package (that is in the form vnfdId_DfId) constitutes this ns.
+     *
+     * @param vnfInfoVnfdIdMap
+     * @param vnfdId
+     * @return String
+     */
+    private String getEffectiveVnfdId(Map<String, String> vnfInfoVnfdIdMap, String vnfdId) {
+        for (Map.Entry<String, String> e : vnfInfoVnfdIdMap.entrySet()) {
+            if (e.getValue().contains(vnfdId)) return e.getValue();
+        }
+        return null;
     }
 }

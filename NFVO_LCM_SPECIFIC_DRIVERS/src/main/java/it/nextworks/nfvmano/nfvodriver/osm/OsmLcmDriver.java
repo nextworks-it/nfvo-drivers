@@ -26,7 +26,10 @@ import it.nextworks.nfvmano.libs.ifa.common.elements.Filter;
 import it.nextworks.nfvmano.libs.ifa.common.enums.InstantiationState;
 import it.nextworks.nfvmano.libs.ifa.common.enums.OperationStatus;
 import it.nextworks.nfvmano.libs.ifa.common.enums.ResponseCode;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.*;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
 import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
 import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
 import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.NsLcmConsumerInterface;
@@ -37,16 +40,11 @@ import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsInfo;
 import it.nextworks.nfvmano.libs.ifa.records.vnfinfo.VnfInfo;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.ConstituentVNFD;
-import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.NSDescriptor;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.nsDescriptor.OsmNSPackage;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.OsmVNFPackage;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.ScalingGroupDescriptor;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.VNFDescriptor;
-import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueService;
-import it.nextworks.nfvmano.nfvodriver.NfvoLcmAbstractDriver;
-import it.nextworks.nfvmano.nfvodriver.NfvoLcmDriverType;
-import it.nextworks.nfvmano.nfvodriver.NfvoLcmNotificationInterface;
-import it.nextworks.nfvmano.nfvodriver.NfvoLcmOperationPollingManager;
+import it.nextworks.nfvmano.nfvodriver.*;
 import it.nextworks.nfvmano.nfvodriver.monitoring.MonitoringManager;
 import it.nextworks.osm.ApiClient;
 import it.nextworks.osm.ApiException;
@@ -193,20 +191,13 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			String nsInstanceId = response.getId().toString();
 			log.debug("Created NsIdentifier: "+nsInstanceId);
 
-			List<VnfInfo> vnfInfoList = getVnfInfos(nsInstanceId);
-			nsInstancesIdToVnfInfo.put(nsInstanceId,vnfInfoList);
-			List<String> vnfInfoIds = new ArrayList<>();
-			for(VnfInfo vnfInfo : vnfInfoList){
-				vnfInfoIds.add(vnfInfo.getVnfInstanceId());
-			}
-
 			//TODO validate: vnfInfoId correspond to the uuid of the vnf instance in osm
 			NsInfo nsInfo = new NsInfo(nsInstanceId,
 					request.getNsName(), 				//nsName
 					request.getNsDescription(),			//description
 					request.getNsdId(),					//nsdId
 					null, 								//flavourId
-					vnfInfoIds, 								//vnfInfoId
+					new ArrayList<>(), 								//vnfInfoId
 					null, 								//nestedNsInfoId
 					InstantiationState.NOT_INSTANTIATED,//nsState
 					null,								//nsScaleStatus
@@ -279,9 +270,14 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			currentIlMapping.put(UUID.fromString(osmNsInstanceId),"default");
 			NsInfo nsInfo = nsInstancesIdToNsInfo.get(osmNsInstanceId);
 			nsInfo.setNsState(InstantiationState.INSTANTIATED);
+
+			//creating associations with VnfInfos for this nsInstanceId and update content of nsInfo
+			List<VnfInfo> vnfInfoList = getVnfInfos(osmNsInstanceId,nsInfo);
+			nsInstancesIdToVnfInfo.put(osmNsInstanceId,vnfInfoList);
 			nsInstancesIdToNsInfo.put(osmNsInstanceId,nsInfo);
+
 			//activate monitoring
-			manageMonitoring(osmNsInstanceId,ifaNsdId,null);
+			manageMonitoring(osmNsInstanceId,ifaNsdId,nsdPackage.getVersion(),vnfInfoList);
 
 			return osmNsInstanceId; //TODO if return the same id of the request?
 		} catch (ApiException e) {
@@ -293,20 +289,22 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 
 	/**
 	 * This function retrieve the VnfInstanceInfo the are related to this osm
-	 * ns instance and build the list of VnfInfo. Each vnf instance id will be
-	 * used to build the NsInfo for this osm ns instance.
+	 * ns instance and build the list of VnfInfo.
 	 * @param osmNsInstanceId
 	 * @return List<VnfInfo>
 	 * @throws FailedOperationException
 	 */
-	private List<VnfInfo> getVnfInfos(String osmNsInstanceId) throws FailedOperationException {
+	private List<VnfInfo> getVnfInfos(String osmNsInstanceId, NsInfo nsInfo) throws FailedOperationException {
+		int i=0;
 		List<VnfInfo> vnfInfos = new ArrayList<>();
+		//non serve prendere l'id della vnf con il vnfpackages, sta in vnfinstanceinfo
 		try{
 			nsInstancesApi.setApiClient(getClient());
 			for(VnfInstanceInfo vnfInstanceInfo : nsInstancesApi.getVnfInstances()){
 				if(vnfInstanceInfo.getNsrIdRef().equals(osmNsInstanceId)) {
-					//need to create new VnfInfo
-					//TODO maybe put ipAddres in metadata
+					//This vnf is an instance of the ns. Need to create a new VnfInfo
+					HashMap<String,String> metadata = new HashMap<>();
+					metadata.put("IP",vnfInstanceInfo.geIpAddress());
 					VnfInfo vnfInfo = new VnfInfo(
 							vnfInstanceInfo.getId().toString(),
 							null,
@@ -320,9 +318,12 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 							null,
 							null,
 							null,
-							null,
+							metadata,
 							null);
 					vnfInfos.add(vnfInfo);
+					//what index represent? a local counter or the index of vnf within the nsd?
+					//add(uuid_of_vnf_instance,index,id_of_referred_vnfd_package)
+					nsInfo.addVnfInfo(vnfInstanceInfo.getId().toString(),i++,vnfInstanceInfo.getVnfdRef());
 				}
 			}
 		} catch (FailedOperationException | ApiException e) {
@@ -341,10 +342,8 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 	 * @param version
 	 * @throws FailedOperationException
 	 */
-	private void manageMonitoring(String nsInstanceId, String ifaNsdId, String version) throws FailedOperationException {
-		//TODO try to add the version to nsdInfo, otherwise do the code below to get nsd package
+	private void manageMonitoring(String nsInstanceId, String ifaNsdId, String version, List<VnfInfo> vnfInfoList) throws FailedOperationException {
 		//Going to retrieve nsd id and version in order to get the complete ifa nsd from the catalogue
-		String nsdYaml = null;
 		HashMap<String,String> parameters = new HashMap<>();
 		parameters.put("NSD_ID",ifaNsdId);
 		parameters.put("NSD_VERSION",version);
@@ -363,45 +362,18 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			log.error("There is no entry in repoistory for " + ifaNsdId);
 			throw new FailedOperationException();
 		}
-		/*try{
-			nsPackagesApi.setApiClient(getClient());
-			nsdYaml = nsPackagesApi.getNsPkgNsd(osmNsdPackageId.toString());
-			NSDescriptor nsDescriptor = getNsdDescriptorFromString(nsdYaml);
-			if(nsDescriptor == null) throw new FailedOperationException();
-			String nsdId = nsDescriptor.getId();
-			String nsdVersion = nsDescriptor.getVersion();
-			HashMap<String,String> parameters = new HashMap<>();
-			//TODO here the nsdId is already as nsdIf_nsdDfId and in the repository we have stored only through nsdId
-
-			//Assumption nsd package id will contain only one "_"
-			if(!nsdId.contains("_")) throw new FailedOperationException();
-			nsdId = nsdId.split("_")[0];
-			parameters.put("NSD_ID",nsdId);
-			parameters.put("NSD_VERSION",nsdVersion);
-			GeneralizedQueryRequest generalizedQueryRequest = new GeneralizedQueryRequest(new Filter(parameters),null);
-			queryNsdResponse = nfvoCatalogueService.queryNsd(generalizedQueryRequest);
-		} catch (FailedOperationException e) {
-			e.printStackTrace();
-		} catch (ApiException e) {
-			e.printStackTrace();
-		} catch (NotExistingEntityException e) {
-			e.printStackTrace();
-		} catch (MalformattedElementException e) {
-			e.printStackTrace();
-		} catch (MethodNotImplementedException e) {
-			e.printStackTrace();
-		}*/
 		try {
 			//activateNsMonitoring(NsInfo, Nsd)
-			monitoringManager.activateNsMonitoring(nsInstancesIdToNsInfo.get(nsInstanceId),queryNsdResponse.getQueryResult().get(0).getNsd());
+			monitoringManager.activateNsMonitoring(nsInstancesIdToNsInfo.get(nsInstanceId),
+					queryNsdResponse.getQueryResult().get(0).getNsd(),
+					vnfInfoList);
 		} catch (Exception e) {
 			log.error("Error while activating ns monitoring");
 			throw new FailedOperationException();
 		}
-		//System.out.println(queryNsdResponse.getQueryResult().get(0).getNsd());
 	}
 
-	private NSDescriptor getNsdDescriptorFromString(String nsdYaml) {
+	/*private NSDescriptor getNsdDescriptorFromString(String nsdYaml) {
 		PrintWriter out = null;
 		try {
 			out = new PrintWriter(TEMP_DIR+ File.separator+"osmNsd.yaml");
@@ -421,7 +393,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			log.info("Cannot generate OsmNsdPackage from string");
 		}
 		return null;
-	}
+	}*/
 
 	private NsdInfo getOsmNsdPackage(String nsdOsmId) {
 		try{
@@ -838,11 +810,11 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
         return apiClient;
     }
 
-	public VnfInstanceInfo getVnfInstances(){
+	public NsdInfo getVnfInstances(){
 		try{
-			nsInstancesApi.setApiClient(getClient());
+			nsPackagesApi.setApiClient(getClient());
 			//return nsInstancesApi.getVnfInstances();
-			return nsInstancesApi.getVnfInstance("25c27d0d-7426-4dce-8b0d-c253f9375af3");
+			return nsPackagesApi.getNSDs().get(0);
 		} catch (FailedOperationException e) {
 			e.printStackTrace();
 		} catch (ApiException e) {
