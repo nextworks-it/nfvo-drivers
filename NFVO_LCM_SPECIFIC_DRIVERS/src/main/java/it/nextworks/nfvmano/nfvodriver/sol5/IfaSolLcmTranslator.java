@@ -348,7 +348,12 @@ public class IfaSolLcmTranslator {
 		ipOverEthernet.addIpAddressesItem(ip);
 		x.setIpOverEthernet(ipOverEthernet);
 		x.setLayerProtocol(LayerProtocolEnum.IP_OVER_ETHERNET);
-		sapProtocolData.add(x);
+		//sapProtocolData.add(x);
+		Map<String, String> values = new HashMap<>();
+		for(String key: input.getSliceParameters().keySet()){
+			values.put(key, input.getSliceParameters().get(key).toString());
+		}
+		output.setRadioSliceProfile(values);
 		output.setSapProtocolData(sapProtocolData);
 		return output;
 	}

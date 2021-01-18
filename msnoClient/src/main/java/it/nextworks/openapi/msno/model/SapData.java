@@ -13,8 +13,8 @@
 
 package it.nextworks.openapi.msno.model;
 
-import java.util.Objects;
-import java.util.Arrays;
+import java.util.*;
+
 import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.annotations.SerializedName;
@@ -25,8 +25,6 @@ import io.swagger.annotations.ApiModelProperty;
 import it.nextworks.openapi.msno.model.CpProtocolData;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * This type represents the information related to a SAP of a NS. It shall comply with the provisions defined in Table 6.5.3.10-1. 
@@ -45,6 +43,9 @@ public class SapData {
 
   @SerializedName("sapProtocolData")
   private List<CpProtocolData> sapProtocolData = null;
+
+  @SerializedName("radioSliceProfile")
+  private Map<String, String> radioSliceProfile= new HashMap<>();
 
   public SapData sapdId(String sapdId) {
     this.sapdId = sapdId;
@@ -80,6 +81,15 @@ public class SapData {
 
   public void setSapName(String sapName) {
     this.sapName = sapName;
+  }
+
+
+  public Map<String, String> getRadioSliceProfile() {
+    return radioSliceProfile;
+  }
+
+  public void setRadioSliceProfile(Map<String, String> radioSliceProfile) {
+    this.radioSliceProfile = radioSliceProfile;
   }
 
   public SapData description(String description) {
