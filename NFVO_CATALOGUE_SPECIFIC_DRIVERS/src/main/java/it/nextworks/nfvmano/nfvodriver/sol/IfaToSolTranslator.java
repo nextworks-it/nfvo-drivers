@@ -22,6 +22,8 @@ import it.nextworks.nfvmano.libs.descriptors.pnfd.nodes.PNF.PNFProperties;
 import it.nextworks.nfvmano.libs.descriptors.pnfd.nodes.PNF.PNFRequirements;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.vnfpackagemanagement.elements.PackageUsageStateType;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.vnfpackagemanagement.elements.VnfPkgInfo;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryNsdResponse;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryOnBoardedVnfPkgInfoResponse;
 import it.nextworks.nfvmano.libs.ifa.common.elements.Filter;
 import it.nextworks.nfvmano.libs.ifa.common.elements.KeyValuePair;
@@ -70,7 +72,19 @@ public class IfaToSolTranslator {
 
 	private static final Logger log = LoggerFactory.getLogger(IfaToSolTranslator.class);
         //SOL : IFA 
-	public static DescriptorTemplate translateIfaToSolNsd(Nsd nsd, NsDf nsDf, NsLevel nsIl, SolCatalogueDriver driver) throws FailedOperationException {
+	public static DescriptorTemplate translateIfaToSolNsd(Nsd nsd, NsDf nsDf, NsLevel nsIl, SolCatalogueDriver driver) throws FailedOperationException, MalformattedElementException {
+		log.debug("Received request to Transalte NSD IFA IL  to SOL:" + nsd.getNsdIdentifier() + " " + nsDf.getNsDfId() + " " + nsIl.getNsLevelId());
+
+		if (nsd.getNestedNsdId() == null || nsd.getNestedNsdId().isEmpty()) {
+			log.debug("Translating Nested NSD");
+			return translateIfaToSolNsdNested(nsd, nsDf, nsIl, driver);
+		}else{
+			log.debug("Translating Composite NSD");
+
+			return translateIfaToSolNsdComposite(nsd, nsDf, nsIl, driver);
+		}
+	}
+	private static DescriptorTemplate translateIfaToSolNsdNested(Nsd nsd, NsDf nsDf, NsLevel nsIl, SolCatalogueDriver driver) throws FailedOperationException{
 		/*
 		 * toscaDefinitionVersion : - (constant)
 		 * toscaDefaultNamespace  : - (constant)
@@ -206,6 +220,94 @@ public class IfaToSolTranslator {
 
 
 
+	private static DescriptorTemplate translateIfaToSolNsdComposite(Nsd nsd, NsDf nsDf, NsLevel nsIl, SolCatalogueDriver driver) throws MalformattedElementException, FailedOperationException {
+		/*
+		 * toscaDefinitionVersion : - (constant)
+		 * toscaDefaultNamespace  : - (constant)
+		 * description : nsDf > nsInstantiationLevel > description
+		 */
+		String toscaDefinitionsVersion =  "tosca_simple_yaml_1_2" ;
+		String toscaDefaultNamespace = "toscanfv";
+		String description = nsIl.getDescription();
+
+		/*
+		 * metadata
+		 * 		descriptorId : nsdInvariantId + nsDf > nsDfId + nsDf > nsInstantiationLevel > nsLevelId *TO BE CLARIFIED*
+		 * 		vendor : designer
+		 * 		version : version
+		 */
+		String nsDescriptorId = getNsDescriptorId(nsd, nsDf, nsIl);
+		Metadata metadata = new Metadata( nsDescriptorId , nsd.getDesigner(), nsd.getVersion());
+
+		TopologyTemplate topologyTemplate = new TopologyTemplate();
+		SubstitutionMappings substituitionMappings = new SubstitutionMappings();
+		substituitionMappings.setNodeType("tosca.nodes.nfv.NS");
+		SubstitutionMappingsRequirements requirements = new SubstitutionMappingsRequirements();
+		Map<String, Node> nodeTemplates = new HashMap<>();
+
+		for( NsToLevelMapping nsToLevelMapping : nsIl.getNsToLevelMapping()){
+			String nsProfileId = nsToLevelMapping.getNsProfileId();
+			Optional<NsProfile> nsProfile = nsDf.getNsProfile().stream()
+					.filter(p -> p.getNsProfileId().equals(nsProfileId))
+					.findFirst();
+			if(nsProfile.isPresent()){
+				String nestedNsdId = nsProfile.get().getNsdId();
+				String nestedNsDf = nsProfile.get().getNsDeploymentFlavourId();
+				String nestedNsIl = nsProfile.get().getNsInstantiationLevelId();
+				String nestedNsdIdSol = getNsDescriptorId(nestedNsdId, nestedNsDf, nestedNsIl);
+				Map<String, String> filterParams = new HashMap<>();
+				log.debug("Retrieving correspondent NSD for:"+nestedNsdId+" "+nestedNsDf+" "+nestedNsIl+" -"+nestedNsdIdSol);
+				filterParams.put("NSD_ID", nestedNsdId);
+				filterParams.put("NS_DF", nestedNsDf);
+				filterParams.put("NS_IL", nestedNsIl);
+				GeneralizedQueryRequest query = new GeneralizedQueryRequest(new Filter(filterParams), new ArrayList<>());
+				try {
+					QueryNsdResponse response = driver.queryNsd(query);
+					if(response!=null && !response.getQueryResult().isEmpty()){
+						String nestedNsdDesigner = response.getQueryResult().get(0).getDesigner();
+						String nestedNsdName = response.getQueryResult().get(0).getName();
+						String nestedNsdInvariantId = nestedNsdIdSol;
+						float nestedNsdVersion = Float.parseFloat(response.getQueryResult().get(0).getVersion());
+						for(NsdInfo nsdInfo: response.getQueryResult()){
+							if(nestedNsdVersion<Float.parseFloat(nsdInfo.getVersion())){
+								nestedNsdVersion=Float.parseFloat(nsdInfo.getVersion());
+								nestedNsdDesigner = nsdInfo.getDesigner();
+								nestedNsdName = nsdInfo.getName();
+							}
+						}
+						log.debug("Retrieved version for NSD:"+nestedNsdVersion);
+						NSProperties nsProperties=new NSProperties(nestedNsdIdSol, nestedNsdDesigner, Float.toString(nestedNsdVersion), nestedNsdName, nestedNsdInvariantId);
+
+						//Set NS Node
+						NSNode nsNode = new NSNode(null, nsProperties, null);
+						nodeTemplates.put(( nestedNsdId + "_" + nestedNsDf + "_" + nestedNsIl ), nsNode);
+					}else throw new FailedOperationException("Error while retrieving correspondent NSD from catalogue. Empty query return");
+				} catch (MethodNotImplementedException e) {
+					log.error("", e);
+				} catch (NotExistingEntityException e) {
+					log.error("",e);
+					throw new MalformattedElementException("Error while retrieving correspondent NSD from catalogue", e);
+				} catch (FailedOperationException e) {
+					throw new FailedOperationException("Error while retrieving correspondent NSD from catalogue", e);
+				}
+			}else throw new MalformattedElementException("NS Profile NOT FOUND:"+nsProfileId);
+
+		}
+
+		log.debug("Generating end-to-end NS Node");
+		NSProperties nsProperties=new NSProperties(nsDescriptorId, nsd.getDesigner(), nsd.getVersion(), nsd.getNsdName(), nsd.getNsdInvariantId());
+
+		//Set NS Node
+		NSNode nsNode = new NSNode(null, nsProperties, null);
+		nodeTemplates.put(( nsd.getNsdIdentifier() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId() ), nsNode);
+		topologyTemplate.setNodeTemplates(nodeTemplates);
+		DescriptorTemplate descriptorTemplate = new DescriptorTemplate(toscaDefinitionsVersion, toscaDefaultNamespace, description, metadata, topologyTemplate);
+		return descriptorTemplate;
+	}
+
+
+
+
 	private static VNFNode getVNFNode(VnfProfile vnfProfile, Map<String, String> vlProfileToLinkDesc, Nsd nsd, SolCatalogueDriver driver) throws FailedOperationException {
 
 		/*
@@ -256,19 +358,8 @@ public class IfaToSolTranslator {
 
 			}
 		}
-
-		it.nextworks.nfvmano.libs.descriptors.elements.VnfProfile solVnfProfile = null;
-
-		solVnfProfile = new it.nextworks.nfvmano.libs.descriptors.elements.VnfProfile(vnfProfile.getInstantiationLevel(),
-				vnfProfile.getMinNumberOfInstances(),
-				vnfProfile.getMaxNumberOfInstances()
-		) ;
-
-
-
-
 		VNFProperties vnfProperties = new VNFProperties(descriptorId, version, provider, productName, "", productName, "", null, null, null,
-				null, null, null, null, flavourId, "", solVnfProfile);
+				null, null, null, null, flavourId, "", null);
 
 		VNFRequirements vnfRequirements = new VNFRequirements(vnfVirtualLink);
 		VNFNode vnfNode = new VNFNode(null, null, null,null, null, null);
@@ -548,10 +639,10 @@ public class IfaToSolTranslator {
 	}
 
 
-	public static String createCsarPackageForNsdDfIl(Nsd nsd, NsDf nsDf, NsLevel nsIl, SolCatalogueDriver driver) throws FailedOperationException {
+	public static String createCsarPackageForNsdDfIl(Nsd nsd, NsDf nsDf, NsLevel nsIl, SolCatalogueDriver driver) throws FailedOperationException, MalformattedElementException {
 
 		DescriptorTemplate descriptorTemplate = translateIfaToSolNsd(nsd, nsDf, nsIl, driver);
-		String nsDescriptorId = getNsDescriptorIdSeed(nsd, nsDf, nsIl);
+		String nsDescriptorId = getNsDescriptorId(nsd.getNsdIdentifier(), nsDf.getNsDfId(), nsIl.getNsLevelId());
 		File csarFolder = null;
 
 		try {
@@ -625,7 +716,7 @@ public class IfaToSolTranslator {
 
 		BufferedWriter writer = new BufferedWriter(new FileWriter(toscaServiceTemplate));
 		writer.write("metadata:\n");
-		writer.write("\tvnf_product_name: " + getNsDescriptorIdSeed(nsd, nsDf, nsIl) +"\n");
+		writer.write("\tvnf_product_name: " + getNsDescriptorId(nsd.getNsdIdentifier(), nsDf.getNsDfId(), nsIl.getNsLevelId()) +"\n");
 		writer.write("\tvnf_provider: " + nsd.getDesigner() +"\n");
 		writer.write("\tvnf_package_version: " + nsd.getVersion() +"\n");
 
@@ -728,13 +819,14 @@ public class IfaToSolTranslator {
     }
 
     public static String getNsDescriptorId(Nsd nsd, NsDf nsDf, NsLevel nsIl){
-        String seed = getNsDescriptorIdSeed(nsd, nsDf, nsIl);
-        return UUID.nameUUIDFromBytes(seed.getBytes()).toString();
+     	return getNsDescriptorId(nsd.getNsdIdentifier(), nsDf.getNsDfId(), nsIl.getNsLevelId());
+
     }
 
-    private static String getNsDescriptorIdSeed(Nsd nsd, NsDf nsDf, NsLevel nsIl){
-		String seed = nsd.getNsdIdentifier() + "_" + nsDf.getNsDfId() + "_" + nsIl.getNsLevelId();
-		return seed;
+
+    private static String getNsDescriptorId(String nsdId, String  nsDfId, String nsIlId){
+		String seed = nsdId + "_" + nsDfId + "_" + nsIlId;
+		return UUID.nameUUIDFromBytes(seed.getBytes()).toString();
 	}
 
 	public static QueryOnBoardedVnfPkgInfoResponse translateQueryVnfPackageInfo(GeneralizedQueryRequest request, List<VnfPkgInfo> vnfPkgInfos) {
@@ -754,6 +846,44 @@ public class IfaToSolTranslator {
 		QueryOnBoardedVnfPkgInfoResponse response = new QueryOnBoardedVnfPkgInfoResponse(pkgInfos);
 		return response;
 	}
+
+
+	public static QueryNsdResponse translateQueryNsdInfoResponse(GeneralizedQueryRequest request, List<it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.nsdmanagement.elements.NsdInfo> nsdInfos){
+		List<NsdInfo> nsdInfoList = new ArrayList<>();
+		Map<String, String> requestParams = request.getFilter().getParameters();
+		for(it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.nsdmanagement.elements.NsdInfo nsdInfo : nsdInfos){
+			NsdInfo ifaNsdInfo = new NsdInfo(nsdInfo.getId().toString(),requestParams.get("NSD_ID"),
+					nsdInfo.getNsdName(),
+					nsdInfo.getNsdVersion(),
+					nsdInfo.getNsdDesigner(),
+					null,
+					null,
+					null,
+					null,
+					OperationalState.ENABLED,
+					UsageState.IN_USE,
+					false,
+					new HashMap<>());
+			nsdInfoList.add(ifaNsdInfo);
+		}
+
+		QueryNsdResponse response = new QueryNsdResponse(nsdInfoList);
+		return response;
+	}
+
+
+	public static GeneralizedQueryRequest translateQueryNsdRequest(GeneralizedQueryRequest request) throws MethodNotImplementedException {
+		Map<String, String> parameters = request.getFilter().getParameters();
+		if(parameters.containsKey("NSD_ID")&& parameters.containsKey("NS_DF")&& parameters.containsKey("NS_IL")){
+			String solNsdId = getNsDescriptorId(parameters.get("NSD_ID"),parameters.get("NS_DF"), parameters.get("NS_IL") );
+			Map<String, String> solParams = new HashMap<>();
+			solParams.put("NSD_ID", solNsdId);
+			return new GeneralizedQueryRequest(new Filter(solParams), null);
+
+
+		}else throw new MethodNotImplementedException("Unsupported query filter. SolCatalogueDriver requires the query NSD to include the DF and IL due to the IFA-SOL mapping");
+	}
+
 
     /**
      * returns true if there is one Sap connected ot the virtual link
