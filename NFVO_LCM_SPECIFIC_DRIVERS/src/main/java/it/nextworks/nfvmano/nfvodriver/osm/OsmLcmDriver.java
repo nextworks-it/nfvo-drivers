@@ -93,6 +93,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 	// map the osm ns instance id to its VnfInfo
 	private final Map<String, List<VnfInfo>> nsInstancesIdToVnfInfo = new HashMap<>();
 
+	private final List<MonitoringInfo> monitoringQueue = new ArrayList<>();
 	//private Map<UUID, UUID> instanceIdToNsdIdMapping;
     //private Map<UUID, UUID> instanceIdToNsdInfoIdMapping;
 
@@ -123,7 +124,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
         this.project =project;
 		this.nfvoLcmOperationPollingManager = nfvoLcmOperationPollingManager;
 		this.nfvoCatalogueService = nfvoCatalogueService;
-		monitoringManager = new MonitoringManager();
+		monitoringManager = new MonitoringManager("http://10.30.8.49:8989/prom-manager",nfvoAddress);
 		this.oAuthSimpleClient = new OAuthSimpleClient(nfvoAddress+"/osm/admin/v1/tokens", username, password, project);
 	}
 
@@ -270,7 +271,9 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			currentIlMapping.put(UUID.fromString(osmNsInstanceId),"default");
 			NsInfo nsInfo = nsInstancesIdToNsInfo.get(osmNsInstanceId);
 			nsInfo.setNsState(InstantiationState.INSTANTIATED);
-
+			//this will manage the monitoring when the ns is instantiated
+			monitoringQueue.add(new MonitoringInfo(osmNsInstanceId,ifaNsdId,nsdPackage.getVersion(),nsInfo,operationId.toString()));
+			/*
 			//creating associations with VnfInfos for this nsInstanceId and update content of nsInfo
 			List<VnfInfo> vnfInfoList = getVnfInfos(osmNsInstanceId,nsInfo);
 			nsInstancesIdToVnfInfo.put(osmNsInstanceId,vnfInfoList);
@@ -278,7 +281,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 
 			//activate monitoring
 			manageMonitoring(osmNsInstanceId,ifaNsdId,nsdPackage.getVersion(),vnfInfoList);
-
+			*/
 			return osmNsInstanceId; //TODO if return the same id of the request?
 		} catch (ApiException e) {
 			log.error(e.getMessage());
@@ -294,7 +297,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 	 * @return List<VnfInfo>
 	 * @throws FailedOperationException
 	 */
-	private List<VnfInfo> getVnfInfos(String osmNsInstanceId, NsInfo nsInfo) throws FailedOperationException {
+	protected List<VnfInfo> getVnfInfos(String osmNsInstanceId, NsInfo nsInfo) throws FailedOperationException {
 		int i=0;
 		List<VnfInfo> vnfInfos = new ArrayList<>();
 		//non serve prendere l'id della vnf con il vnfpackages, sta in vnfinstanceinfo
@@ -710,6 +713,8 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			NsInfo nsInfo = nsInstancesIdToNsInfo.get(osmNsInstanceId);
 			nsInfo.setNsState(InstantiationState.NOT_INSTANTIATED);
 			nsInstancesIdToNsInfo.put(osmNsInstanceId, nsInfo);
+			//TODO check this
+			monitoringManager.deactivateNsMonitoring(osmNsInstanceId);
 			//deleteNsIdentifier(request.getNsInstanceId());
 			return operationId;
 		} catch (ApiException e) {
@@ -766,12 +771,52 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			nsInstancesApi.setApiClient(getClient());
 			NsLcmOpOcc nsLcmOpOcc = nsInstancesApi.getNSLCMOpOcc(operationId);
 			OsmNsLcmOperationStatus osmOperationStatus = OsmNsLcmOperationStatus.valueOf(nsLcmOpOcc.getOperationState());
+			//activate monitoring if needed
+			if(OsmNsLcmOperationStatus.COMPLETED==osmOperationStatus){
+				MonitoringInfo monitoringInfo = getMonitoringInfoByOpId(monitoringQueue,operationId);
+				if(monitoringInfo != null){
+					//creating associations with VnfInfos for this nsInstanceId and update content of nsInfo
+					List<VnfInfo> vnfInfoList = getVnfInfos(monitoringInfo.getNsInstanceId(),monitoringInfo.getNsInfo());
+					nsInstancesIdToVnfInfo.put(monitoringInfo.getNsInstanceId(),vnfInfoList);
+					nsInstancesIdToNsInfo.put(monitoringInfo.getNsInstanceId(),monitoringInfo.getNsInfo());
+					//activate monitoring
+					manageMonitoring(monitoringInfo.getNsInstanceId(),monitoringInfo.getIfaNsdId(),monitoringInfo.getIfaNsdVersion(),vnfInfoList);
+				}
+			}
 			return IfaOsmLcmTranslator.getOperationSatus(osmOperationStatus);
 		} catch (ApiException e) {
 			log.error("Cannot retrieve operational status");
 			throw new FailedOperationException(e.getMessage());
 		}
 
+	}
+
+	// for testing purpose
+	public boolean getOptionStatus(String id){
+		try {
+			nsInstancesApi.setApiClient(getClient());
+			ArrayOfNsLcmOpOcc nsLcmOpOccs = nsInstancesApi.getNSLCMOpOccs();
+			for (NsLcmOpOcc nsLcmOpOcc : nsLcmOpOccs) {
+				if (nsLcmOpOcc.getNsInstanceId().toString().equals(id)) {
+					OsmNsLcmOperationStatus osmOperationStatus = OsmNsLcmOperationStatus.valueOf(nsLcmOpOcc.getOperationState());
+					if (OsmNsLcmOperationStatus.COMPLETED == osmOperationStatus)
+						return true;
+				}
+			}
+		} catch (FailedOperationException e) {
+			e.printStackTrace();
+		} catch (ApiException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	private MonitoringInfo getMonitoringInfoByOpId(List<MonitoringInfo> monitoringQueue, String operationId) {
+		for(int i=0; i<monitoringQueue.size(); i++){
+			if(monitoringQueue.get(i).getOperationId().equals(operationId))
+				return monitoringQueue.remove(i);
+		}
+		return null;
 	}
 
 	@Override
@@ -810,11 +855,14 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
         return apiClient;
     }
 
-	public NsdInfo getVnfInstances(){
+    // for testing purpose
+	public ArrayOfVnfInstanceInfo getVnfInstances(){
 		try{
-			nsPackagesApi.setApiClient(getClient());
-			//return nsInstancesApi.getVnfInstances();
-			return nsPackagesApi.getNSDs().get(0);
+			nsInstancesApi.setApiClient(getClient());
+			return nsInstancesApi.getVnfInstances();
+
+			//nsPackagesApi.setApiClient(getClient());
+			//return nsPackagesApi.getNSDs().get(0);
 		} catch (FailedOperationException e) {
 			e.printStackTrace();
 		} catch (ApiException e) {

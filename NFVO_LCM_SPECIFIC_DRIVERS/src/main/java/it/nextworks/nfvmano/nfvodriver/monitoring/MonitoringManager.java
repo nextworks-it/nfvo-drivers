@@ -18,10 +18,18 @@ public class MonitoringManager {
 
     private Map<String, NsMonitoringManager> nsMonitoringManagers = new HashMap<>(); //Key: NS_instance_ID
 
+    private String monitoringUrl;
+
+    //notification address
+    private String manoDomain;
+
     private PrometheusDriver prometheusDriver;
 
-    public MonitoringManager(){
-        prometheusDriver = new PrometheusDriver();
+    public MonitoringManager(String monitoringUrl,
+                             String manoDomain){
+        this.monitoringUrl = monitoringUrl;
+        this.manoDomain = manoDomain;
+        prometheusDriver = new PrometheusDriver(monitoringUrl,manoDomain);
     }
 
     public void activateNsMonitoring(NsInfo nsInfo, Nsd nsd, List<VnfInfo> vnfInfoList)
@@ -64,7 +72,7 @@ public class MonitoringManager {
             MalformattedElementException {
         if (nsMonitoringManagers.containsKey(nsInstanceId)) {
             log.debug("Disactivating NS monitoring for NS instance " + nsInstanceId);
-            //nsMonitoringManagers.get(nsInstanceId).deactivateNsMonitoring();
+            nsMonitoringManagers.get(nsInstanceId).deactivateNsMonitoring();
             log.debug("NS monitoring disactivated for NS instance " + nsInstanceId);
         } else {
             log.debug("NS monitoring not active for NS instance " + nsInstanceId + ". Nothing to do");

@@ -11,6 +11,8 @@ import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.VnfIndicatorData;
 import it.nextworks.nfvmano.libs.ifa.monit.interfaces.elements.ObjectSelection;
 import it.nextworks.nfvmano.libs.ifa.monit.interfaces.enums.MonitoringObjectType;
 import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.CreatePmJobRequest;
+import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.DeletePmJobRequest;
+import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.DeletePmJobResponse;
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsInfo;
 import it.nextworks.nfvmano.libs.ifa.records.vnfinfo.VnfInfo;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.PrometheusDriver;
@@ -63,6 +65,13 @@ public class NsMonitoringManager {
         return pmJobId;
     }
 
+    public DeletePmJobResponse deletePmJob(DeletePmJobRequest request) throws MethodNotImplementedException,
+            FailedOperationException, MalformattedElementException, NotExistingEntityException {
+        DeletePmJobResponse response = prometheusDriver.deletePmJob(request);
+        pmJobIds.remove(request.getPmJobId().get(0));
+        return response;
+    }
+
     public void activateNsMonitoring(NsInfo nsInfo) {
         log.debug("Starting monitoring activation for NS instance " + nsInstanceId + ". Reading NSD.");
         if ((nsd.getMonitoredInfo() == null) || (nsd.getMonitoredInfo().isEmpty())) {
@@ -101,6 +110,59 @@ public class NsMonitoringManager {
          */
     }
 
+    /**
+     * This method de-activates all the existing Performance Monitoring jobs
+     *
+     * @throws MethodNotImplementedException if the method is not implemented
+     * @throws FailedOperationException if the operation fails
+     */
+    public void deactivateNsMonitoring() throws MethodNotImplementedException, FailedOperationException {
+        log.debug("Disactivating NS monitoring for NS instance " + nsInstanceId);
+        /*alertManager.deleteThresholds();
+        log.debug("Removing monitoring GUI");
+        if (monitoringGui != null) {
+            try {
+                removeMonitoringDashboard();
+                monitoringGui = null;
+            } catch (FailedOperationException e) {
+                log.debug("Monitoring dashboard removal failed. Proceeding with removing pm jobs.");
+            }
+            try {
+                nsDbWrapper.setNsInfoMonitoringUrl(nsInstanceId, null);
+                log.debug("Monitoring URL removed from NS info for NS instance " + nsInstanceId);
+            } catch (NotExistingEntityException e) {
+                log.error("Impossible to remove monitoring URL for NS instance " + nsInstanceId + e.getMessage());
+            }
+            log.debug("Monitoring GUI removed.");
+        } else {
+            log.debug("Monitoring GUI not available. Nothing to remove.");
+        }*/
+
+        List<String> toBeRemoved = new ArrayList<>();
+        for (String pmJobId : pmJobIds) toBeRemoved.add(pmJobId);
+
+        for (String pmJobId : toBeRemoved) {
+            log.debug("Removing pm job with ID " + pmJobId);
+            List<String> pms = new ArrayList<>();
+            pms.add(pmJobId);
+            DeletePmJobRequest deleteRequest = new DeletePmJobRequest(pms);
+            try {
+                DeletePmJobResponse response = deletePmJob(deleteRequest);
+                if (response.getDeletedPmJobId().get(0).equals(pmJobId))
+                    log.error("Impossible to delete PM job " + pmJobId + ". Skipping it.");
+                if (pmJobIdToMpIdMap.containsKey(pmJobId)) {
+                    log.debug("PM job associated to NS monitoring parameter. Removing from internal maps.");
+                    String mpId = pmJobIdToMpIdMap.get(pmJobId);
+                    mpIdToPmJobIdMap.remove(mpId);
+                    pmJobIdToMpIdMap.remove(pmJobId);
+                    log.debug("PM job removed from internal maps.");
+                }
+                log.debug("PM job " + pmJobId + " deleted");
+            } catch (Exception e) {
+                log.debug("Failed to delete PM job " + pmJobId);
+            }
+        }
+    }
     /**
      * This method creates a monitoring job to collect a VNF indicator
      *
@@ -216,4 +278,33 @@ public class NsMonitoringManager {
         }
         return null;
     }
+
+    /*private void buildMonitoringDashboard() throws FailedOperationException {
+        log.debug("Building monitoring dashboard for NS " + nsInstanceId);
+        try {
+            String tenantId = nsDbWrapper.getNsInfo(nsInstanceId).getTenantId();
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("NSD_ID", nsd.getNsdName());
+            metadata.put("NS_ID", nsInstanceId);
+            MonitoringGui mg = monitoringDriver.buildMonitoringGui(pmJobIds, new Tenant(tenantId, null), metadata);
+            log.debug("Built monitoring GUI");
+            monitoringGui = mg;
+            log.debug("Stored info about monitoring GUI");
+        } catch (Exception e) {
+            log.error("Error while building monitoring dashboard: " + e.getMessage());
+            throw new FailedOperationException("Error while building monitoring dashboard: " + e.getMessage());
+        }
+    }
+
+    private void removeMonitoringDashboard() throws FailedOperationException {
+        log.debug("Removing monitoring dashboard for NS " + nsInstanceId);
+        String mgId = monitoringGui.getGuiId();
+        log.debug("Removing monitoring dashboard with ID " + mgId);
+        try {
+            monitoringDriver.removeMonitoringGui(mgId);
+        } catch (Exception e) {
+            log.debug("Failed monitoring GUI removal on monitoring driver: " + e.getMessage());
+            throw new FailedOperationException("Failed monitoring GUI removal on monitoring driver: " + e.getMessage());
+        }
+    }*/
 }

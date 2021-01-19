@@ -1,9 +1,8 @@
 package it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus;
 
-import it.nextworks.nfvmano.libs.common.enums.RelationalOperation;
-import it.nextworks.nfvmano.libs.monit.interfaces.elements.ThresholdDetails;
-import it.nextworks.nfvmano.libs.monit.interfaces.enums.ThresholdFormat;
-
+import it.nextworks.nfvmano.libs.ifa.common.enums.RelationalOperation;
+import it.nextworks.nfvmano.libs.ifa.monit.interfaces.elements.ThresholdDetails;
+import it.nextworks.nfvmano.libs.ifa.monit.interfaces.enums.ThresholdFormat;
 /**
  * Created by Marco Capitani on 20/06/19.
  *

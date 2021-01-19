@@ -1,5 +1,6 @@
 package it.nextworks.nfvmano.nfvodriver.monitoring.driver;
 
+import io.swagger.client.ApiClient;
 import io.swagger.client.ApiException;
 import io.swagger.client.api.ExporterApi;
 import io.swagger.client.model.Endpoint;
@@ -13,6 +14,8 @@ import it.nextworks.nfvmano.libs.ifa.monit.interfaces.elements.ObjectSelection;
 import it.nextworks.nfvmano.libs.ifa.monit.interfaces.elements.PmJob;
 import it.nextworks.nfvmano.libs.ifa.monit.interfaces.enums.MonitoringObjectType;
 import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.CreatePmJobRequest;
+import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.DeletePmJobRequest;
+import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.DeletePmJobResponse;
 import it.nextworks.nfvmano.libs.ifa.records.vnfinfo.VnfInfo;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus.AbstractExporterInfo;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus.ExporterType;
@@ -34,7 +37,7 @@ public class PrometheusDriver {
 
 	//private String grafanaUrl;
 
-	//private String timeoDomain;
+	private String manoDomain;
 
 	//private AlertApi alertApi;
 
@@ -66,8 +69,104 @@ public class PrometheusDriver {
 	//key: ID of the dashboard; Value: details of the dashboard
 	//private Map<String, MonitoringGui> monitoringGui = new HashMap<>();
 
-    public PrometheusDriver(){}
+    public PrometheusDriver(String monitoringPlatformUrl,
+							String manoDomain){
+    	exporterApi = new ExporterApi();
+		//dashboardApi = new DashboardApi();
+		//alertApi = new AlertApi();
 
+		ApiClient apiClient = new ApiClient();
+		// url of the monitoring platform http://<ADDRESS>:8989/prom-manager/
+		apiClient.setBasePath(monitoringPlatformUrl);
+		exporterApi.setApiClient(apiClient);
+
+		//dashboardApi.setApiClient(apiClient);
+		//alertApi.setApiClient(apiClient);
+		//this.grafanaUrl=grafanaUrl;
+
+		// timeo.domain=http://localhost:8081/
+		this.manoDomain = manoDomain;
+	}
+
+	/*public MonitoringGui buildMonitoringGui(List<String> pmJobIds, Tenant tenant, Map<String, String> metadata) throws MethodNotImplementedException,
+			NotExistingEntityException, FailedOperationException, MalformattedElementException {
+		log.debug("Building monitoring dashboard");
+		DashboardDescription dd = new DashboardDescription();
+		String nsdId = metadata.get("NSD_ID");
+		String nsId = metadata.get("NS_ID");
+		String name = "Monitoring for network service " + nsdId + " with instance ID " + nsId;
+		dd.setName(name);
+		//Plotted time: size of the time window in minutes
+		int plottedTime = 60;
+		dd.setPlottedTime(plottedTime);
+		dd.setRefreshTime(DashboardDescription.RefreshTimeEnum._10S);
+		List<String> users = new ArrayList<>();
+		users.add(tenant.getUserName());
+		dd.setUsers(users);
+		for (String pmJobId : pmJobIds) {
+			if (!(pmJobs.containsKey(pmJobId))) throw new NotExistingEntityException("Failed to build dashboard: pm job ID " + pmJobId + " not found");
+			PmJob pmJob = pmJobs.get(pmJobId);
+			if (pmJob == null) throw new NotExistingEntityException("Failed to build dashboard: pm job ID " + pmJobId + " not found");
+
+			MonitoringObjectType monitoringObjectType = pmJob.getObjectSelector().getObjectType().get(0);
+			String metricType = pmJob.getPerformanceMetric().get(0);
+
+			DashboardPanel dp = new DashboardPanel();
+			String exporterId = pmJobIdToExporterId.get(pmJobId);
+
+			try {
+				String query = PrometheusMapper.readPrometheusQuery(monitoringObjectType, metricType, exporterId);
+				dp.setQuery(query);
+				String title = "VNF instance " + exporterIdToVnfId.get(exporterId) + ": " + pmJob.getPerformanceMetric().get(0);
+				dp.setTitle(title);
+				dd.addPanelsItem(dp);
+				log.debug("Added query " + query + " with title " + title + " to monitoring dashboard.");
+			} catch (Exception e) {
+				log.warn("Error while generating query for pm job " + pmJobId);
+			}
+		}
+		try {
+			Dashboard dashboard = dashboardApi.postDashboard(dd);
+			String dashboardId = dashboard.getDashboardId();
+			String url = dashboard.getUrl();
+			if(!url.startsWith("http")){
+				log.debug("Appending grafana url to dashboard url");
+				url=grafanaUrl+url;
+			}
+			log.debug("Created dashboard with ID " + dashboardId + " with URL: " + url);
+			MonitoringGui mg = new MonitoringGui(dashboardId, url);
+			dashboardIdToPmJobId.put(dashboardId, pmJobIds);
+			for (String pmJobId : pmJobIds) {
+				pmJobIdToDashboardId.put(pmJobId, dashboardId);
+			}
+			monitoringGui.put(dashboardId, mg);
+			log.debug("Stored info about monitoring GUI");
+			return mg;
+		} catch (ApiException e) {
+			log.error("API exception while invoking Monitoring Config Manager client: " + e.getMessage());
+			throw new FailedOperationException("API exception while invoking Monitoring Config Manager client: " + e.getMessage());
+		}
+	}
+
+	public void removeMonitoringGui(String guiId) throws MethodNotImplementedException, NotExistingEntityException,
+			FailedOperationException, MalformattedElementException {
+		log.debug("Removing monitoring GUI with ID " + guiId);
+		try {
+			dashboardApi.deleteDashboard(guiId);
+			log.debug("Dashboard removed from Prometheus");
+			monitoringGui.remove(guiId);
+			List<String> pmJobIdsInGui = dashboardIdToPmJobId.get(guiId);
+			for (String pmJobId : pmJobIdsInGui) {
+				pmJobIdToDashboardId.remove(pmJobId);
+			}
+			dashboardIdToPmJobId.remove(guiId);
+			log.debug("Dashboard removed from internal maps.");
+		} catch (ApiException e) {
+			log.error("API exception while invoking Monitoring Config Manager client: " + e.getMessage());
+			throw new FailedOperationException("API exception while invoking Monitoring Config Manager client: " + e.getMessage());
+		}
+	}
+	 */
 
 	public String createPmJob(CreatePmJobRequest request, VnfInfo vnfInfo)
 			throws MethodNotImplementedException, FailedOperationException, MalformattedElementException {
@@ -191,4 +290,144 @@ public class PrometheusDriver {
 			throw new FailedOperationException("API exception while invoking Monitoring Config Manager client: " + e.getMessage());
 		}
 	}
+
+	public DeletePmJobResponse deletePmJob(DeletePmJobRequest request) throws MethodNotImplementedException,
+			FailedOperationException, MalformattedElementException, NotExistingEntityException {
+		log.debug("Removing pm jobs.");
+		List<String> removed = new ArrayList<>();
+		List<String> toBeRemoved = request.getPmJobId();
+		for (String pmJobId : toBeRemoved) {
+			log.debug("Removing pm job " + pmJobId);
+			String exporterId = pmJobIdToExporterId.get(pmJobId);
+			log.debug("Exporter associated to pm job " + pmJobId + ": " + exporterId);
+			List<String> pmJobsInExp = exporterIdToPmJob.get(exporterId);
+			pmJobsInExp.remove(pmJobId);
+			pmJobIdToExporterId.remove(pmJobId);
+			PmJob pmJob = pmJobs.get(pmJobId);
+			ExporterType exporterType = ExporterType.UNDEFINED;
+			try {
+				exporterType = PrometheusMapper.readPrometheusExporterInfo(pmJob.getObjectSelector().getObjectType().get(0), pmJob.getPerformanceMetric().get(0)).getType();
+			} catch (Exception e) {
+				log.error("Impossible to determine exporter type: " + e.getMessage());
+			}
+			pmJobs.remove(pmJobId);
+			log.debug("PM job removed from internal structures.");
+			if (pmJobIdToDashboardId.containsKey(pmJobId)) {
+				//TODO: check if we need to update dashboard at this stage.
+				log.debug("PM job " + pmJobId + " associated to dashboard.");
+				String guiId = pmJobIdToDashboardId.get(pmJobId);
+				List<String> pmJobsInGui = dashboardIdToPmJobId.get(guiId);
+				pmJobsInGui.remove(pmJobId);
+				dashboardIdToPmJobId.replace(guiId, pmJobsInGui);
+				pmJobIdToDashboardId.remove(pmJobId);
+				log.debug("Removed association PM job - dashboard from internal structure.");
+			}
+			if (pmJobsInExp.isEmpty()) {
+				log.debug("Exporter " + exporterId + " no more in use. It can be removed.");
+				try {
+					exporterApi.deleteExporter(exporterId);
+					log.debug("Exporter " + exporterId + " removed from Prometheus.");
+				} catch (ApiException e) {
+					log.error("Failed to remove exporter " + exporterId + " from Prometheus. Continuing to remove internally.");
+				}
+				exporterIdToPmJob.remove(exporterId);
+				String vnfId = exporterIdToVnfId.get(exporterId);
+				if (exporterType.equals(ExporterType.NODE_EXPORTER)) vnfInstanceToNodeExporterMap.remove(vnfId);
+				else if (exporterType.equals(ExporterType.TELEGRAF_EXPORTER)) vnfInstanceToTelegrahExporterMap.remove(vnfId);
+				log.debug("Removed exporter from internal maps.");
+			} else {
+				log.debug("Exporter " + exporterId + " still serving " + pmJobsInExp.size() + " pm jobs. It cannot be removed.");
+				exporterIdToPmJob.replace(exporterId, pmJobsInExp);
+				log.debug("Exporter map updated.");
+			}
+			removed.add(pmJobId);
+		}
+		return new DeletePmJobResponse(removed);
+	}
+
+
+	/*
+	private static AlertDescription.KindEnum translateRelation(RelationalOperation op) {
+		switch (op) {
+			case LT:
+				return AlertDescription.KindEnum.L;
+			case LE:
+				return AlertDescription.KindEnum.LEQ;
+			case GT:
+				return AlertDescription.KindEnum.G;
+			case GE:
+				return AlertDescription.KindEnum.GEQ;
+			case EQ:
+				return AlertDescription.KindEnum.EQ;
+			default:
+				throw new IllegalArgumentException(String.format(
+						"Unknown relational operation %s",
+						op
+				));
+		}
+	}
+
+	String makeAlertQuery(String pm, PrometheusTDetails details) {
+		String expId = pmJobIdToExporterId.get(details.getPmJobId());
+		return PrometheusMapper.readPrometheusQuery(
+				MonitoringObjectType.VNF, // The only type supported right now
+				pm,
+				expId
+		);
+	}
+
+	AlertDescription makeAlertDescription(CreateThresholdRequest request) {
+		ThresholdDetails details = request.getThresholdDetails();
+		if (!details.getFormat().equals(ThresholdFormat.PROMETHEUS)) {
+			throw new IllegalArgumentException(String.format(
+					"Unsupported threshold format %s",
+					details.getFormat()
+			));
+		}
+		PrometheusTDetails promDetails = (PrometheusTDetails) details;
+		return new AlertDescription()
+				.alertName(UUID.randomUUID().toString())  // TODO more meaningful name?
+				._for(promDetails.getThresholdTime() + "s") // javascript concatenation of int and string
+				.kind(translateRelation(promDetails.getRelationalOperation()))
+				// .labels() TODO decide what to put here (if anything)
+				.query(makeAlertQuery(request.getPerformanceMetric(), promDetails))
+				.severity(AlertDescription.SeverityEnum.WARNING)
+				.target(timeoDomain + MON_PATH)
+				.value(promDetails.getValue());
+	}
+
+	@Override
+	public String createThreshold(CreateThresholdRequest request)
+			throws MethodNotImplementedException, FailedOperationException, MalformattedElementException {
+
+		Alert response;
+		try {
+			response = alertApi.postAlert(makeAlertDescription(request));
+		} catch (ApiException e) {
+			log.error("API exception while invoking Monitoring Config Manager client: " + e.getMessage());
+			throw new FailedOperationException("API exception while invoking Monitoring Config Manager client: " + e.getMessage());
+		}
+		return response.getAlertId();
+	}
+
+	@Override
+	public DeleteThresholdsResponse deleteThreshold(DeleteThresholdsRequest request)
+			throws MethodNotImplementedException, NotExistingEntityException, FailedOperationException,
+			MalformattedElementException {
+		log.info("Deleting thresholds: {}", request.getThresholdId());
+		List<String> deleted = new ArrayList<>();
+		for (String thresholdId : request.getThresholdId()) {
+			try {
+				alertApi.deleteAlert(thresholdId);
+				deleted.add(thresholdId);
+			} catch (ApiException exc) {
+				log.error("Could not delete threshold with id {}. Skipping", thresholdId);
+				log.debug("Details:", exc);
+			}
+		}
+		return new DeleteThresholdsResponse(
+				deleted
+		);
+	}
+	 */
 }

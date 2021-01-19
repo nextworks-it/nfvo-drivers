@@ -44,6 +44,8 @@ public class VnfInstanceInfo {
   //not standard
   @SerializedName("vnfd-id")
   private String vnfdId = null;
+  /*@SerializedName("vdur")
+  private Vdur vdur = null;*/
 
   public VnfInstanceInfo _id(UUID _id) {
     this._id = _id;
@@ -88,6 +90,11 @@ public class VnfInstanceInfo {
     this.ipAddress = ipAddress;
     return this;
   }
+  /*public VnfInstanceInfo vdur(Vdur vdur) {
+    this.vdur = vdur;
+    return this;
+  }
+   */
 
   /**
    * Ip of the vnf instance (on mgmt network).
@@ -101,7 +108,19 @@ public class VnfInstanceInfo {
   public void setIpAddress(String ipAddress) {
     this.ipAddress = ipAddress;
   }
+  /*
+  * /**
+   * Get vdur
+   * @return vdur
+   **
+  @Schema(description = "")
+  public Vdur getVdur() {
+    return vdur;
+  }
 
+  public void setVdur(Vdur vdur) {
+    this.vdur = vdur;
+  }*/
   public VnfInstanceInfo nsrIdRef(String nsrIdRef){
     this.nsrIdRef = nsrIdRef;
     return this;
