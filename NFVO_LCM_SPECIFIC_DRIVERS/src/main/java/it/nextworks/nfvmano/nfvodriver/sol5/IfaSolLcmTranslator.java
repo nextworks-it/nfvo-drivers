@@ -356,6 +356,7 @@ public class IfaSolLcmTranslator {
 		int dLThptPerSlice =0;
 		int latency =0;
 		String radioAccessTechnology=null;
+		String site = null;
 
 		Map<String, Object> sliceParameters = input.getSliceParameters();
 		if(sliceParameters.containsKey("sST")&& sliceParameters.get("sST")!=null)
@@ -376,6 +377,8 @@ public class IfaSolLcmTranslator {
 		if(sliceParameters.containsKey("dLThptPerSlice")&& sliceParameters.get("dLThptPerSlice")!=null)
 			dLThptPerSlice= Integer.parseInt(sliceParameters.get("dLThptPerSlice").toString());
 
+		if(sliceParameters.containsKey("site")&& sliceParameters.get("site")!=null)
+			site= sliceParameters.get("site").toString();
 
 		/*
 		  radioSliceProfile.put("coverageArea", coverageArea);
@@ -385,7 +388,7 @@ public class IfaSolLcmTranslator {
                                 radioSliceProfile.put("radioAccessTechnology", rAT);
 		 */
 
-		output.setRadioSliceProfile(new RadioSliceProfile(sST, coverageArea, latency, uLThptPerSlice, dLThptPerSlice));
+		output.setRadioSliceProfile(new RadioSliceProfile(sST, coverageArea, latency, uLThptPerSlice, dLThptPerSlice, site));
 		output.setSapProtocolData(sapProtocolData);
 		return output;
 	}

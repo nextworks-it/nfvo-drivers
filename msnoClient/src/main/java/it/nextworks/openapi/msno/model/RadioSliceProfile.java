@@ -12,13 +12,25 @@ public class RadioSliceProfile {
 
     private int dLThptPerSlice;
 
+    private String site;
 
-    public RadioSliceProfile(String sST, String coverageArea, int latency, int uLThptPerSlice, int dLThptPerSlice) {
+
+    public RadioSliceProfile(String sST, String coverageArea, int latency, int uLThptPerSlice, int dLThptPerSlice, String site) {
         this.sST = sST;
         this.coverageArea = coverageArea;
         this.latency = latency;
         this.uLThptPerSlice = uLThptPerSlice;
         this.dLThptPerSlice = dLThptPerSlice;
+        this.site= site;
+    }
+
+
+    public String getSite() {
+        return site;
+    }
+
+    public void setSite(String site) {
+        this.site = site;
     }
 
     public String getsST() {

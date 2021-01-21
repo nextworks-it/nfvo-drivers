@@ -22,7 +22,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import it.nextworks.nfvmano.catalogue.blueprint.elements.RadioAccessTechnology;
+
 import it.nextworks.openapi.msno.model.CpProtocolData;
 
 import java.io.IOException;
