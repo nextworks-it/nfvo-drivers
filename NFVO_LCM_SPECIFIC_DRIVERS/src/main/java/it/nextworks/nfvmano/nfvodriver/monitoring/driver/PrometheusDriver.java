@@ -2,10 +2,9 @@ package it.nextworks.nfvmano.nfvodriver.monitoring.driver;
 
 import io.swagger.client.ApiClient;
 import io.swagger.client.ApiException;
+import io.swagger.client.api.DashboardApi;
 import io.swagger.client.api.ExporterApi;
-import io.swagger.client.model.Endpoint;
-import io.swagger.client.model.Exporter;
-import io.swagger.client.model.ExporterDescription;
+import io.swagger.client.model.*;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
@@ -20,6 +19,7 @@ import it.nextworks.nfvmano.libs.ifa.records.vnfinfo.VnfInfo;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus.AbstractExporterInfo;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus.ExporterType;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus.PrometheusMapper;
+import it.nextworks.nfvmano.nfvodriver.monitoring.elements.MonitoringGui;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,48 +31,49 @@ public class PrometheusDriver {
 
     //private static final String MON_PATH = "timeo/alerts";
 
-    private ExporterApi exporterApi;
+    private final ExporterApi exporterApi;
 
-	//private DashboardApi dashboardApi;
+	private final DashboardApi dashboardApi;
 
-	//private String grafanaUrl;
+	private String grafanaUrl;
 
 	private String manoDomain;
 
 	//private AlertApi alertApi;
 
 	//key: ID of the VNF instance; Value: ID of the node exporter created for that VNF instance
-	private Map<String, String> vnfInstanceToNodeExporterMap = new HashMap<>();
+	private final Map<String, String> vnfInstanceToNodeExporterMap = new HashMap<>();
 
 	//key: ID of the VNF instance; Value: ID of the Telegraf exporter created for that VNF instance
-	private Map<String, String> vnfInstanceToTelegrahExporterMap = new HashMap<>();
+	private final Map<String, String> vnfInstanceToTelegrahExporterMap = new HashMap<>();
 
 	//key: ID of the pm job; Value: ID of the exporter associated to that pm job
-	private Map<String, String> pmJobIdToExporterId = new HashMap<>();
+	private final Map<String, String> pmJobIdToExporterId = new HashMap<>();
 
 	//key: ID of the exporter; Value: List of pm job IDs mapped on the exporter
-	private Map<String, List<String>> exporterIdToPmJob = new HashMap<>();
+	private final Map<String, List<String>> exporterIdToPmJob = new HashMap<>();
 
 	//key: ID of the exporter; Value: ID of the VNF
-	private Map<String, String> exporterIdToVnfId = new HashMap<>();
+	private final Map<String, String> exporterIdToVnfId = new HashMap<>();
 
 	//key: ID of the PM job
-	private Map<String, PmJob> pmJobs = new HashMap<>();
+	private final Map<String, PmJob> pmJobs = new HashMap<>();
 
 	//key: ID of the dashboard; Value: List of pm job IDs shown on the dashboard
-	private Map<String, List<String>> dashboardIdToPmJobId = new HashMap<>();
+	private final Map<String, List<String>> dashboardIdToPmJobId = new HashMap<>();
 
 	//key: ID of the pm job; Value: ID of the dashboard where the pm job is shown.
 	//At the moment a pm job ID is shown on a single dashboard. Check if we need to evolve this.
-	private Map<String, String> pmJobIdToDashboardId = new HashMap<>();
+	private final Map<String, String> pmJobIdToDashboardId = new HashMap<>();
 
 	//key: ID of the dashboard; Value: details of the dashboard
-	//private Map<String, MonitoringGui> monitoringGui = new HashMap<>();
+	private final Map<String, MonitoringGui> monitoringGui = new HashMap<>();
 
     public PrometheusDriver(String monitoringPlatformUrl,
+							String grafanaUrl,
 							String manoDomain){
     	exporterApi = new ExporterApi();
-		//dashboardApi = new DashboardApi();
+		dashboardApi = new DashboardApi();
 		//alertApi = new AlertApi();
 
 		ApiClient apiClient = new ApiClient();
@@ -80,15 +81,15 @@ public class PrometheusDriver {
 		apiClient.setBasePath(monitoringPlatformUrl);
 		exporterApi.setApiClient(apiClient);
 
-		//dashboardApi.setApiClient(apiClient);
+		dashboardApi.setApiClient(apiClient);
 		//alertApi.setApiClient(apiClient);
-		//this.grafanaUrl=grafanaUrl;
+		this.grafanaUrl=grafanaUrl;
 
 		// timeo.domain=http://localhost:8081/
 		this.manoDomain = manoDomain;
 	}
 
-	/*public MonitoringGui buildMonitoringGui(List<String> pmJobIds, Tenant tenant, Map<String, String> metadata) throws MethodNotImplementedException,
+	public MonitoringGui buildMonitoringGui(List<String> pmJobIds, String tenantId, Map<String, String> metadata) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
 		log.debug("Building monitoring dashboard");
 		DashboardDescription dd = new DashboardDescription();
@@ -101,7 +102,7 @@ public class PrometheusDriver {
 		dd.setPlottedTime(plottedTime);
 		dd.setRefreshTime(DashboardDescription.RefreshTimeEnum._10S);
 		List<String> users = new ArrayList<>();
-		users.add(tenant.getUserName());
+		users.add(tenantId);
 		dd.setUsers(users);
 		for (String pmJobId : pmJobIds) {
 			if (!(pmJobs.containsKey(pmJobId))) throw new NotExistingEntityException("Failed to build dashboard: pm job ID " + pmJobId + " not found");
@@ -166,7 +167,6 @@ public class PrometheusDriver {
 			throw new FailedOperationException("API exception while invoking Monitoring Config Manager client: " + e.getMessage());
 		}
 	}
-	 */
 
 	public String createPmJob(CreatePmJobRequest request, VnfInfo vnfInfo)
 			throws MethodNotImplementedException, FailedOperationException, MalformattedElementException {
@@ -272,6 +272,7 @@ public class PrometheusDriver {
 		List<Endpoint> eps = new ArrayList<>();
 		Endpoint ep = new Endpoint();
 		ep.setAddress(vnfIpAddress);
+		//re set to port, 9100 is for testing info
 		ep.setPort(port);
 		eps.add(ep);
 		exporterDescription.setName(type.toString()+vnfInstanceId+"_"+vnfdId);

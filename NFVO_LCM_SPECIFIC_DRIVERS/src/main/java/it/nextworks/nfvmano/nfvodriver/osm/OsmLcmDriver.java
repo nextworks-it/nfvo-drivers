@@ -79,8 +79,8 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 
 	//for each ifa nsd there are multiple nsd package in osm
 
-	// map the nsd ifa to a random UUID, mapped then in ifaNsdIdToOsmNsdPackageId
-	private final Map<UUID,String> ifaNsdIdFromUUID;
+	// map the creation of a ns instance resource request (that contains nsd ifa) to a random UUID, mapped then in ifaNsdIdToOsmNsdPackageId
+	private final Map<UUID,CreateNsIdentifierRequest> ifaNsdIdFromUUID;
 	// map the UUID of ifa nsd create randomly to the corresponding osm nsd package UUID
 	private final Map<UUID,UUID> ifaNsdIdToOsmNsdPackageId;
 	// map the UUID of an osm ns instace to the UUID of its osm nsd package
@@ -124,7 +124,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
         this.project =project;
 		this.nfvoLcmOperationPollingManager = nfvoLcmOperationPollingManager;
 		this.nfvoCatalogueService = nfvoCatalogueService;
-		monitoringManager = new MonitoringManager("http://10.30.8.49:8989/prom-manager",nfvoAddress);
+		monitoringManager = new MonitoringManager("http://10.30.8.49:8989/prom-manager","http://10.30.8.49:3000",nfvoAddress);
 		this.oAuthSimpleClient = new OAuthSimpleClient(nfvoAddress+"/osm/admin/v1/tokens", username, password, project);
 	}
 
@@ -172,7 +172,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 		 */
 		log.debug("Initializing map of Osm nsd packages for Ifa Nsd:  "+request.getNsdId());
 		UUID randomId = UUID.randomUUID();
-		ifaNsdIdFromUUID.put(randomId,request.getNsdId());
+		ifaNsdIdFromUUID.put(randomId,request);
 
 		//fare mappa
 		// <UUID,UUID>
@@ -193,6 +193,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			log.debug("Created NsIdentifier: "+nsInstanceId);
 
 			//TODO validate: vnfInfoId correspond to the uuid of the vnf instance in osm
+			// validate tenantId for monotoringGui
 			NsInfo nsInfo = new NsInfo(nsInstanceId,
 					request.getNsName(), 				//nsName
 					request.getNsDescription(),			//description
@@ -226,7 +227,8 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 
 		//if in the catalogue side we don't add a new nsd info to the query, at this point the ns instance id will be
 		// the random id generated during storing of nsd ifa
-		String ifaNsdId = ifaNsdIdFromUUID.get(UUID.fromString(request.getNsInstanceId()));
+		CreateNsIdentifierRequest nsIdentifierRequest = ifaNsdIdFromUUID.get(UUID.fromString(request.getNsInstanceId()));
+		String ifaNsdId = nsIdentifierRequest.getNsdId();
 		String ifaNsdFlavourId = request.getFlavourId();
 
 		log.debug("Received instantiation request for NS Instance Id: "+ ifaNsdId +" with DF: " + ifaNsdFlavourId);
@@ -248,7 +250,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 		ifaNsdIdToOsmNsdPackageId.put(UUID.fromString(request.getNsInstanceId()),nsdPackageId);
 
 		//now we have to create NS Resource
-		CreateNsIdentifierRequest createNsIdentifierRequest = new CreateNsIdentifierRequest(nsdPackage.getId(), nsdPackage.getId(),null,null);
+		CreateNsIdentifierRequest createNsIdentifierRequest = new CreateNsIdentifierRequest(nsdPackage.getId(), nsdPackage.getId(),nsIdentifierRequest.getNsDescription(),nsIdentifierRequest.getTenantId());
 		String osmNsInstanceId = createNsResource(createNsIdentifierRequest,nsdPackageId);
 
 		//this is the UUID of the NS Instance resource associated to the NSD <nsdId_nsdDfId>(full_01_df_vCDN)

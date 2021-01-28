@@ -16,6 +16,7 @@ import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.DeletePmJobRespon
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsInfo;
 import it.nextworks.nfvmano.libs.ifa.records.vnfinfo.VnfInfo;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.PrometheusDriver;
+import it.nextworks.nfvmano.nfvodriver.monitoring.elements.MonitoringGui;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,8 @@ public class NsMonitoringManager {
     private static final Logger log = LoggerFactory.getLogger(NsMonitoringManager.class);
 
     private final String nsInstanceId;
+
+    private final String tenantId;
 
     private final Nsd nsd;
 
@@ -45,9 +48,12 @@ public class NsMonitoringManager {
     //This list includes the pm jobs associated to NSD monitoring parameters or the ones requested out of the NS instance management
     private final List<String> pmJobIds = new ArrayList<>();
 
-    //private MonitoringGui monitoringGui;
+    private String monitoringGuiUrl = null;
+
+    private MonitoringGui monitoringGui;
 
     public NsMonitoringManager(String nsInstanceId,
+                               String tenantId,
                                Nsd nsd,
                                List<VnfInfo> vnfInfoList,
                                PrometheusDriver prometheusDriver){
@@ -55,6 +61,7 @@ public class NsMonitoringManager {
         this.nsd = nsd;
         this.vnfInfoList = vnfInfoList;
         this.prometheusDriver = prometheusDriver;
+        this.tenantId = tenantId;
     }
 
     public String createPmJob(CreatePmJobRequest request, VnfInfo vnfInfo)
@@ -72,7 +79,7 @@ public class NsMonitoringManager {
         return response;
     }
 
-    public void activateNsMonitoring(NsInfo nsInfo) {
+    public void activateNsMonitoring(NsInfo nsInfo) throws FailedOperationException {
         log.debug("Starting monitoring activation for NS instance " + nsInstanceId + ". Reading NSD.");
         if ((nsd.getMonitoredInfo() == null) || (nsd.getMonitoredInfo().isEmpty())) {
             log.debug("No monitored info specified in the NSD " + nsd.getNsdName() + " for NS instance " + nsInstanceId + ". Nothing to do.");
@@ -91,23 +98,26 @@ public class NsMonitoringManager {
             }
         }
         log.debug("Finished creation of monitoring jobs for NS instance " + nsInstanceId);
-        /*
+
 		log.debug("Starting building monitoring dashboard for NS instance " + nsInstanceId);
 		buildMonitoringDashboard();
-		String url = monitoringGui.getUrl();
+		monitoringGuiUrl = monitoringGui.getUrl();
+		/*
 		try {
 			nsDbWrapper.setNsInfoMonitoringUrl(nsInstanceId, url);
 		} catch (NotExistingEntityException e) {
 			log.error("Impossible to set URL for NS instance " + nsInstanceId + e.getMessage());
-		}
+		}*/
 		log.debug("Finished creation of monitoring dashboard for NS instance " + nsInstanceId);
+		/*
+		ALERT functionalities
 		try {
 			alertManager.createThresholds(mpIdToPmJobIdMap);
 		} catch (MalformattedElementException exc) {
 			log.error("Malformatted element in creation of thresholds");
 			log.debug("Details:", exc);
 		}
-         */
+        */
     }
 
     /**
@@ -116,9 +126,9 @@ public class NsMonitoringManager {
      * @throws MethodNotImplementedException if the method is not implemented
      * @throws FailedOperationException if the operation fails
      */
-    public void deactivateNsMonitoring() throws MethodNotImplementedException, FailedOperationException {
+    public void deactivateNsMonitoring() {
         log.debug("Disactivating NS monitoring for NS instance " + nsInstanceId);
-        /*alertManager.deleteThresholds();
+        //alertManager.deleteThresholds();
         log.debug("Removing monitoring GUI");
         if (monitoringGui != null) {
             try {
@@ -127,17 +137,14 @@ public class NsMonitoringManager {
             } catch (FailedOperationException e) {
                 log.debug("Monitoring dashboard removal failed. Proceeding with removing pm jobs.");
             }
-            try {
-                nsDbWrapper.setNsInfoMonitoringUrl(nsInstanceId, null);
-                log.debug("Monitoring URL removed from NS info for NS instance " + nsInstanceId);
-            } catch (NotExistingEntityException e) {
-                log.error("Impossible to remove monitoring URL for NS instance " + nsInstanceId + e.getMessage());
-            }
+            //nsDbWrapper.setNsInfoMonitoringUrl(nsInstanceId, null);
+            monitoringGuiUrl = null;
+            log.debug("Monitoring URL removed from NS info for NS instance " + nsInstanceId);
             log.debug("Monitoring GUI removed.");
         } else {
             log.debug("Monitoring GUI not available. Nothing to remove.");
-        }*/
-
+        }
+        //deleting job
         List<String> toBeRemoved = new ArrayList<>();
         for (String pmJobId : pmJobIds) toBeRemoved.add(pmJobId);
 
@@ -163,6 +170,7 @@ public class NsMonitoringManager {
             }
         }
     }
+
     /**
      * This method creates a monitoring job to collect a VNF indicator
      *
@@ -279,14 +287,16 @@ public class NsMonitoringManager {
         return null;
     }
 
-    /*private void buildMonitoringDashboard() throws FailedOperationException {
+    private void buildMonitoringDashboard() throws FailedOperationException {
+        //reminder this nsInstanceId is the nsInstanceId of osm
         log.debug("Building monitoring dashboard for NS " + nsInstanceId);
         try {
-            String tenantId = nsDbWrapper.getNsInfo(nsInstanceId).getTenantId();
+            //String tenantId = nsDbWrapper.getNsInfo(nsInstanceId).getTenantId();
             Map<String, String> metadata = new HashMap<>();
             metadata.put("NSD_ID", nsd.getNsdName());
             metadata.put("NS_ID", nsInstanceId);
-            MonitoringGui mg = monitoringDriver.buildMonitoringGui(pmJobIds, new Tenant(tenantId, null), metadata);
+            //MonitoringGui mg = monitoringDriver.buildMonitoringGui(pmJobIds, new Tenant(tenantId, null), metadata);
+            MonitoringGui mg = prometheusDriver.buildMonitoringGui(pmJobIds, tenantId, metadata);
             log.debug("Built monitoring GUI");
             monitoringGui = mg;
             log.debug("Stored info about monitoring GUI");
@@ -301,10 +311,10 @@ public class NsMonitoringManager {
         String mgId = monitoringGui.getGuiId();
         log.debug("Removing monitoring dashboard with ID " + mgId);
         try {
-            monitoringDriver.removeMonitoringGui(mgId);
+            prometheusDriver.removeMonitoringGui(mgId);
         } catch (Exception e) {
             log.debug("Failed monitoring GUI removal on monitoring driver: " + e.getMessage());
             throw new FailedOperationException("Failed monitoring GUI removal on monitoring driver: " + e.getMessage());
         }
-    }*/
+    }
 }

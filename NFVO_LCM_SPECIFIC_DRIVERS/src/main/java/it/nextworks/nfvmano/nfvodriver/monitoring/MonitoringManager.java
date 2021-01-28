@@ -16,20 +16,24 @@ public class MonitoringManager {
 
     private static final Logger log = LoggerFactory.getLogger(MonitoringManager.class);
 
-    private Map<String, NsMonitoringManager> nsMonitoringManagers = new HashMap<>(); //Key: NS_instance_ID
+    private final Map<String, NsMonitoringManager> nsMonitoringManagers = new HashMap<>(); //Key: NS_instance_ID
 
-    private String monitoringUrl;
+    private final String monitoringUrl;
+
+    private final String grafanaUrl;
 
     //notification address
     private String manoDomain;
 
-    private PrometheusDriver prometheusDriver;
+    private final PrometheusDriver prometheusDriver;
 
     public MonitoringManager(String monitoringUrl,
+                             String grafanaUrl,
                              String manoDomain){
         this.monitoringUrl = monitoringUrl;
+        this.grafanaUrl = grafanaUrl;
         this.manoDomain = manoDomain;
-        prometheusDriver = new PrometheusDriver(monitoringUrl,manoDomain);
+        prometheusDriver = new PrometheusDriver(monitoringUrl,grafanaUrl,manoDomain);
     }
 
     public void activateNsMonitoring(NsInfo nsInfo, Nsd nsd, List<VnfInfo> vnfInfoList)
@@ -58,6 +62,7 @@ public class MonitoringManager {
         );*/
         NsMonitoringManager nsMonitoringManager = new NsMonitoringManager(
                 nsInstanceId,
+                nsInfo.getTenantId(),
                 nsd,
                 vnfInfoList,
                 prometheusDriver);
