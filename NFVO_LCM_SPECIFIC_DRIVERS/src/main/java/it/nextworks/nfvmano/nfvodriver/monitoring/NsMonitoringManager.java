@@ -25,6 +25,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This class manage the monitoring for a specific NS instance. It talks with PrometheusDriver
+ * in order to configure the monioring job and dashboard on Grafana.
+ */
+
 public class NsMonitoringManager {
 
     private static final Logger log = LoggerFactory.getLogger(NsMonitoringManager.class);

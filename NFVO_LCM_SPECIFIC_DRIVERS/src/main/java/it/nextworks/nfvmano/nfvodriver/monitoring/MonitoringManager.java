@@ -12,6 +12,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
+/**
+ * This class takes care of activate/deactive the monitoring for the ns instances.
+ */
 public class MonitoringManager {
 
     private static final Logger log = LoggerFactory.getLogger(MonitoringManager.class);

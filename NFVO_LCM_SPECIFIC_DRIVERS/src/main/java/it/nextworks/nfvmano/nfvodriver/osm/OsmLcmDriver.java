@@ -275,15 +275,6 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			nsInfo.setNsState(InstantiationState.INSTANTIATED);
 			//this will manage the monitoring when the ns is instantiated
 			monitoringQueue.add(new MonitoringInfo(osmNsInstanceId,ifaNsdId,nsdPackage.getVersion(),nsInfo,operationId.toString()));
-			/*
-			//creating associations with VnfInfos for this nsInstanceId and update content of nsInfo
-			List<VnfInfo> vnfInfoList = getVnfInfos(osmNsInstanceId,nsInfo);
-			nsInstancesIdToVnfInfo.put(osmNsInstanceId,vnfInfoList);
-			nsInstancesIdToNsInfo.put(osmNsInstanceId,nsInfo);
-
-			//activate monitoring
-			manageMonitoring(osmNsInstanceId,ifaNsdId,nsdPackage.getVersion(),vnfInfoList);
-			*/
 			return osmNsInstanceId; //TODO if return the same id of the request?
 		} catch (ApiException e) {
 			log.error(e.getMessage());

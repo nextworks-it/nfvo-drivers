@@ -25,6 +25,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+/**
+ * This is the monitoring driver that collect metrics from the NS instances.
+ */
 public class PrometheusDriver {
 
     private static final Logger log = LoggerFactory.getLogger(PrometheusDriver.class);
@@ -100,7 +103,7 @@ public class PrometheusDriver {
 		//Plotted time: size of the time window in minutes
 		int plottedTime = 60;
 		dd.setPlottedTime(plottedTime);
-		dd.setRefreshTime(DashboardDescription.RefreshTimeEnum._10S);
+		dd.setRefreshTime(DashboardDescription.RefreshTimeEnum._5S);
 		List<String> users = new ArrayList<>();
 		users.add(tenantId);
 		dd.setUsers(users);
@@ -249,6 +252,12 @@ public class PrometheusDriver {
 		return new PmJob(pmJobId, os, performanceMetrics, new ArrayList<>(), collectionPeriod, reportingPeriod, null);
 	}
 
+	/**
+	 * It associates the Prometheus Job Id to the correspondent exporter
+	 * @param pmJob
+	 * @param exporterId
+	 * @param vnfInstanceId
+	 */
 	void storePmJobInfo(PmJob pmJob, String exporterId, String vnfInstanceId) {
 		String pmJobId = pmJob.getPmJobId();
 		pmJobIdToExporterId.put(pmJobId, exporterId);
@@ -272,7 +281,7 @@ public class PrometheusDriver {
 		List<Endpoint> eps = new ArrayList<>();
 		Endpoint ep = new Endpoint();
 		ep.setAddress(vnfIpAddress);
-		//re set to port, 9100 is for testing info
+		//port 9100: node exporter
 		ep.setPort(port);
 		eps.add(ep);
 		exporterDescription.setName(type.toString()+vnfInstanceId+"_"+vnfdId);

@@ -1,5 +1,6 @@
 package io.swagger.client.model;
 
+//not standard
 public class VdurInterface {
 
     String name;

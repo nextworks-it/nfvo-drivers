@@ -2,6 +2,7 @@ package io.swagger.client.model;
 
 import java.util.List;
 
+//not standard
 public class Vdur {
 
     String vduIdRef;
