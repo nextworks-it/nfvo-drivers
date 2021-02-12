@@ -2,10 +2,7 @@ package it.nextworks.nfvmano.nfvodriver.osm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.swagger.client.model.CreateNsdInfoRequest;
-import io.swagger.client.model.CreateVnfPkgInfoRequest;
-import io.swagger.client.model.NsdInfo;
-import io.swagger.client.model.ObjectId;
+import io.swagger.client.model.*;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.*;
 import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
@@ -173,7 +170,7 @@ public class OsmCatalogueRestClient {
             storedIfaNsdName.put(uuidStoredNsd,nsd.getNsdIdentifier());
         }
         else{
-            log.debug("No NS has been onboarded. VNFDs not in NFVO Catalogue");
+            log.debug("No NS has been onboarded. VNFDs not present in NFVO Catalogue");
             throw new FailedOperationException("VNFDs for this NS not found in NFVO Catalogue.");
         }
         //saving nsd descriptor named with nsd_id
@@ -187,11 +184,26 @@ public class OsmCatalogueRestClient {
         for (String vnfdIfaId : nsd.getVnfdId()) {
             String osmVnfdId = null;
             try {
+                //try to check locally
                 osmVnfdId = getOsmVnfdId(vnfdIfaId, IfaOsmTranslator.getFlavourFromVnfdId(df, vnfdIfaId));
-                if(!vnfdIdToVnfdUUID.containsKey(osmVnfdId))
-                    return false;
+                if(!vnfdIdToVnfdUUID.containsKey(osmVnfdId)){
+                    //try to check in OSM.
+                    vnfPackagesApi.setApiClient(getClient());
+                    ArrayOfVnfPkgInfo arrayOfVnfPkgInfo = vnfPackagesApi.getVnfPkgs();
+                    for(VnfPkgInfo vnfPkgInfo : arrayOfVnfPkgInfo){
+                        if(vnfPkgInfo.getId().equals(osmVnfdId))
+                            //let backend know the mapping
+                            vnfdIdToVnfdUUID.put(osmVnfdId,vnfPkgInfo.getIdentifier());
+                    }
+                }
             } catch (NotExistingEntityException e) {
                 log.error("Cannot obtain id of Osm vnfd from Ifa constituent vnfd");
+                e.printStackTrace();
+                return false;
+            } catch (ApiException e) {
+                return false;
+            } catch (FailedOperationException e) {
+                log.error("Cannot set api client.");
                 e.printStackTrace();
                 return false;
             }
@@ -267,7 +279,7 @@ public class OsmCatalogueRestClient {
                 e.printStackTrace();
                 return false;
             }
-
+            //TODO Check the onboarding of new nsd when it is already present the vnfd containig the scaling rule
             boolean deleteResource = false;
             //add autoscaling for each vnfd that are in this nsd
             if (addAutoscalingRules(df, defaultIL, vnfDescriptor, vnfProfileIdToVnfId)) {
@@ -524,11 +536,11 @@ public class OsmCatalogueRestClient {
         try {
             String uuidStoredVnfd = vnfdFileRegistryService.storeVnfd(request,vnfd);
             storedIfaVnfdName.put(uuidStoredVnfd,vnfd.getVnfdId());
+            ifaVnfdIdToIfaVnfd.put(vnfd.getVnfdId(),vnfd);
         } catch (AlreadyExistingEntityException e) {
-            e.printStackTrace();
+            log.debug("VNFD ifa already present.");
             //TODO se è già presente necessità di essere refreshato?
         }
-        ifaVnfdIdToIfaVnfd.put(vnfd.getVnfdId(),vnfd);
         //maybe a vnfd for each couple of vnfd,vnfDf?
         for(VnfDf vnfdDf : vnfd.getDeploymentFlavour()){
             if(vnfdIdToVnfdUUID.containsKey(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId())){
@@ -574,7 +586,7 @@ public class OsmCatalogueRestClient {
         UUID randomUUID = UUID.randomUUID();
         //maybe a map
         OnBoardVnfPackageResponse onBoardVnfPackageResponse = new OnBoardVnfPackageResponse(randomUUID.toString(),vnfd.getVnfdId());
-        //CHECK WHAT HAPPEN IF VNFD ALREADY PRESENT
+        //CHECK WHAT RETURN IF VNFD ALREADY PRESENT
         return onBoardVnfPackageResponse;
     }
 
