@@ -9,11 +9,20 @@
     <name>NFVO_CATALOGUE_SPECIFIC_DRIVERS</name>
 
     <dependencies>
-
         <dependency>
             <groupId>it.nextworks.nfvmano</groupId>
             <artifactId>NfvoCatalogueAbstractDriver</artifactId>
             <version>0.0.2-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.threeten</groupId>
+            <artifactId>threetenbp</artifactId>
+            <version>1.3.2</version>
+        </dependency>
+        <dependency>
+            <groupId>it.nextworks.nfvmano</groupId>
+            <artifactId>OSMr4PlusDataModel</artifactId>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>it.nextworks.nfvmano</groupId>
@@ -66,6 +75,11 @@
             <version>2.9.8</version>
         </dependency>
         <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>osm-client</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
@@ -88,7 +102,12 @@
             <artifactId>commons-io</artifactId>
             <version>2.6</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.squareup.okhttp</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>2.7.5</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
     <build>
         <pluginManagement>

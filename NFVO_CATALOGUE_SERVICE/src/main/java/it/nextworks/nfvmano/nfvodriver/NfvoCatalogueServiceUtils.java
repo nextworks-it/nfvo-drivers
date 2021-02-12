@@ -88,7 +88,7 @@ public class NfvoCatalogueServiceUtils {
             nfvoCatalogueService.setNfvoCatalogueDriver(new DummyNfvoCatalogueDriver(nfvoCatalogueAddress, tmpDir));
         } else if(nfvoCatalogueType.equals("OSM")){
             log.debug("Configured for type:" + nfvoCatalogueType);
-            nfvoCatalogueService.setNfvoCatalogueDriver(new OsmCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null));
+            nfvoCatalogueService.setNfvoCatalogueDriver(new OsmCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null, nsdFileRegistryService, vnfdFileRegistryService));
         } else if(nfvoCatalogueType.equals("SOL_005")) {
             log.debug("Configured for type:" + nfvoCatalogueType);
             nfvoCatalogueService.setNfvoCatalogueDriver(new SolCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, nfvoCatalogueId, null));

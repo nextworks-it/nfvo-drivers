@@ -3,15 +3,20 @@ package it.nextworks.nfvmano.nfvodriver.osm;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.squareup.okhttp.*;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
-
 import javax.net.ssl.*;
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.util.HashMap;
 import java.util.Map;
+import com.squareup.okhttp.*;
 
 public class OAuthSimpleClient {
 
@@ -21,14 +26,11 @@ public class OAuthSimpleClient {
     private String project;
 
     public OAuthSimpleClient(String basePath, String username, String password, String project){
-
         this.basePath= basePath;
         this.username=username;
         this.password=password;
         this.project = project;
     }
-
-
 
     public String getToken() throws FailedOperationException {
 
@@ -62,7 +64,11 @@ public class OAuthSimpleClient {
         } catch (IOException e) {
             throw new FailedOperationException(e.getMessage());
         }
+
+
+
     }
+
 
     public static OkHttpClient getUnsafeOkHttpClient() throws FailedOperationException {
         // Create a trust manager that does not validate certificate chains
