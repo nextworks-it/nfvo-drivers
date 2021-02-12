@@ -178,6 +178,19 @@ public class FiveGCatalogueClient extends CatalogueClient {
 		
 		return nsdList;
 	}
+
+	public List<NsdInfo> getNsdInfoList(String project, String authorization, String nsdId){
+		List<NsdInfo> nsdList = null;
+
+		try {
+			nsdList = nsdApi.getNSDsInfo(project, authorization, nsdId);
+		} catch(RestClientException e) {
+			log.error("RestClientException when trying to get list of nsdInfos");
+			throw new RestClientException("RestClientException when trying to get list of nsdInfos", e);
+		}
+
+		return nsdList;
+	}
 	
 	
 	public List<VnfPkgInfo> getVnfPackageInfoList(String project, String authorization, String vnfdId){
