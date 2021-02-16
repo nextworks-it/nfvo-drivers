@@ -13,8 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -41,8 +39,6 @@ public class NfvoLcmServiceUtils {
     private String nfvoLcmVim;
 
 
-
-
     //Using default value from OkHttpClient
     @Value("${nfvo.lcm.timeout:10000}")
     private int nfvoLcmTimeout;
@@ -55,6 +51,9 @@ public class NfvoLcmServiceUtils {
 
     @Autowired
     NfvoLcmService nfvoLcmService;
+
+    @Autowired
+    NfvoCatalogueService nfvoCatalogueService;
 
     @PostConstruct
     public void initNfvoLcmDriver() {
@@ -77,7 +76,7 @@ public class NfvoLcmServiceUtils {
         }else if(nfvoLcmType.equals("OSM")){
             log.debug("Configured for type:" + nfvoLcmType);
             OsmLcmDriver osmLcmDriver = new OsmLcmDriver(this.nfvoLcmAddress, this.nfvoLcmUsername, this.nfvoLcmPassword,
-                    this.nfvoLcmProject, this.nfvoLcmOperationPollingManager, null, UUID.fromString(this.nfvoLcmVim));
+                    this.nfvoLcmProject, this.nfvoLcmOperationPollingManager, null, UUID.fromString(this.nfvoLcmVim), this.nfvoCatalogueService);
             nfvoLcmService.setNfvoLcmDriver(osmLcmDriver);
         }else if(nfvoLcmType.equals("EVS_TEST")){
             log.debug("Configured for type:" + nfvoLcmType);

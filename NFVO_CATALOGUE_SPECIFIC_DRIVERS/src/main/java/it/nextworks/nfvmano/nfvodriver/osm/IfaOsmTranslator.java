@@ -378,15 +378,16 @@ public class IfaOsmTranslator {
         try{
             File cloudInit = new File(cloudInitPath);
             FileWriter fw = new FileWriter(cloudInit,true);
+            fw.write("#cloud-config\n");
             fw.write("password: ubuntu\n");
             fw.write("chpasswd: { expire: False }\n");
-            fw.write("ssh_pwauth: True\n");
+            fw.write("ssh_pwauth: True\n\n");
             fw.flush();
             fw.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        
+        //TODO command contains attribute from ifa check
         try {
             File cloudInit = new File(cloudInitPath);
             FileWriter fw = new FileWriter(cloudInit,true);

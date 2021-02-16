@@ -12,17 +12,10 @@
 
 package io.swagger.client.model;
 
-import java.util.Objects;
-import java.util.Arrays;
-
-
-import com.google.gson.TypeAdapter;
-import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.annotations.SerializedName;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.io.IOException;
+
+import java.util.Objects;
 import java.util.UUID;
 /**
  * NS Descriptor Information Only generic fields (_id, id, name, description) are described For a full specification of the NS Descriptor see: http://osm-download.etsi.org/ftp/osm-doc/nsd.html
@@ -41,6 +34,10 @@ public class NsdInfo {
 
   @SerializedName("description")
   private String description = null;
+
+  //not standard
+  @SerializedName("version")
+  private String version = null;
 
   public NsdInfo _id(UUID _id) {
     this._id = _id;
@@ -115,6 +112,27 @@ public class NsdInfo {
     this.description = description;
   }
 
+  //############################ not standard ############################
+
+  public NsdInfo version(String version){
+    this.version = version;
+    return this;
+  }
+
+  /**
+   * Version of the nsd package.
+   * @return version
+   **/
+  @Schema(description = "Version of the nsd package. ")
+  public String getVersion() {
+    return version;
+  }
+
+  public void setVersion(String version) {
+    this.version = version;
+  }
+
+  //############################ not standard ############################
 
   @Override
   public boolean equals(java.lang.Object o) {

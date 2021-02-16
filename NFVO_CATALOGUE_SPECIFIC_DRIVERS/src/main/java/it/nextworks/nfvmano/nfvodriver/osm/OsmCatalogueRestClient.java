@@ -2,10 +2,7 @@ package it.nextworks.nfvmano.nfvodriver.osm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.swagger.client.model.CreateNsdInfoRequest;
-import io.swagger.client.model.CreateVnfPkgInfoRequest;
-import io.swagger.client.model.NsdInfo;
-import io.swagger.client.model.ObjectId;
+import io.swagger.client.model.*;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.*;
 import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
@@ -111,66 +108,107 @@ public class OsmCatalogueRestClient {
     public String onboardNsd(OnboardNsdRequest request) throws MethodNotImplementedException,
             MalformattedElementException, AlreadyExistingEntityException, FailedOperationException, ApiException {
 
+        boolean onboarded = false;
         Nsd nsd = request.getNsd();
         if(nsd == null){
             log.error("NSD for onboarding is empty");
             throw new MalformattedElementException();
         }
-        //this store the nsd with random uuid name for the json file
-        String uuidStoredNsd = nsdFileRegistryService.storeNsd(nsd);
-        storedIfaNsdName.put(uuidStoredNsd,nsd.getNsdIdentifier());
 
         //contains all the OSM NSD UUIDs generated from the IFA NSD
         List<UUID> nsdInfoIds = new ArrayList<>();
         for (NsDf df : nsd.getNsDf()) { // Generate a OSM NSD for each DF
-            Map<String,String> vnfProfileId;
-
-            HashMap<String,Boolean> useTemplateVNFDs = new HashMap<>();
-            if(df.getNsInstantiationLevel().size()> 1){
-                //there is at least one scaling rule to add
-                if(!updateVNFDs(nsd,df,useTemplateVNFDs)){
-                    // Error during the update of vnfd package with scaling rule
-                    log.error("Cannot update VNFD package with autoscaling rule");
-                    throw new FailedOperationException();
+            //Map<String,String> vnfProfileId;
+            //check if the associated vnfds to this nsd,df are in the NFVO
+            if (!checkVNFDExistence(nsd, df)) {
+                log.debug("VNFDs associated to this <NSD,DF> aren't in the NFVO Catalogue. Skipping the onboarding of this NS");
+            } else {
+                HashMap<String, Boolean> useTemplateVNFDs = new HashMap<>();
+                if (df.getNsInstantiationLevel().size() > 1) {
+                    //there is at least one scaling rule to add
+                    if (!updateVNFDs(nsd, df, useTemplateVNFDs)) {
+                        // Error during the update of vnfd package with scaling rule
+                        log.error("Cannot update VNFD package with autoscaling rule");
+                        throw new FailedOperationException();
+                    }
                 }
+                // Now create and onboard NSD
+                //call the translation process that return nsd tar file
+                File compressFilePath = IfaOsmTranslator.createPackageForNsd(nsd, df, useTemplateVNFDs);
+                NSDescriptor nsdOsm = IfaOsmTranslator.getGeneratedOsmNsd(); //TODO validate if this could change (maybe no more useful)
+                UUID nsdInfoId;
+                //this post request create a new ns descriptor resource
+                try {
+                    nsPackagesApi.setApiClient(getClient());
+                    //this will create a new NSD resource
+                    ObjectId response = nsPackagesApi.addNSD(new CreateNsdInfoRequest());
+                    nsdInfoId = response.getId();
+                    log.debug("Created NSD resource with UUID: " + nsdInfoId.toString());
+                    NsdInfoIdToOsmNsdId.put(nsdInfoId, IfaOsmTranslator.getOsmNsdId(nsd, df));
+                } catch (ApiException e) {
+                    log.error("Creation NSD resource failed", e);
+                    log.error("Error during creation of NSD resource!", e.getResponseBody());
+                    throw new FailedOperationException(e.getMessage());
+                }
+                try {
+                    nsPackagesApi.updateNSDcontent(nsdInfoId.toString(), compressFilePath);
+                    log.debug("Updated the NSD resource with UUID: " + nsdInfoId + "\n  with the NSD of id: " + nsdOsm.getId());
+                } catch (ApiException e) {
+                    //the resource pointed by nsdInfoId has not been modified due to exception, need to delete it
+                    nsPackagesApi.deleteNSD(nsdInfoId.toString());
+                    log.debug("Deleted NSD Resource with UUID: " + nsdInfoId);
+                    throw new FailedOperationException("Error on NSD onboarding!" + e.getResponseBody());
+                }
+                nsdInfoIds.add(nsdInfoId);
+                onboarded = true;
             }
-            // Now create and onboard NSD
-            //call the translation process that return nsd tar file
-            File compressFilePath = IfaOsmTranslator.createPackageForNsd(nsd,df,useTemplateVNFDs);
-            NSDescriptor nsdOsm = IfaOsmTranslator.getGeneratedOsmNsd(); //TODO validate if this could change (maybe no more useful)
-            UUID nsdInfoId;
-            //this post request create a new ns descriptor resource
-            try {
-                nsPackagesApi.setApiClient(getClient());
-                //this will create a new NSD resource
-                ObjectId response = nsPackagesApi.addNSD(new CreateNsdInfoRequest());
-                nsdInfoId = response.getId();
-                log.debug("Created NSD resource with UUID: " + nsdInfoId.toString());
-                NsdInfoIdToOsmNsdId.put(nsdInfoId,IfaOsmTranslator.getOsmNsdId(nsd,df));
-            }
-            catch (ApiException e){
-                log.error("Creation NSD resource failed",e);
-                log.error("Error during creation of NSD resource!", e.getResponseBody());
-                throw new FailedOperationException(e.getMessage());
-            }
-            try{
-                nsPackagesApi.updateNSDcontent(nsdInfoId.toString(), compressFilePath);
-                log.debug("Updated the NSD resource with UUID: " + nsdInfoId + "\n  with the NSD of id: " + nsdOsm.getId());
-            }
-            catch (ApiException e){
-                //the resource pointed by nsdInfoId has not been modified due to exception, need to delete it
-                nsPackagesApi.deleteNSD(nsdInfoId.toString());
-                log.debug("Deleted NSD Resource with UUID: " + nsdInfoId);
-                throw new FailedOperationException("Error on NSD onboarding!" + e.getResponseBody());
-            }
-            nsdInfoIds.add(nsdInfoId);
         }
 
+        if(onboarded){
+            //this store the nsd with random uuid name for the json file
+            String uuidStoredNsd = nsdFileRegistryService.storeNsd(nsd);
+            storedIfaNsdName.put(uuidStoredNsd,nsd.getNsdIdentifier());
+        }
+        else{
+            log.debug("No NS has been onboarded. VNFDs not present in NFVO Catalogue");
+            throw new FailedOperationException("VNFDs for this NS not found in NFVO Catalogue.");
+        }
         //saving nsd descriptor named with nsd_id
         //storeIfaNsd(nsd,folderIfaDescriptors);
 
         //NsdIfaIdToNsdInfoIds.put(UUID.fromString(nsd.getNsdIdentifier()),nsdInfoIds);
         return nsd.getNsdIdentifier(); //TODO validate this return
+    }
+
+    private boolean checkVNFDExistence(Nsd nsd, NsDf df) {
+        for (String vnfdIfaId : nsd.getVnfdId()) {
+            String osmVnfdId = null;
+            try {
+                //try to check locally
+                osmVnfdId = getOsmVnfdId(vnfdIfaId, IfaOsmTranslator.getFlavourFromVnfdId(df, vnfdIfaId));
+                if(!vnfdIdToVnfdUUID.containsKey(osmVnfdId)){
+                    //try to check in OSM.
+                    vnfPackagesApi.setApiClient(getClient());
+                    ArrayOfVnfPkgInfo arrayOfVnfPkgInfo = vnfPackagesApi.getVnfPkgs();
+                    for(VnfPkgInfo vnfPkgInfo : arrayOfVnfPkgInfo){
+                        if(vnfPkgInfo.getId().equals(osmVnfdId))
+                            //let backend know the mapping
+                            vnfdIdToVnfdUUID.put(osmVnfdId,vnfPkgInfo.getIdentifier());
+                    }
+                }
+            } catch (NotExistingEntityException e) {
+                log.error("Cannot obtain id of Osm vnfd from Ifa constituent vnfd");
+                e.printStackTrace();
+                return false;
+            } catch (ApiException e) {
+                return false;
+            } catch (FailedOperationException e) {
+                log.error("Cannot set api client.");
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -241,7 +279,7 @@ public class OsmCatalogueRestClient {
                 e.printStackTrace();
                 return false;
             }
-
+            //TODO Check the onboarding of new nsd when it is already present the vnfd containig the scaling rule
             boolean deleteResource = false;
             //add autoscaling for each vnfd that are in this nsd
             if (addAutoscalingRules(df, defaultIL, vnfDescriptor, vnfProfileIdToVnfId)) {
@@ -425,7 +463,12 @@ public class OsmCatalogueRestClient {
         //this is the id of the NSD IFA requested
         String nsdId = request.getFilter().getParameters().get("NSD_ID");
         String nsdVersion = request.getFilter().getParameters().get("NSD_VERSION");
-        it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo nsdInfo = nsdFileRegistryService.queryNsd(nsdId,nsdVersion);
+        it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo nsdInfo;
+        //here the nsdInfoId of nsdInfo is a combination of nsdId + nsdVersion to uuid
+        if(nsdVersion == null) nsdInfo = nsdFileRegistryService.queryNsd(nsdId);
+        else nsdInfo = nsdFileRegistryService.queryNsd(nsdId,nsdVersion);
+        //workaround because if we answer with nsdInfo, then at instantiation time OsmLcmDriver will receive as id the id corresponding to
+        //the random uuid generated when storing the nsd
         it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo newNsdInfo = new it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo(
                 storedIfaNsdName.get(nsdInfo.getNsdInfoId()),
                 nsdInfo.getNsdId(),
@@ -488,54 +531,62 @@ public class OsmCatalogueRestClient {
         } catch (IOException e) {
             e.printStackTrace();
         }*/
+
         if(vnfd == null) throw new MalformattedElementException("VNFD for onboarding is empty");
         try {
             String uuidStoredVnfd = vnfdFileRegistryService.storeVnfd(request,vnfd);
             storedIfaVnfdName.put(uuidStoredVnfd,vnfd.getVnfdId());
+            ifaVnfdIdToIfaVnfd.put(vnfd.getVnfdId(),vnfd);
         } catch (AlreadyExistingEntityException e) {
-            e.printStackTrace();
+            log.debug("VNFD ifa already present.");
             //TODO se è già presente necessità di essere refreshato?
         }
-        ifaVnfdIdToIfaVnfd.put(vnfd.getVnfdId(),vnfd);
         //maybe a vnfd for each couple of vnfd,vnfDf?
         for(VnfDf vnfdDf : vnfd.getDeploymentFlavour()){
-            File compressFilePath = IfaOsmTranslator.createPackageForVnfd(vnfd,vnfdDf);
-            VNFDescriptor vnfdOsm = IfaOsmTranslator.getGeneratedOsmVnfd(); //TODO validate if this could change
-            UUID vnfdInfoId = null;
-            //create a new Vnfd resource
-            try {
-                vnfPackagesApi.setApiClient(getClient());
-                ObjectId response = vnfPackagesApi.addVnfPkg(new CreateVnfPkgInfoRequest());
-                vnfdInfoId = response.getId();
-                log.debug("Created a new VNFD Resource with UUID: " + vnfdInfoId);
-            } catch (FailedOperationException e) {
-                log.error("Failed to set Api client",e);
-                throw new FailedOperationException(e.getMessage());
-            } catch (ApiException e) {
-                log.error("Creation VNFD resource failed",e);
-                throw new FailedOperationException(e.getResponseBody());
+            if(vnfdIdToVnfdUUID.containsKey(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId())){
+                log.debug("This VNFD is already present in the NFVO Catalgoue, skipping onboarding.");
             }
-            try {
-                vnfPackagesApi.uploadVnfPkgContent(vnfdInfoId.toString(),compressFilePath);
-                log.debug("Updated the VNFD resource with UUID: " + vnfdInfoId + "\n  with the VNFD of id: " + vnfdOsm.getId());
-            } catch (ApiException e) {
-                //TODO to log error
-                //the resource pointed by nsdInfoId has not been modified due to exception, need to delete it
+            else{
+                File compressFilePath = IfaOsmTranslator.createPackageForVnfd(vnfd,vnfdDf);
+                VNFDescriptor vnfdOsm = IfaOsmTranslator.getGeneratedOsmVnfd(); //TODO validate if this could change
+                UUID vnfdInfoId = null;
+                //create a new Vnfd resource
                 try {
-                    vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
-                    log.debug("Deleted VNFD Resource with UUID: " + vnfdInfoId);
-                } catch (ApiException apiException) {
-                    log.error("Can't delete vnfdInfoId resource", apiException);
-                    throw new FailedOperationException(apiException.getResponseBody());
+                    vnfPackagesApi.setApiClient(getClient());
+                    ObjectId response = vnfPackagesApi.addVnfPkg(new CreateVnfPkgInfoRequest());
+                    vnfdInfoId = response.getId();
+                    log.debug("Created a new VNFD Resource with UUID: " + vnfdInfoId);
+                } catch (FailedOperationException e) {
+                    log.error("Failed to set Api client",e);
+                    throw new FailedOperationException(e.getMessage());
+                } catch (ApiException e) {
+                    log.error("Creation VNFD resource failed",e);
+                    throw new FailedOperationException(e.getResponseBody());
                 }
-                throw new FailedOperationException("Error on VNFD onboarding!" + e.getResponseBody());
+                try {
+                    vnfPackagesApi.uploadVnfPkgContent(vnfdInfoId.toString(),compressFilePath);
+                    log.debug("Updated the VNFD resource with UUID: " + vnfdInfoId + "\n  with the VNFD of id: " + vnfdOsm.getId());
+                } catch (ApiException e) {
+                    //TODO to log error
+                    //the resource pointed by nsdInfoId has not been modified due to exception, need to delete it
+                    try {
+                        vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
+                        log.debug("Deleted VNFD Resource with UUID: " + vnfdInfoId);
+                    } catch (ApiException apiException) {
+                        log.error("Can't delete vnfdInfoId resource", apiException);
+                        throw new FailedOperationException(apiException.getResponseBody());
+                    }
+                    throw new FailedOperationException("Error on VNFD onboarding!" + e.getResponseBody());
+                }
+                vnfdIdToVnfdUUID.put(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId(),vnfdInfoId);
+                //vnfdIdToOsmVnfd.put(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId(),vnfdOsm);
             }
-            vnfdIdToVnfdUUID.put(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId(),vnfdInfoId);
-            //vnfdIdToOsmVnfd.put(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId(),vnfdOsm);
         }
+
         UUID randomUUID = UUID.randomUUID();
         //maybe a map
         OnBoardVnfPackageResponse onBoardVnfPackageResponse = new OnBoardVnfPackageResponse(randomUUID.toString(),vnfd.getVnfdId());
+        //CHECK WHAT RETURN IF VNFD ALREADY PRESENT
         return onBoardVnfPackageResponse;
     }
 
