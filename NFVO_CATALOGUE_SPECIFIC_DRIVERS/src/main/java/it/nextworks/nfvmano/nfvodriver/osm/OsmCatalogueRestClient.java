@@ -29,6 +29,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 /**
@@ -281,34 +284,41 @@ public class OsmCatalogueRestClient {
             }
             //TODO Check the onboarding of new nsd when it is already present the vnfd containig the scaling rule
             boolean deleteResource = false;
+            int result = addAutoscalingRules(df, defaultIL, vnfDescriptor, vnfProfileIdToVnfId,nsdIdWithFlavour);
             //add autoscaling for each vnfd that are in this nsd
-            if (addAutoscalingRules(df, defaultIL, vnfDescriptor, vnfProfileIdToVnfId)) {
+            if (result==1) {
                 //Vnfd modified. We need to upload it on OSM
                 File compressVnfdFile = IfaOsmTranslator.updateVnfPackage(vnfDescriptor, nsdIdWithFlavour);
                 if (compressVnfdFile != null) {
                     try {
                         vnfPackagesApi.uploadVnfPkgContent(vnfdInfoId.toString(), compressVnfdFile);
+                        log.debug("Onboarded VNFD " + vnfDescriptor.getId() + "_" + nsdIdWithFlavour);
+                        useTemplateVNFDs.put(vnfdIfaId,false);
                     } catch (ApiException e1) {
-                        log.error("Cannot onboard updated VNFD");
-                        deleteResource = true;
+                        log.error("Cannot onboard updated VNFD. Using default template.");
+                        useTemplateVNFDs.put(vnfdIfaId,true);
+                        //delete package resource
+                        try {
+                            vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
+                            return false;
+                        } catch (ApiException e) {
+                            log.error("Cannot delete package resource");
+                            throw new FailedOperationException();
+                        }
                     }
-                    log.debug("Onboarded VNFD " + vnfDescriptor.getId() + "_" + nsdIdWithFlavour);
-                    useTemplateVNFDs.put(vnfdIfaId,false);
                 } else {
                     log.error("Cannot compress file");
                     deleteResource = true;
                 }
-            } else {
+            } else if(result == 0){
                 //autoscaling rule not needed for this vnfd
                 useTemplateVNFDs.put(vnfdIfaId,true);
-                //delete package resource
-                try {
-                    vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
-                    log.error("Cannot onboard new VNFD");
-                } catch (ApiException e) {
-                    e.printStackTrace();
-                    log.error("Cannot delete package resource");
-                }
+                deleteResource = true;
+            }
+            else{
+                //vnfd modified already present
+                useTemplateVNFDs.put(vnfdIfaId,false);
+                deleteResource = true;
             }
             if (deleteResource) {
                 //delete package resource
@@ -319,7 +329,6 @@ public class OsmCatalogueRestClient {
                     e.printStackTrace();
                     log.error("Cannot delete package resource");
                 }
-                return false;
             }
         }
         return true;
@@ -369,9 +378,13 @@ public class OsmCatalogueRestClient {
      * @param df
      * @param vnfDescriptor
      * @param vnfProfileIdToVnfId
-     * @return boolean that represent if the scaling rules have been added
+     * @return int
      */
-    private boolean addAutoscalingRules(NsDf df, NsLevel defaultIL, VNFDescriptor vnfDescriptor, HashMap<String, String> vnfProfileIdToVnfId) throws FailedOperationException {
+    private int addAutoscalingRules(NsDf df, NsLevel defaultIL, VNFDescriptor vnfDescriptor, HashMap<String, String> vnfProfileIdToVnfId, String nsdId) throws FailedOperationException {
+        //-1 -> modified vnfd already exist
+        // 0 -> scaling rule not required
+        // 1 -> scaling rule added
+
         //adding a scaling rules to this vnfDescriptor
         HashMap<String,Integer> defaultNumberOfInstances = new HashMap<>();
         /*assumption the default instantiation level has always the min number of instances*/
@@ -385,7 +398,7 @@ public class OsmCatalogueRestClient {
             if(!nsLevel.getNsLevelId().equals(defaultIL.getNsLevelId())){
                 for(VnfToLevelMapping vnfToLevelMapping : nsLevel.getVnfToLevelMapping()){
                     if(vnfProfileIdToVnfId.get(vnfToLevelMapping.getVnfProfileId()).equals(vnfDescriptor.getId())
-                        && vnfToLevelMapping.getNumberOfInstances() > defaultNumberOfInstances.get(vnfToLevelMapping.getVnfProfileId())){
+                            && vnfToLevelMapping.getNumberOfInstances() > defaultNumberOfInstances.get(vnfToLevelMapping.getVnfProfileId())){
                         //check if the vnf is in the IL and if the number of istances is different from default IL
                         toAdd = true;
                         break;
@@ -394,8 +407,29 @@ public class OsmCatalogueRestClient {
             }
             if(toAdd) break;
         }
-
-        if(!toAdd) return false;
+        if(!toAdd) return 0;
+        //check if the modified vnfd is already present in osm
+        String vnfdId = vnfDescriptor.getId().concat("_"+nsdId);
+        //try to check locally
+        if(!vnfdIdToVnfdUUID.containsKey(vnfdId)){
+            //try to check in OSM.
+            vnfPackagesApi.setApiClient(getClient());
+            ArrayOfVnfPkgInfo arrayOfVnfPkgInfo = null;
+            try {
+                arrayOfVnfPkgInfo = vnfPackagesApi.getVnfPkgs();
+            } catch (ApiException e) {
+                log.error("Cannot retrieve the list of VNFD.");
+                throw new FailedOperationException();
+            }
+            for(VnfPkgInfo vnfPkgInfo : arrayOfVnfPkgInfo){
+                if(vnfPkgInfo.getId() != null && vnfPkgInfo.getId().equals(vnfdId)){
+                    //let backend know the mapping
+                    vnfdIdToVnfdUUID.put(vnfdId,vnfPkgInfo.getIdentifier());
+                    return -1;
+                }
+            }
+        }
+        else return -1;
 
         //There at least a scaling rule to add
         List<ScalingGroupDescriptor> scalingGroupDescriptorList = new ArrayList<>();
@@ -437,7 +471,7 @@ public class OsmCatalogueRestClient {
             }
         }
         vnfDescriptor.setScalingGroupDescriptor(scalingGroupDescriptorList);
-        return true;
+        return 1;
     }
 
     /**
@@ -504,11 +538,17 @@ public class OsmCatalogueRestClient {
         log.debug("Retrieving VNFD from VNF package");
         String folder = null;
         Vnfd vnfd = null;
+        File cloudInit = null;
         try{
             String downloadedFile = fileUtilities.downloadFile(vnfPackagePath);
             folder = fileUtilities.extractFile(downloadedFile);
             File jsonFile = fileUtilities.findJsonFileInDir(folder);
-
+            //TODO cloud-config to be replaced with the name specified in start script instantiation of ifa vnfd
+            cloudInit = new File(TEMP_DIR+File.separator+folder,"cloud-config.txt");
+            if(cloudInit.exists()){
+                //need to not delete cloud init
+                Files.move(Paths.get(cloudInit.getAbsolutePath()),Paths.get(TEMP_DIR+File.separator+"cloud-config.txt"), StandardCopyOption.REPLACE_EXISTING);
+            }
             Charset encoding = null;
             String json = FileUtils.readFileToString(jsonFile, encoding);
             log.debug("VNFD json: \n" + json);
@@ -547,39 +587,59 @@ public class OsmCatalogueRestClient {
                 log.debug("This VNFD is already present in the NFVO Catalgoue, skipping onboarding.");
             }
             else{
-                File compressFilePath = IfaOsmTranslator.createPackageForVnfd(vnfd,vnfdDf);
-                VNFDescriptor vnfdOsm = IfaOsmTranslator.getGeneratedOsmVnfd(); //TODO validate if this could change
-                UUID vnfdInfoId = null;
-                //create a new Vnfd resource
+                boolean skipOnboard = false;
+                //check in osm
+                vnfPackagesApi.setApiClient(getClient());
+                String osmVnfdId = getOsmVnfdId(vnfd.getVnfdId(),vnfdDf.getFlavourId());
+                ArrayOfVnfPkgInfo arrayOfVnfPkgInfo = null;
                 try {
-                    vnfPackagesApi.setApiClient(getClient());
-                    ObjectId response = vnfPackagesApi.addVnfPkg(new CreateVnfPkgInfoRequest());
-                    vnfdInfoId = response.getId();
-                    log.debug("Created a new VNFD Resource with UUID: " + vnfdInfoId);
-                } catch (FailedOperationException e) {
-                    log.error("Failed to set Api client",e);
-                    throw new FailedOperationException(e.getMessage());
+                    arrayOfVnfPkgInfo = vnfPackagesApi.getVnfPkgs();
                 } catch (ApiException e) {
-                    log.error("Creation VNFD resource failed",e);
-                    throw new FailedOperationException(e.getResponseBody());
+                    log.error("Cannot retrieve the list of VNFDs.");
+                    throw new FailedOperationException();
                 }
-                try {
-                    vnfPackagesApi.uploadVnfPkgContent(vnfdInfoId.toString(),compressFilePath);
-                    log.debug("Updated the VNFD resource with UUID: " + vnfdInfoId + "\n  with the VNFD of id: " + vnfdOsm.getId());
-                } catch (ApiException e) {
-                    //TODO to log error
-                    //the resource pointed by nsdInfoId has not been modified due to exception, need to delete it
-                    try {
-                        vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
-                        log.debug("Deleted VNFD Resource with UUID: " + vnfdInfoId);
-                    } catch (ApiException apiException) {
-                        log.error("Can't delete vnfdInfoId resource", apiException);
-                        throw new FailedOperationException(apiException.getResponseBody());
+                for(VnfPkgInfo vnfPkgInfo : arrayOfVnfPkgInfo){
+                    if(vnfPkgInfo.getId().equals(osmVnfdId)) {
+                        //let backend know the mapping
+                        vnfdIdToVnfdUUID.put(osmVnfdId, vnfPkgInfo.getIdentifier());
+                        skipOnboard = true;
+                        log.debug("VNFD : " + osmVnfdId + " already present. Skipping onboarding");
                     }
-                    throw new FailedOperationException("Error on VNFD onboarding!" + e.getResponseBody());
                 }
-                vnfdIdToVnfdUUID.put(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId(),vnfdInfoId);
-                //vnfdIdToOsmVnfd.put(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId(),vnfdOsm);
+                if(!skipOnboard){
+                    File compressFilePath = IfaOsmTranslator.createPackageForVnfd(vnfd,vnfdDf);
+                    VNFDescriptor vnfdOsm = IfaOsmTranslator.getGeneratedOsmVnfd(); //TODO validate if this could change
+                    UUID vnfdInfoId = null;
+                    //create a new Vnfd resource
+                    try {
+                        vnfPackagesApi.setApiClient(getClient());
+                        ObjectId response = vnfPackagesApi.addVnfPkg(new CreateVnfPkgInfoRequest());
+                        vnfdInfoId = response.getId();
+                        log.debug("Created a new VNFD Resource with UUID: " + vnfdInfoId);
+                    } catch (FailedOperationException e) {
+                        log.error("Failed to set Api client",e);
+                        throw new FailedOperationException(e.getMessage());
+                    } catch (ApiException e) {
+                        log.error("Creation VNFD resource failed",e);
+                        throw new FailedOperationException(e.getResponseBody());
+                    }
+                    try {
+                        vnfPackagesApi.uploadVnfPkgContent(vnfdInfoId.toString(),compressFilePath);
+                        log.debug("Updated the VNFD resource with UUID: " + vnfdInfoId + "\n  with the VNFD of id: " + vnfdOsm.getId());
+                    } catch (ApiException e) {
+                        //TODO to log error
+                        //the resource pointed by nsdInfoId has not been modified due to exception, need to delete it
+                        try {
+                            vnfPackagesApi.deleteVnfPkg(vnfdInfoId.toString());
+                            log.debug("Deleted VNFD Resource with UUID: " + vnfdInfoId);
+                        } catch (ApiException apiException) {
+                            log.error("Can't delete vnfdInfoId resource", apiException);
+                            throw new FailedOperationException(apiException.getResponseBody());
+                        }
+                        throw new FailedOperationException("Error on VNFD onboarding!" + e.getResponseBody());
+                    }
+                    vnfdIdToVnfdUUID.put(vnfd.getVnfdId()+"_"+vnfdDf.getFlavourId(),vnfdInfoId);
+                }
             }
         }
 

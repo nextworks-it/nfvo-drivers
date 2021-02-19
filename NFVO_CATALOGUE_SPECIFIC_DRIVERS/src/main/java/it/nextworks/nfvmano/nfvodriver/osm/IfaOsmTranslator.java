@@ -224,13 +224,12 @@ public class IfaOsmTranslator {
         for(LifeCycleManagementScript lifeCycleManagementScript : vnfd.getLifeCycleManagementScript()){
             String script = lifeCycleManagementScript.getScript();
             if(script.length()>0) {
-                if(script.contains("bin/bash")){
+                if(script.contains("bin/bash"))
                     generateCloudInitFile(getCommands(script));
-                    isCloudInitPresent = true;
-                }
-                else{
-                    log.warn("Skipped generation of cloud-init. Initial configuration is supported only through bash script.");
-                }
+                isCloudInitPresent = true;
+            }
+            else{
+                log.warn("Skipped generation of cloud-init from ifa Vnfd. Support only bin/bash translation.");
             }
         }
 
