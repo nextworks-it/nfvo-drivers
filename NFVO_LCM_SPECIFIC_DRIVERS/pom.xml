@@ -111,7 +111,7 @@
 		</dependency>
 		<dependency>
 			<groupId>io.swagger</groupId>
-			<artifactId>swagger-java-client-monit-config-manager</artifactId>
+			<artifactId>config-manager-client</artifactId>
 			<version>1.0.0</version>
 		</dependency>
 		<dependency>
