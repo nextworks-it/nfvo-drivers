@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.invoker.nsd.ApiClient;
+import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.nsdmanagement.elements.NsdInfo;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.AlreadyExistingEntityException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.Catalogue;
@@ -277,8 +278,23 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public QueryNsdResponse queryNsd(GeneralizedQueryRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
-		// TODO Auto-generated method stub
-		return null;
+		String authorization = null;
+		GeneralizedQueryRequest solRequest = IfaToSolTranslator.translateQueryNsdRequest(request);
+
+
+		try{
+
+			List<NsdInfo> nsdInfos = nsdApi.getNsdInfoList(this.project, authorization, solRequest.getFilter().getParameters().get("NSD_ID"));
+
+			return IfaToSolTranslator.translateQueryNsdInfoResponse(request, nsdInfos);
+		}catch(Exception e){
+			log.error("Error querying NSD", e);
+			throw new FailedOperationException(e);
+		}
+
+
+
+
 	}
 
 	@Override

@@ -4,6 +4,7 @@ package it.nextworks.nfvmano.nfvodriver;
 import it.nextworks.nfvmano.nfvodriver.logging.NfvoLcmLoggingDriver;
 import it.nextworks.nfvmano.nfvodriver.osm.OsmLcmDriver;
 import it.nextworks.nfvmano.nfvodriver.sol5.Sol5NfvoLcmDriver;
+import it.nextworks.nfvmano.nfvodriver.test.EvsTestNfvoLcmDriver;
 import it.nextworks.nfvmano.nfvodriver.timeo.TimeoLcmDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +39,6 @@ public class NfvoLcmServiceUtils {
     private String nfvoLcmVim;
 
 
-
     //Using default value from OkHttpClient
     @Value("${nfvo.lcm.timeout:10000}")
     private int nfvoLcmTimeout;
@@ -51,6 +51,9 @@ public class NfvoLcmServiceUtils {
 
     @Autowired
     NfvoLcmService nfvoLcmService;
+
+    @Autowired
+    NfvoCatalogueService nfvoCatalogueService;
 
     @PostConstruct
     public void initNfvoLcmDriver() {
@@ -73,8 +76,12 @@ public class NfvoLcmServiceUtils {
         }else if(nfvoLcmType.equals("OSM")){
             log.debug("Configured for type:" + nfvoLcmType);
             OsmLcmDriver osmLcmDriver = new OsmLcmDriver(this.nfvoLcmAddress, this.nfvoLcmUsername, this.nfvoLcmPassword,
-                    this.nfvoLcmProject, this.nfvoLcmOperationPollingManager, null, UUID.fromString(this.nfvoLcmVim));
+                    this.nfvoLcmProject, this.nfvoLcmOperationPollingManager, null, UUID.fromString(this.nfvoLcmVim), this.nfvoCatalogueService);
             nfvoLcmService.setNfvoLcmDriver(osmLcmDriver);
+        }else if(nfvoLcmType.equals("EVS_TEST")){
+            log.debug("Configured for type:" + nfvoLcmType);
+            nfvoLcmService.setNfvoLcmDriver(new EvsTestNfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager));
+
         } else {
             log.error("NFVO not configured!");
         }

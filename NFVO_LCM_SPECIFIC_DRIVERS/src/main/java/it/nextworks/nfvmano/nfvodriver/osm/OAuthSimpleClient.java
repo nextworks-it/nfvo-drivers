@@ -7,15 +7,9 @@ import com.squareup.okhttp.*;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 
 import javax.net.ssl.*;
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.KeyManagementException;
-import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -68,11 +62,7 @@ public class OAuthSimpleClient {
         } catch (IOException e) {
             throw new FailedOperationException(e.getMessage());
         }
-
-
-
     }
-
 
     public static OkHttpClient getUnsafeOkHttpClient() throws FailedOperationException {
         // Create a trust manager that does not validate certificate chains

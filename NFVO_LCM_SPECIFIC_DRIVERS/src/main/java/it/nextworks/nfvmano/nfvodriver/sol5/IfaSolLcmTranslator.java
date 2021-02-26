@@ -348,7 +348,47 @@ public class IfaSolLcmTranslator {
 		ipOverEthernet.addIpAddressesItem(ip);
 		x.setIpOverEthernet(ipOverEthernet);
 		x.setLayerProtocol(LayerProtocolEnum.IP_OVER_ETHERNET);
-		sapProtocolData.add(x);
+		//sapProtocolData.add(x);
+		Map<String, String> values = new HashMap<>();
+		String sST = null;
+		String coverageArea=null;
+		int uLThptPerSlice =0;
+		int dLThptPerSlice =0;
+		int latency =0;
+		String radioAccessTechnology=null;
+		String site = null;
+
+		Map<String, Object> sliceParameters = input.getSliceParameters();
+		if(sliceParameters.containsKey("sST")&& sliceParameters.get("sST")!=null)
+			sST=sliceParameters.get("sST").toString();
+
+		if(sliceParameters.containsKey("coverageArea")&& sliceParameters.get("coveraArea")!=null)
+			coverageArea=sliceParameters.get("coverageArea").toString();
+
+		if(sliceParameters.containsKey("radioAccessTechnology")&& sliceParameters.get("radioAccessTechnology")!=null)
+			radioAccessTechnology=sliceParameters.get("radioAccessTechnology").toString();
+
+		if(sliceParameters.containsKey("latency")&& sliceParameters.get("latency")!=null)
+			latency= Integer.parseInt(sliceParameters.get("latency").toString());
+
+		if(sliceParameters.containsKey("uLThptPerSlice")&& sliceParameters.get("uLThptPerSlice")!=null)
+			uLThptPerSlice= Integer.parseInt(sliceParameters.get("uLThptPerSlice").toString());
+
+		if(sliceParameters.containsKey("dLThptPerSlice")&& sliceParameters.get("dLThptPerSlice")!=null)
+			dLThptPerSlice= Integer.parseInt(sliceParameters.get("dLThptPerSlice").toString());
+
+		if(sliceParameters.containsKey("site")&& sliceParameters.get("site")!=null)
+			site= sliceParameters.get("site").toString();
+
+		/*
+		  radioSliceProfile.put("coverageArea", coverageArea);
+                                radioSliceProfile.put("latency", latency);
+                                radioSliceProfile.put("uLThptPerSlice", uL);
+                                radioSliceProfile.put("dLThptPerSlice", dL);
+                                radioSliceProfile.put("radioAccessTechnology", rAT);
+		 */
+
+		output.setRadioSliceProfile(new RadioSliceProfile(sST, coverageArea, latency, uLThptPerSlice, dLThptPerSlice, site));
 		output.setSapProtocolData(sapProtocolData);
 		return output;
 	}

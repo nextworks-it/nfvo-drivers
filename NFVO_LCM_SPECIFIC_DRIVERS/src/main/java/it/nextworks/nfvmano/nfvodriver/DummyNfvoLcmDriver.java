@@ -39,6 +39,7 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 	private Map<String, NsInfo> nsInstances = new HashMap<>();
 	private Map<String, OperationStatus> operations = new HashMap<>();
 	private List<String> subscriptions = new ArrayList<>();
+
 	
 	private NfvoLcmOperationPollingManager nfvoOperationPollingManager;
 	
@@ -49,6 +50,7 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 			NfvoLcmOperationPollingManager nfvoOperationPollingManager) {
 		super(NfvoLcmDriverType.DUMMY, nfvoAddress, nfvoNotificationManager);
 		this.nfvoOperationPollingManager = nfvoOperationPollingManager;
+
 	}
 
 	@Override
@@ -57,6 +59,8 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 		request.isValid();
 		log.debug("Generating new NS identifier");
 		UUID nsInfoUuid = UUID.randomUUID();
+
+
 		String nsInfoId = nsInfoUuid.toString();
 		log.debug("Generated NS identifier " + nsInfoId);
 		NsInfo nsInfo = new NsInfo(nsInfoId, 
@@ -65,12 +69,15 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 				request.getNsdId(),					//nsdId 
 				null, 								//flavourId 
 				null, 								//vnfInfoId
-				null, 								//nestedNsInfoId 
+				null, 								//nestedNsInfoId
 				InstantiationState.NOT_INSTANTIATED,//nsState 
 				null,								//nsScaleStatus
 				null,								//additionalAffinityOrAntiAffinityRule
 				request.getTenantId(),				//tenantId
-				null);								//configurationParameters)
+				null);		//configurationParameters)
+
+
+
 		nsInstances.put(nsInfoId, nsInfo);
 		return nsInfoId;
 	}
@@ -83,7 +90,7 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 		try{
 			log.debug("Received InstantiateNsRequest: "+mapper.writeValueAsString(request));
 		}catch (Exception e){
-			log.error("Cannot deserialize InstantiateNsRequest");
+			log.error("Cannot deserialize InstantiateNsRequest",e);
 		}
 
 		String nsInstanceId = request.getNsInstanceId();
@@ -95,6 +102,7 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 			log.debug("Generated operation identifier " + operationId);
 			operations.put(operationId, OperationStatus.SUCCESSFULLY_DONE);
 			NsInfo nsInfo = nsInstances.get(nsInstanceId);
+
 			nsInfo.setFlavourId(request.getFlavourId());
 			nsInfo.setInstantiationLevel(request.getNsInstantiationLevelId());
 			nsInfo.setNsState(InstantiationState.INSTANTIATED);

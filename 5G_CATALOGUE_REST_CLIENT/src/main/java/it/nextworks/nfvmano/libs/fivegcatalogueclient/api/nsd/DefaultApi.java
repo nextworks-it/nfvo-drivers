@@ -281,6 +281,34 @@ public class DefaultApi {
                 contentType, authNames, returnType);
     }
 
+
+    public List<NsdInfo> getNSDsInfo(String project, String authorization, String nsdId) throws RestClientException {
+        Object postBody = null;
+
+        String path = UriComponentsBuilder.fromPath("/nsd/v1/ns_descriptors").build().toUriString();
+
+        final MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<String, String>();
+        if(project != null)
+            queryParams.add("project", project);
+        queryParams.add("nsdId", nsdId);
+        final HttpHeaders headerParams = new HttpHeaders();
+        //adding fake Authorization header for bypassing security check on it.nextworks.nfvmano.libs.catalogue
+        headerParams.add("Authorization", authorization);
+        final MultiValueMap<String, Object> formParams = new LinkedMultiValueMap<String, Object>();
+
+        final String[] accepts = {"application/json", "application/yaml"};
+        final List<MediaType> accept = apiClient.selectHeaderAccept(accepts);
+        final String[] contentTypes = {};
+        final MediaType contentType = apiClient.selectHeaderContentType(contentTypes);
+
+        String[] authNames = new String[]{};
+
+        ParameterizedTypeReference<List<NsdInfo>> returnType = new ParameterizedTypeReference<List<NsdInfo>>() {
+        };
+        return apiClient.invokeAPI(path, HttpMethod.GET, queryParams, postBody, headerParams, formParams, accept,
+                contentType, authNames, returnType);
+    }
+
     public Object getPNFD(String pnfdInfoId, String project, String authorization) throws RestClientException {
         Object postBody = null;
 
