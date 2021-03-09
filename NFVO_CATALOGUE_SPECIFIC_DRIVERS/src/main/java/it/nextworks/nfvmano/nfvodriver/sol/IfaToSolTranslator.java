@@ -246,11 +246,14 @@ public class IfaToSolTranslator {
 		Map<String, Node> nodeTemplates = new HashMap<>();
 
 		for( NsToLevelMapping nsToLevelMapping : nsIl.getNsToLevelMapping()){
+
 			String nsProfileId = nsToLevelMapping.getNsProfileId();
+			log.debug("Translating NsProfile:"+nsProfileId);
 			Optional<NsProfile> nsProfile = nsDf.getNsProfile().stream()
 					.filter(p -> p.getNsProfileId().equals(nsProfileId))
 					.findFirst();
 			if(nsProfile.isPresent()){
+				log.debug("Found NsProfile");
 				String nestedNsdId = nsProfile.get().getNsdId();
 				String nestedNsDf = nsProfile.get().getNsDeploymentFlavourId();
 				String nestedNsIl = nsProfile.get().getNsInstantiationLevelId();
@@ -275,12 +278,17 @@ public class IfaToSolTranslator {
 								nestedNsdName = nsdInfo.getName();
 							}
 						}
-						log.debug("Retrieved version for NSD:"+nestedNsdVersion);
+						log.debug("Successfully retrieved nested NSD from catalogue");
+						log.debug("Retrieved version for nested NSD:"+Float.toString(nestedNsdVersion));
+						log.debug("Retrieved designer for nested NSD:"+nestedNsdDesigner);
+						log.debug("Retrieved name for nested NSD:"+nestedNsdName);
+						log.debug("Retrieved invariantId for nested NSD:"+nestedNsdInvariantId);
 						NSProperties nsProperties=new NSProperties(nestedNsdIdSol, nestedNsdDesigner, Float.toString(nestedNsdVersion), nestedNsdName, nestedNsdInvariantId);
 
 						//Set NS Node
 						NSNode nsNode = new NSNode(null, nsProperties, null);
 						nodeTemplates.put(( nestedNsdId + "_" + nestedNsDf + "_" + nestedNsIl ), nsNode);
+						log.debug("Finished translating nested NSD");
 					}else throw new FailedOperationException("Error while retrieving correspondent NSD from catalogue. Empty query return");
 				} catch (MethodNotImplementedException e) {
 					log.error("", e);
