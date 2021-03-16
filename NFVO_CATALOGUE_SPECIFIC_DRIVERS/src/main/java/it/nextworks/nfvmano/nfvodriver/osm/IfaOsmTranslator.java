@@ -76,8 +76,11 @@ public class IfaOsmTranslator {
             //take the flavour id of this vnf, in order to know which vnf of the mappedVnfs to use
             String vnfdIdWithFlavour = null;
             try {
-                if(useTemplateVNFDs.get(vnfdId)) vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
-                else vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId) + "_" + nsDescriptor.getId();
+                if(useTemplateVNFDs.containsKey(vnfdId)){
+                    vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
+                }else{
+                    vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId) + "_" + nsDescriptor.getId();
+                }
                 constituentVNFD.setVnfdIdentifierReference(vnfdIdWithFlavour);
                 constituentVNFD.setMemberVNFIndex(indexOfVnf);
                 constituentVNFDList.add(constituentVNFD);
