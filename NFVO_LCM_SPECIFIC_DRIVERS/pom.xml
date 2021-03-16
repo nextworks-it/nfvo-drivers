@@ -113,7 +113,21 @@
 			<groupId>io.swagger</groupId>
 			<artifactId>config-manager-client</artifactId>
 			<version>1.0.0</version>
+
 		</dependency>
+		<dependency>
+			<groupId>io.swagger</groupId>
+			<artifactId>elma-client</artifactId>
+			<version>1.0.0</version>
+
+		</dependency>
+		<dependency>
+			<groupId>io.swagger</groupId>
+			<artifactId>mda-client</artifactId>
+			<version>1.0.0</version>
+
+		</dependency>
+
 		<dependency>
 			<groupId>it.nextworks.nfvmano</groupId>
 			<artifactId>NfvManoLibsMonitIf</artifactId>

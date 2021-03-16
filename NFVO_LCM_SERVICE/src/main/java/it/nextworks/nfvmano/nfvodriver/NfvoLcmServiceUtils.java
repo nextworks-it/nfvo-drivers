@@ -1,7 +1,14 @@
 package it.nextworks.nfvmano.nfvodriver;
 
 
+import it.nextworks.nfvmano.nfvodriver.elicensing.DummyElicenseManager;
+import it.nextworks.nfvmano.nfvodriver.elicensing.ElicenseManagementDriver;
+import it.nextworks.nfvmano.nfvodriver.elicensing.ElicenseManagementProviderInterface;
 import it.nextworks.nfvmano.nfvodriver.logging.NfvoLcmLoggingDriver;
+import it.nextworks.nfvmano.nfvodriver.monitoring.MonitoringManager;
+import it.nextworks.nfvmano.nfvodriver.monitoring.MonitoringManagerProviderInterface;
+import it.nextworks.nfvmano.nfvodriver.monitoring.driver.MdaDriver;
+import it.nextworks.nfvmano.nfvodriver.monitoring.driver.PrometheusDriver;
 import it.nextworks.nfvmano.nfvodriver.osm.OsmLcmDriver;
 import it.nextworks.nfvmano.nfvodriver.sol5.Sol5NfvoLcmDriver;
 import it.nextworks.nfvmano.nfvodriver.test.EvsTestNfvoLcmDriver;
@@ -22,6 +29,28 @@ public class NfvoLcmServiceUtils {
 
     @Value("${nfvo.lcm.type}")
     private String nfvoLcmType;
+
+    @Value("${domain_id:local}")
+    private String domainId;
+
+    @Value("${nfvo.lcm.external_monitoring.enable:false}")
+    private boolean enableExternalMonitoring;
+
+    @Value("${nfvo.lcm.external_monitoring.type:PROMETHEUS}")
+    private String externalMonitoringType;
+
+    @Value("${nfvo.lcm.external_monitoring.address:http://localhost}")
+    private String externalMonitoringAddress;
+
+    @Value("${nfvo.lcm.elicensing.enable:false}")
+    private boolean enableElicensing;
+
+    @Value("${nfvo.lcm.elicensing.type:DUMMY}")
+    private String elicensingType;
+
+    @Value("${nfvo.lcm.elicensing.address:http://localhost:8085}")
+    private String elicensingAddress;
+
 
     @Value("${nfvo.lcm.address}")
     private String nfvoLcmAddress;
@@ -58,6 +87,31 @@ public class NfvoLcmServiceUtils {
     @PostConstruct
     public void initNfvoLcmDriver() {
         log.debug("Initializing NFVO LCM driver for type:"+ nfvoLcmType);
+        ElicenseManagementProviderInterface eLicenseMgr = null;
+        if(enableElicensing){
+            log.debug("Configuring external licensing manager:"+elicensingType);
+            if(elicensingType.equals("DUMMY")){
+                eLicenseMgr = new DummyElicenseManager();
+            }else if(elicensingType.equals("ELMA")){
+                eLicenseMgr = new ElicenseManagementDriver(elicensingAddress, domainId);
+            }else log.error("Unknown  elicensing type, not configured");
+
+        }else  log.debug("NFVO elicensing disabled");
+
+        MonitoringManager monitoringMgr = null;
+        if(enableExternalMonitoring){
+            log.debug("Configuring external monitoring:"+externalMonitoringType);
+            if(externalMonitoringType.equals("PROMETHEUS")){
+
+                monitoringMgr = new MonitoringManager(new PrometheusDriver(
+                        externalMonitoringAddress+":8989/prom-manager",
+                        externalMonitoringAddress+":3000",nfvoLcmAddress));
+            }else if(externalMonitoringType.equals("MDA")){
+                monitoringMgr = new MonitoringManager(new MdaDriver(
+                        externalMonitoringAddress, domainId));
+            }else log.error("Unknown  external monitoring type, not configured");
+        }
+
         if (nfvoLcmType.equals("LOGGING")) {
 
             log.debug("Configured for NFVO LCM type:"+ nfvoLcmType);
@@ -68,7 +122,7 @@ public class NfvoLcmServiceUtils {
             nfvoLcmService.setNfvoLcmDriver(new TimeoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager));
         }else if(nfvoLcmType.equals("DUMMY")){
             log.debug("Configured for type:" + nfvoLcmType);
-            nfvoLcmService.setNfvoLcmDriver(new DummyNfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager));
+            nfvoLcmService.setNfvoLcmDriver(new DummyNfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager, eLicenseMgr, monitoringMgr, nfvoCatalogueService));
 
         }else if(nfvoLcmType.equals("SOL5")) {
             log.debug("Configured for type:" + nfvoLcmType);
@@ -76,7 +130,8 @@ public class NfvoLcmServiceUtils {
         }else if(nfvoLcmType.equals("OSM")){
             log.debug("Configured for type:" + nfvoLcmType);
             OsmLcmDriver osmLcmDriver = new OsmLcmDriver(this.nfvoLcmAddress, this.nfvoLcmUsername, this.nfvoLcmPassword,
-                    this.nfvoLcmProject, this.nfvoLcmOperationPollingManager, null, UUID.fromString(this.nfvoLcmVim), this.nfvoCatalogueService);
+                    this.nfvoLcmProject, this.nfvoLcmOperationPollingManager, null, UUID.fromString(this.nfvoLcmVim),
+                    this.nfvoCatalogueService, monitoringMgr, eLicenseMgr);
             nfvoLcmService.setNfvoLcmDriver(osmLcmDriver);
         }else if(nfvoLcmType.equals("EVS_TEST")){
             log.debug("Configured for type:" + nfvoLcmType);

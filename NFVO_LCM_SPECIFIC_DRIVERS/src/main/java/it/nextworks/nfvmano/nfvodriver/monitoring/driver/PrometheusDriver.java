@@ -16,6 +16,7 @@ import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.CreatePmJobReques
 import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.DeletePmJobRequest;
 import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.DeletePmJobResponse;
 import it.nextworks.nfvmano.libs.ifa.records.vnfinfo.VnfInfo;
+import it.nextworks.nfvmano.nfvodriver.monitoring.MonitoringDriverProviderInterface;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus.AbstractExporterInfo;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus.ExporterType;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus.PrometheusMapper;
@@ -28,7 +29,7 @@ import java.util.*;
 /**
  * This is the monitoring driver that collect metrics from the NS instances.
  */
-public class PrometheusDriver {
+public class PrometheusDriver implements MonitoringDriverProviderInterface {
 
     private static final Logger log = LoggerFactory.getLogger(PrometheusDriver.class);
 

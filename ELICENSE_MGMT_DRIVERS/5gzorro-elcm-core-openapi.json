@@ -1,0 +1,127 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "5GZorro eLicense Manager Core Swagger",
+    "description": "Swagger 5GZorro for the centralized eLicense Manager System of the project",
+    "termsOfService": "http://swagger.io/terms/",
+    "contact": {
+      "email": "guillermo.gomez.external@atos.net"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "0.1.0"
+  },
+  "schemes": [
+    "http"
+  ],
+  "paths": {
+    "/checkLicensing": {
+      "post": {
+        "summary": "Entrypoint to inform of a new ProductOffering (PO) that has been added to a monitored domain",
+        "operationId": "elicensemanagercore.elmc_front.operations.check_licensing",
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "registration_payload",
+            "description": "ProductOffering id and domains where it applys",
+            "schema": {
+              "$ref": "#/definitions/checkLicensing"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PO received and in process",
+            "schema": {
+              "$ref": "#/definitions/registrationResponse"
+            }
+          },
+          "400": {
+            "description": "Unable to process the registration of the PO"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Entrypoint for heath tests",
+        "operationId": "elicensemanagercore.elmc_front.operations.health",
+        "responses": {
+          "200": {
+            "description": "System up and running"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "registrationResponse": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "description": "Id of the registration operation to used as reference for later status requests",
+          "$ref": "#/definitions/id"
+        }
+      }
+    },
+    "checkLicensing": {
+      "type": "object",
+      "required": [
+        "productID",
+        "domains"
+      ],
+      "properties": {
+        "productID": {
+          "description": "UUID-type id of the ProductOffering which has been registered in the Marketplace for a new set of domains",
+          "$ref": "#/definitions/id"
+        },
+        "domains": {
+          "type": "array",
+          "description": "list of domains where the PO may be used",
+          "items": {
+            "$ref": "#/definitions/domains"
+          }
+        }
+      }
+    },
+    "domains": {
+      "type": "object",
+      "required": [
+        "domainDID",
+        "nsd",
+        "nst_id"
+      ],
+      "properties": {
+        "domainDID": {
+          "description": "UUID-type id of a domain where the PO may be deployed",
+          "$ref": "#/definitions/id"
+        },
+        "nst_id": {
+          "description": "UUID-type id of a Network slice template id the referenced domain",
+          "$ref": "#/definitions/id"
+        },
+        "nsd": {
+          "type": "array",
+          "description": "list of Network Service Descriptors which are bound by the PO",
+          "items": {
+            "description": "UUID-type id of NSD that are bound by the PO",
+            "$ref": "#/definitions/id"
+          }
+        }
+      }
+    },
+    "id": {
+      "type": "string",
+      "example": "aa0ebcb6-f15c-49db-82f4-9c7bcbe9efcc"
+    }
+  }
+}

@@ -16,28 +16,27 @@ import java.util.Map;
 /**
  * This class takes care of activate/deactive the monitoring for the ns instances.
  */
-public class MonitoringManager {
+public class MonitoringManager implements MonitoringManagerProviderInterface {
 
     private static final Logger log = LoggerFactory.getLogger(MonitoringManager.class);
 
     private final Map<String, NsMonitoringManager> nsMonitoringManagers = new HashMap<>(); //Key: NS_instance_ID
 
-    private final String monitoringUrl;
+    //private final String monitoringUrl=null;
 
-    private final String grafanaUrl;
+    //private final String grafanaUrl=null;
 
     //notification address
     private String manoDomain;
 
-    private final PrometheusDriver prometheusDriver;
+    private  MonitoringDriverProviderInterface prometheusDriver;
 
-    public MonitoringManager(String monitoringUrl,
-                             String grafanaUrl,
-                             String manoDomain){
-        this.monitoringUrl = monitoringUrl;
-        this.grafanaUrl = grafanaUrl;
-        this.manoDomain = manoDomain;
-        prometheusDriver = new PrometheusDriver(monitoringUrl,grafanaUrl,manoDomain);
+    public MonitoringManager(
+            MonitoringDriverProviderInterface driver){
+        //this.monitoringUrl = monitoringUrl;
+        //this.grafanaUrl = grafanaUrl;
+        //this.manoDomain = manoDomain;
+        prometheusDriver =driver;
     }
 
     public void activateNsMonitoring(NsInfo nsInfo, Nsd nsd, List<VnfInfo> vnfInfoList)

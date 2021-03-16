@@ -45,6 +45,7 @@ import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.OsmVNFPackage;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.ScalingGroupDescriptor;
 import it.nextworks.nfvmano.libs.osmr4PlusDataModel.vnfDescriptor.VNFDescriptor;
 import it.nextworks.nfvmano.nfvodriver.*;
+import it.nextworks.nfvmano.nfvodriver.elicensing.ElicenseManagementProviderInterface;
 import it.nextworks.nfvmano.nfvodriver.monitoring.MonitoringManager;
 import it.nextworks.osm.ApiClient;
 import it.nextworks.osm.ApiException;
@@ -75,7 +76,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 	private final UUID vimId;
 	private String project;
 	private NfvoCatalogueService nfvoCatalogueService;
-	private final MonitoringManager monitoringManager;
+	private MonitoringManager monitoringManager=null;
 
 	//for each ifa nsd there are multiple nsd package in osm
 
@@ -94,8 +95,14 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 	private final Map<String, List<VnfInfo>> nsInstancesIdToVnfInfo = new HashMap<>();
 
 	private final List<MonitoringInfo> monitoringQueue = new ArrayList<>();
+
+	private String externalMonitoringAddress = null;
+
+	//private boolean enableExternalMonitoring;
 	//private Map<UUID, UUID> instanceIdToNsdIdMapping;
     //private Map<UUID, UUID> instanceIdToNsdInfoIdMapping;
+
+	private ElicenseManagementProviderInterface elicenseMgr;
 
 	public OsmLcmDriver(String nfvoAddress,
 						String username,
@@ -104,7 +111,9 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 						NfvoLcmOperationPollingManager nfvoLcmOperationPollingManager,
 						NfvoLcmNotificationInterface nfvoNotificationsManager,
 						UUID vimId,
-						NfvoCatalogueService nfvoCatalogueService) {
+						NfvoCatalogueService nfvoCatalogueService,
+						MonitoringManager monitoringManager,
+						ElicenseManagementProviderInterface elicenseMgr) {
 		super(NfvoLcmDriverType.OSM, nfvoAddress, nfvoNotificationsManager);
 		this.username = username;
 		this.password = password;
@@ -124,8 +133,11 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
         this.project =project;
 		this.nfvoLcmOperationPollingManager = nfvoLcmOperationPollingManager;
 		this.nfvoCatalogueService = nfvoCatalogueService;
-		monitoringManager = new MonitoringManager("http://10.30.8.49:8989/prom-manager","http://10.30.8.49:3000",nfvoAddress);
+		this.monitoringManager = monitoringManager;
+
+
 		this.oAuthSimpleClient = new OAuthSimpleClient(nfvoAddress+"/osm/admin/v1/tokens", username, password, project);
+		this.elicenseMgr = elicenseMgr;
 	}
 
 	//******************************** Onboarding ********************************//
@@ -253,6 +265,14 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 		CreateNsIdentifierRequest createNsIdentifierRequest = new CreateNsIdentifierRequest(nsdPackage.getId(), nsdPackage.getId(),nsIdentifierRequest.getNsDescription(),nsIdentifierRequest.getTenantId());
 		String osmNsInstanceId = createNsResource(createNsIdentifierRequest,nsdPackageId);
 
+		if(elicenseMgr!=null){
+			Map<String, String> elicensingMetadata = new HashMap<>();
+			elicensingMetadata.putAll(request.getAdditionalParamForNs());
+			elicensingMetadata.put("NS_ID", osmNsInstanceId);
+			elicensingMetadata.put("NSD_ID", nsdPackageId.toString());
+
+			elicenseMgr.activateElicenseManagement(elicensingMetadata);
+		}
 		//this is the UUID of the NS Instance resource associated to the NSD <nsdId_nsdDfId>(full_01_df_vCDN)
 		if(osmNsInstanceId == null){
 			log.error("Cannot create a new NSD resource");
@@ -273,8 +293,10 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			currentIlMapping.put(UUID.fromString(osmNsInstanceId),"default");
 			NsInfo nsInfo = nsInstancesIdToNsInfo.get(osmNsInstanceId);
 			nsInfo.setNsState(InstantiationState.INSTANTIATED);
+			nsInfo.setConfigurationParameters(request.getAdditionalParamForNs());
 			//this will manage the monitoring when the ns is instantiated
-			monitoringQueue.add(new MonitoringInfo(osmNsInstanceId,ifaNsdId,nsdPackage.getVersion(),nsInfo,operationId.toString()));
+			if(monitoringManager!=null)
+			    monitoringQueue.add(new MonitoringInfo(osmNsInstanceId,ifaNsdId,nsdPackage.getVersion(),nsInfo,operationId.toString()));
 			return osmNsInstanceId; //TODO if return the same id of the request?
 		} catch (ApiException e) {
 			log.error(e.getMessage());
@@ -360,9 +382,12 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 		}
 		try {
 			//activateNsMonitoring(NsInfo, Nsd)
-			monitoringManager.activateNsMonitoring(nsInstancesIdToNsInfo.get(nsInstanceId),
-					queryNsdResponse.getQueryResult().get(0).getNsd(),
-					vnfInfoList);
+			if(monitoringManager!=null){
+				monitoringManager.activateNsMonitoring(nsInstancesIdToNsInfo.get(nsInstanceId),
+						queryNsdResponse.getQueryResult().get(0).getNsd(),
+						vnfInfoList);
+			}
+
 		} catch (Exception e) {
 			log.error("Error while activating ns monitoring");
 			throw new FailedOperationException();
@@ -765,7 +790,7 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			NsLcmOpOcc nsLcmOpOcc = nsInstancesApi.getNSLCMOpOcc(operationId);
 			OsmNsLcmOperationStatus osmOperationStatus = OsmNsLcmOperationStatus.valueOf(nsLcmOpOcc.getOperationState());
 			//activate monitoring if needed
-			if(OsmNsLcmOperationStatus.COMPLETED==osmOperationStatus){
+			if(OsmNsLcmOperationStatus.COMPLETED==osmOperationStatus && monitoringManager!=null){
 				MonitoringInfo monitoringInfo = getMonitoringInfoByOpId(monitoringQueue,operationId);
 				if(monitoringInfo != null){
 					//creating associations with VnfInfos for this nsInstanceId and update content of nsInfo

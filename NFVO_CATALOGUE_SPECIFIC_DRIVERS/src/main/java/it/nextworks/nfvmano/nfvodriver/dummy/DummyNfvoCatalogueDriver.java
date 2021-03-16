@@ -261,6 +261,7 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 		Map<String, String> params = filter.getParameters();
 		String p1 = "NSD_ID";
 		String p2 = "NSD_VERSION";
+		String p3 = "NSD_INFO_ID";
 
 
 		List<NsdInfo> queryResult = new ArrayList<>();
@@ -296,7 +297,58 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 			}
 			log.debug("NSD not found");
 			return null;
-		} else return null;
+		} else if(params.containsKey(p1) ){
+			String nsdId = params.get(p1);
+			log.debug("Querying NSD with ID " + nsdId);
+			for (Map.Entry<String, Nsd> nsdEntry : nsds.entrySet()) {
+				Nsd nsd = nsdEntry.getValue();
+				if (nsd.getNsdIdentifier().equals(nsdId)) {
+					log.debug("NSD found");
+					queryResult.add(new NsdInfo(nsdEntry.getKey(),
+							nsdId,
+							nsd.getNsdName(),
+							"1.0",
+							nsd.getDesigner(),
+							nsd,
+							new ArrayList<>(),
+							new ArrayList<>(),
+							null,
+							OperationalState.ENABLED,
+							UsageState.IN_USE,
+							false,
+							new HashMap<>()));
+
+				}
+			}
+			QueryNsdResponse response = new QueryNsdResponse(queryResult);
+			return response;
+
+		}else if(params.containsKey(p3) ){
+			String nsdInfoId = params.get(p3);
+			log.debug("Querying NSD with INFO ID " + nsdInfoId);
+			if(this.nsds.containsKey(nsdInfoId)){
+				log.debug("NSD found");
+				Nsd cNsd = this.nsds.get(nsdInfoId);
+				queryResult.add(new NsdInfo(nsdInfoId,
+						cNsd.getNsdIdentifier(),
+						cNsd.getNsdName(),
+						cNsd.getVersion(),
+						cNsd.getDesigner(),
+						cNsd,
+						new ArrayList<>(),
+						new ArrayList<>(),
+						null,
+						OperationalState.ENABLED,
+						UsageState.IN_USE,
+						false,
+						new HashMap<>()));
+			}
+			QueryNsdResponse response = new QueryNsdResponse(queryResult);
+			return response;
+		}else{
+			log.debug("FILTER NOT SUPPORTED");
+			throw new MalformattedElementException("Filter not supported");
+		}
 	}
 
 	@Override

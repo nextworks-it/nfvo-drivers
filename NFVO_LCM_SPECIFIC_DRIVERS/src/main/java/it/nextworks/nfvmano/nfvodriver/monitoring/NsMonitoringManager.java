@@ -42,7 +42,7 @@ public class NsMonitoringManager {
 
     private final List<VnfInfo> vnfInfoList;
 
-    private final PrometheusDriver prometheusDriver;
+    private final MonitoringDriverProviderInterface prometheusDriver;
 
     //Key: pm job ID; Value: Monitoring Parameter ID - This is for pm jobs associated to the NSD monitoring parameters
     private final Map<String, String> pmJobIdToMpIdMap = new HashMap<>();
@@ -61,7 +61,7 @@ public class NsMonitoringManager {
                                String tenantId,
                                Nsd nsd,
                                List<VnfInfo> vnfInfoList,
-                               PrometheusDriver prometheusDriver){
+                               MonitoringDriverProviderInterface prometheusDriver){
         this.nsInstanceId = nsInstanceId;
         this.nsd = nsd;
         this.vnfInfoList = vnfInfoList;
@@ -96,9 +96,9 @@ public class NsMonitoringManager {
                 if (md.getVnfIndicatorInfo() != null)
                     startMonitoringJobForVnfIndicator(md.getVnfIndicatorInfo(), nsInfo);
                 if (md.getMonitoringParameter() != null)
-                    startMonitoringJobForMonitoringParameter(md.getMonitoringParameter(), nsInfo);
+                    startMonitoringJobForMonitoringParameter(md, nsInfo);
             } catch (Exception e) {
-                log.error("Error while starting a monitoring job: " + e.getMessage() + ". Skipping it.");
+                log.error("Error while starting a monitoring job: " + e.getMessage() + ". Skipping it.", e);
                 log.error(e.getMessage());
             }
         }
@@ -106,7 +106,9 @@ public class NsMonitoringManager {
 
 		log.debug("Starting building monitoring dashboard for NS instance " + nsInstanceId);
 		buildMonitoringDashboard();
-		monitoringGuiUrl = monitoringGui.getUrl();
+		if(monitoringGui!=null){
+		    monitoringGuiUrl = monitoringGui.getUrl();
+        }
 		/*
 		try {
 			nsDbWrapper.setNsInfoMonitoringUrl(nsInstanceId, url);
@@ -196,8 +198,9 @@ public class NsMonitoringManager {
      * @param nsInfo information about the NS instance for which the monitoring parameter must be collected
      * @throws MethodNotImplementedException if the method is not implemented
      */
-    private void startMonitoringJobForMonitoringParameter (MonitoringParameter mp, NsInfo nsInfo)
+    private void startMonitoringJobForMonitoringParameter (MonitoredData md, NsInfo nsInfo)
             throws MethodNotImplementedException, MalformattedElementException, NotExistingEntityException, FailedOperationException {
+        MonitoringParameter mp = md.getMonitoringParameter();
         String mpId = mp.getMonitoringParameterId();
         String mpName = mp.getName();
         String mpMetric = mp.getPerformanceMetric();
@@ -245,6 +248,9 @@ public class NsMonitoringManager {
         VnfInfo vnfInfo = getVnfInfoByInfoId(vnfInfoList,vnfInfoId);
         if(vnfInfo != null) performanceMetricGroup.add(vnfInfo.getVnfdId());
         performanceMetricGroup.add(nsInstanceId);
+        if(nsInfo.getConfigurationParameters()!=null && nsInfo.getConfigurationParameters().containsKey("product_id")){
+            performanceMetric.add(nsInfo.getConfigurationParameters().get("product_id"));
+        }
         CreatePmJobRequest pmJobRequest = new CreatePmJobRequest(null,	//NS selector
                 null, 													//resource selector
                 vnfSelector,											//VNF selector
@@ -252,7 +258,8 @@ public class NsMonitoringManager {
                 performanceMetricGroup,					 				//performance metric group
                 0, 														//collection period
                 0, 														//reporting period
-                null);													//reporting boundary
+                null,                                   //reporting boundary
+                mp.getParams());
         String pmJobId = createPmJob(pmJobRequest,vnfInfo);
         log.debug("Created PM job with ID " + pmJobId + " for monitoring parameter " + mpId);
         this.pmJobIdToMpIdMap.put(pmJobId, mpId);

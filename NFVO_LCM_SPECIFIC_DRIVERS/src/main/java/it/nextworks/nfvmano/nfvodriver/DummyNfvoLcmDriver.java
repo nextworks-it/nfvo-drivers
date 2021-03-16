@@ -15,22 +15,27 @@
 */
 package it.nextworks.nfvmano.nfvodriver;
 
+import it.nextworks.nfvmano.libs.ifa.common.elements.Filter;
 import it.nextworks.nfvmano.libs.ifa.common.enums.InstantiationState;
 import it.nextworks.nfvmano.libs.ifa.common.enums.OperationStatus;
 import it.nextworks.nfvmano.libs.ifa.common.enums.ResponseCode;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.*;
 import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
 import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
+import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.Nsd;
 import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.NsLcmConsumerInterface;
 import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.elements.ScaleNsData;
 import it.nextworks.nfvmano.libs.ifa.osmanfvo.nslcm.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsInfo;
+import it.nextworks.nfvmano.libs.ifa.records.vnfinfo.VnfInfo;
+import it.nextworks.nfvmano.nfvodriver.elicensing.ElicenseManagementProviderInterface;
+import it.nextworks.nfvmano.nfvodriver.monitoring.MonitoringManager;
+import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryNsdResponse;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.nextworks.nfvmano.nfvodriver.*;
 
 import java.util.*;
 
@@ -39,27 +44,36 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 	private Map<String, NsInfo> nsInstances = new HashMap<>();
 	private Map<String, OperationStatus> operations = new HashMap<>();
 	private List<String> subscriptions = new ArrayList<>();
-
+	private ElicenseManagementProviderInterface eLicensingManager = null;
+	private MonitoringManager monitoringManager = null;
+	private NfvoCatalogueService nfvoCatalogueService;
 	
 	private NfvoLcmOperationPollingManager nfvoOperationPollingManager;
-	
+	Map<String, List<VnfInfo>> nsVnfInfos = new HashMap<>();
 	private static final Logger log = LoggerFactory.getLogger(DummyNfvoLcmDriver.class);
 
-	public DummyNfvoLcmDriver(String nfvoAddress, 
-			NfvoLcmNotificationInterface nfvoNotificationManager,
-			NfvoLcmOperationPollingManager nfvoOperationPollingManager) {
+
+	public DummyNfvoLcmDriver(String nfvoAddress,
+							  NfvoLcmNotificationInterface nfvoNotificationManager,
+							  NfvoLcmOperationPollingManager nfvoOperationPollingManager,
+							  ElicenseManagementProviderInterface eLicensingManager,
+							  MonitoringManager monitoringManager,
+							  NfvoCatalogueService nfvoCatalogueService) {
 		super(NfvoLcmDriverType.DUMMY, nfvoAddress, nfvoNotificationManager);
 		this.nfvoOperationPollingManager = nfvoOperationPollingManager;
-
+		this.eLicensingManager = eLicensingManager;
+		this.monitoringManager= monitoringManager;
+		this.nfvoCatalogueService= nfvoCatalogueService;
 	}
 
 	@Override
 	public String createNsIdentifier(CreateNsIdentifierRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
 		request.isValid();
-		log.debug("Generating new NS identifier");
+		log.debug("Generating new NS identifier for:" +request.getNsdId());
 		UUID nsInfoUuid = UUID.randomUUID();
 
+		String nsdInfoId = request.getNsdId();
 
 		String nsInfoId = nsInfoUuid.toString();
 		log.debug("Generated NS identifier " + nsInfoId);
@@ -94,6 +108,10 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 		}
 
 		String nsInstanceId = request.getNsInstanceId();
+
+
+
+
 		log.debug("Received request to instantiate NS instance " + nsInstanceId);
 		if (nsInstances.containsKey(nsInstanceId)) {
 			log.debug("Generating new operation identifier");
@@ -102,13 +120,41 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 			log.debug("Generated operation identifier " + operationId);
 			operations.put(operationId, OperationStatus.SUCCESSFULLY_DONE);
 			NsInfo nsInfo = nsInstances.get(nsInstanceId);
-
+            if(eLicensingManager!=null){
+                Map<String, String> elicenseMetadata = new HashMap<>();
+                elicenseMetadata.putAll(request.getAdditionalParamForNs());
+                elicenseMetadata.put("NS_ID", nsInstanceId);
+                elicenseMetadata.put("NSD_ID", nsInfo.getNsdId());
+                eLicensingManager.activateElicenseManagement(elicenseMetadata);
+            }
 			nsInfo.setFlavourId(request.getFlavourId());
 			nsInfo.setInstantiationLevel(request.getNsInstantiationLevelId());
 			nsInfo.setNsState(InstantiationState.INSTANTIATED);
-			nsInfo.setConfigurationParameters(request.getConfigurationParameterList());
+			Map<String, String > nsInfoConfParams = request.getConfigurationParameterList();
+			nsInfoConfParams.putAll(request.getAdditionalParamForNs());
+			nsInfo.setConfigurationParameters(nsInfoConfParams);
+			log.debug("Adding NsInfo with configuration parameters:"+nsInfoConfParams);
 			nsInstances.put(nsInstanceId, nsInfo);
-			nfvoOperationPollingManager.addOperation(operationId, OperationStatus.SUCCESSFULLY_DONE, request.getNsInstanceId(), "NS_INSTANTIATION");
+			List<VnfInfo> currentVnfInfos = new ArrayList<>();
+			int i=0;
+			for(String vnfdId : retrieveNSD(nsInfo.getNsdId()).getVnfdId()){
+				log.debug("Generating VnfInfo for:"+vnfdId);
+				VnfInfo info = new VnfInfo(Integer.toString(i),vnfdId+"_"+i, "", vnfdId,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						null,
+						InstantiationState.INSTANTIATED,
+						null,
+						null);
+				currentVnfInfos.add(info);
+				nsInfo.addVnfInfo(info.getVnfInstanceId(), i, vnfdId);
+			}
+			nsVnfInfos.put(nsInstanceId,currentVnfInfos);
+					nfvoOperationPollingManager.addOperation(operationId, OperationStatus.SUCCESSFULLY_DONE, request.getNsInstanceId(), "NS_INSTANTIATION");
 			log.debug("Added polling task for NFVO operation " + operationId);
 			return operationId;
 		} else {
@@ -155,9 +201,19 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 			log.error("Received NFV NS instance query without NS instance ID");
 			throw new MalformattedElementException("NS instance queries are supported only with NS ID.");
 		}
+
 		if (nsInstances.containsKey(nsId)) {
 			List<NsInfo> queryNsResult = new ArrayList<NsInfo>();
 			queryNsResult.add(nsInstances.get(nsId));
+			if(monitoringManager!=null){
+				try {
+					monitoringManager.activateNsMonitoring(nsInstances.get(nsId),retrieveNSD(nsInstances.get(nsId).getNsdId()),nsVnfInfos.get(nsId));
+
+				} catch (AlreadyExistingEntityException e) {
+					log.error("", e);
+					throw new FailedOperationException(e);
+				}
+			}
 			return new QueryNsResponse(ResponseCode.OK, queryNsResult);
 		} else {
 			log.error("NS instance " + nsId + " not found.");
@@ -182,6 +238,13 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 			nsInstances.put(nsInstanceId, nsInfo);
 			nfvoOperationPollingManager.addOperation(operationId, OperationStatus.SUCCESSFULLY_DONE, request.getNsInstanceId(), "NS_TERMINATION");
 			log.debug("Added polling task for NFVO operation " + operationId);
+			if(eLicensingManager!=null){
+				eLicensingManager.terminateElicenseManagement();
+			}
+			if(monitoringManager!=null){
+				monitoringManager.deactivateNsMonitoring(request.getNsInstanceId());
+			}
+
 			return operationId;
 		} else {
 			log.error("NS instance "+ nsInstanceId + " not found");
@@ -243,6 +306,20 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 
 	}
 
+
+	private Nsd retrieveNSD(String nsdInfoId) throws  FailedOperationException{
+		HashMap<String,String> parameters = new HashMap<>();
+		parameters.put("NSD_INFO_ID",nsdInfoId);
+		GeneralizedQueryRequest generalizedQueryRequest = new GeneralizedQueryRequest(new Filter(parameters),null);
+		QueryNsdResponse queryNsdResponse  = null;
+		try {
+			queryNsdResponse = nfvoCatalogueService.queryNsd(generalizedQueryRequest);
+			return queryNsdResponse.getQueryResult().get(0).getNsd();
+		} catch (Exception e) {
+			log.error("",e);
+			throw new FailedOperationException(e);
+		}
+	}
 
 
 }
