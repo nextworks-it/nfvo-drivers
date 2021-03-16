@@ -79,7 +79,9 @@ public class IfaOsmTranslator {
                 if(useTemplateVNFDs.containsKey(vnfdId)){
                     vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
                 }else{
-                    vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId) + "_" + nsDescriptor.getId();
+                    //TODO: Verify with Francesco
+                    //vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId) + "_" + nsDescriptor.getId();
+                    vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
                 }
                 constituentVNFD.setVnfdIdentifierReference(vnfdIdWithFlavour);
                 constituentVNFD.setMemberVNFIndex(indexOfVnf);
