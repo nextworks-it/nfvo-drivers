@@ -249,7 +249,7 @@ public class NsMonitoringManager {
         if(vnfInfo != null) performanceMetricGroup.add(vnfInfo.getVnfdId());
         performanceMetricGroup.add(nsInstanceId);
         if(nsInfo.getConfigurationParameters()!=null && nsInfo.getConfigurationParameters().containsKey("product_id")){
-            performanceMetric.add(nsInfo.getConfigurationParameters().get("product_id"));
+            performanceMetricGroup.add(nsInfo.getConfigurationParameters().get("product_id"));
         }
         CreatePmJobRequest pmJobRequest = new CreatePmJobRequest(null,	//NS selector
                 null, 													//resource selector
