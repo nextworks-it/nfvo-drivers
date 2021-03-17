@@ -73,7 +73,7 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         MetricModel metricModel = new MetricModel();
         //metricModel.setMetricType(mot.toString());
         metricModel.setMetricType(metricType);
-        metricModel.setMetricName(nsInstanceId+"."+vnfdId+"."+metricType);
+        metricModel.setMetricName(metricType);
         Map<String, String> params = request.getPmJobParams();
         log.debug("PmJobParams:"+params);
         if(params.containsKey("aggregationMethod")){
