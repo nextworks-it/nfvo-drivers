@@ -38,14 +38,25 @@ public class ConfigModel {
   @SerializedName("context_ids")
   List<ContextModel> contextModels = null;
 
-  @SerializedName("resourceId")
+  @SerializedName("resourceID")
   private String resourceID = null;
 
-  @SerializedName("referenceId")
+  @SerializedName("tenantID")
+  private String tenantID = null;
+
+  @SerializedName("referenceID")
   private String referenceID = null;
 
   @SerializedName("metrics")
   private List<MetricModel> metrics = new ArrayList<MetricModel>();
+
+  public String getTenantID() {
+    return tenantID;
+  }
+
+  public void setTenantID(String tenantID) {
+    this.tenantID = tenantID;
+  }
 
   @SerializedName("timestampStart")
   private String timestampStart = "2021-03-12T14:04:47.918735";
