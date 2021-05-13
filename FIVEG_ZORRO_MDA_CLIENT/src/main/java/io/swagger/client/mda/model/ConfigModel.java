@@ -34,6 +34,16 @@ public class ConfigModel {
   @SerializedName("networkID")
   private Integer networkID = null;
 
+
+  @SerializedName("context_ids")
+  List<ContextModel> contextModels = null;
+
+  @SerializedName("resourceId")
+  private String resourceID = null;
+
+  @SerializedName("referenceId")
+  private String referenceID = null;
+
   @SerializedName("metrics")
   private List<MetricModel> metrics = new ArrayList<MetricModel>();
 
@@ -48,7 +58,16 @@ public class ConfigModel {
     return this;
   }
 
-   /**
+
+  public List<ContextModel> getContextModels() {
+    return contextModels;
+  }
+
+  public void setContextModels(List<ContextModel> contextModels) {
+    this.contextModels = contextModels;
+  }
+
+  /**
    * Get businessID
    * @return businessID
   **/
@@ -156,6 +175,22 @@ public class ConfigModel {
     this.timestampEnd = timestampEnd;
   }
 
+
+  public String getResourceID() {
+    return resourceID;
+  }
+
+  public void setResourceID(String resourceID) {
+    this.resourceID = resourceID;
+  }
+
+  public String getReferenceID() {
+    return referenceID;
+  }
+
+  public void setReferenceID(String referenceID) {
+    this.referenceID = referenceID;
+  }
 
   @Override
   public boolean equals(java.lang.Object o) {

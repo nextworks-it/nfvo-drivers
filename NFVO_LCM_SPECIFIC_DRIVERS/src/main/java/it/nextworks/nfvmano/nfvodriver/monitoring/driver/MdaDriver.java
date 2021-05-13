@@ -59,6 +59,8 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         //  bussinessId : product_id provided during VS instantation Request
         //  networkId : ??
         //  topic: domain
+        //  referenceId: "Unique ID of entity (e.g., SLA) for whom we are collecting monitoring data"
+        //  resourceId: "Unique ID of resource for which we are collecting monitoring data."
         //  metricModel:
         //      metricType: from the monitoringParameterId in the NSD
         //      name: nsInstanceId.vnfdId.metricType
@@ -69,6 +71,10 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         body.setTopic(domain);
         body.setBusinessID(Integer.parseInt(productId));
         body.setNetworkID(0);
+
+        //TODO
+        body.setReferenceID("referenceID");
+        body.setResourceID("resourceID");
         List<MetricModel> metrics = new ArrayList<>();
         MetricModel metricModel = new MetricModel();
         //metricModel.setMetricType(mot.toString());
