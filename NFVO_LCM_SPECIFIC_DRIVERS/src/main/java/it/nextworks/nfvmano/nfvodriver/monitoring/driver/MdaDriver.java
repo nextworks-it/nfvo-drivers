@@ -78,10 +78,6 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         body.setResourceID(productId);
         body.setNetworkID(123);
 
-        //TODO
-        body.setReferenceID("referenceID");
-        body.setResourceID("resourceID");
-        body.setTenantID("tenantID");
         List<MetricModel> metrics = new ArrayList<>();
         MetricModel metricModel = new MetricModel();
         //metricModel.setMetricType(mot.toString());
