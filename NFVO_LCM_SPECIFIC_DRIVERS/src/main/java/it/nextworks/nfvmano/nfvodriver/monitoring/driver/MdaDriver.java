@@ -108,7 +108,21 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
 
     @Override
     public DeletePmJobResponse deletePmJob(DeletePmJobRequest request) throws MethodNotImplementedException, FailedOperationException, MalformattedElementException, NotExistingEntityException {
-        return null;
+       log.debug("Triggering delete MDA configuration items:"+request.getPmJobId());
+        try {
+            List<String> ids = new ArrayList<>();
+            for(String id: request.getPmJobId()){
+                log.debug("Triggering delete MDA configuration item:"+id);
+                defaultApi.deleteConfigIdSettingsConfigIdDelete(id);
+                ids.add(id);
+            }
+
+
+            return new DeletePmJobResponse(ids);
+        } catch (ApiException e) {
+            log.error("Error while deleting PM job", e);
+           throw new FailedOperationException(e);
+        }
     }
 
     @Override

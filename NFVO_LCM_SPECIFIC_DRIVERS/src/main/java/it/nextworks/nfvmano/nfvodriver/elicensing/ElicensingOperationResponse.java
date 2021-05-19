@@ -1,10 +1,11 @@
 package it.nextworks.nfvmano.nfvodriver.elicensing;
 
+import org.springframework.http.HttpStatus;
 public class ElicensingOperationResponse {
 
     private String operationId;
     private String productId;
-    private int statusCode;
+    private HttpStatus statusCode;
 
     private String responseType;
 
@@ -19,7 +20,7 @@ public class ElicensingOperationResponse {
         return productId;
     }
 
-    public int getStatusCode() {
+    public HttpStatus getStatusCode() {
         return statusCode;
     }
 

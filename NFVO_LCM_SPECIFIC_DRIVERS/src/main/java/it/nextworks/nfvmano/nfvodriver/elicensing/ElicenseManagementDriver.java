@@ -5,6 +5,7 @@ import io.swagger.client.elma.ApiException;
 import io.swagger.client.elma.model.RegistrationResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import io.swagger.client.elma.ApiClient;
 import io.swagger.client.elma.api.DefaultApi;
 import io.swagger.client.elma.model.CheckLicensing;
@@ -45,8 +46,15 @@ public class ElicenseManagementDriver implements ElicenseManagementProviderInter
         try {
             RegistrationResponse response = api.elicensemanagercoreElmcFrontOperationsCheckLicensing(body);
             CompletableFuture<ElicensingOperationResponse> elicensingResponse = new CompletableFuture();
+
             service.registerPendingResponse(metadata.get("product_id"), elicensingResponse);
-            elicensingResponse.get();
+            log.debug("WAITING FOR ELICENSE VERIFICATiON");
+            ElicensingOperationResponse operationResponse = elicensingResponse.get();
+            if(operationResponse.getStatusCode()==HttpStatus.OK){
+                log.debug("Correctly verified elicense.");
+            }else{
+                throw new FailedOperationException("Elicense verification failed:"+operationResponse.getDetails());
+            }
         } catch (ApiException e) {
             log.error("Error activating license",e);
             throw new FailedOperationException(e);
