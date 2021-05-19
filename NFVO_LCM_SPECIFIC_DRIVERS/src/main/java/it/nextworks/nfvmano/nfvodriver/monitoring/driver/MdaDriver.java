@@ -50,10 +50,12 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
 
         String nsInstanceId = request.getPerformanceMetricGroup().get(1);
         String productId = null;
-        if(request.getPerformanceMetricGroup().size()>=3){
+        String transactionId = null;
+        // assuming productId and transactionId are always set in this order
+        if(request.getPerformanceMetricGroup().size()>=4){
             productId = request.getPerformanceMetricGroup().get(2);
+            transactionId = request.getPerformanceMetricGroup().get(3);
         }
-
 
         //Config Model:
         //  bussinessId : product_id provided during VS instantation Request
@@ -69,9 +71,12 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         //
         log.debug("PM job parameters - Metric type: " + metricType + " - Monitoring object type: " + mot + " - VNF ID: " + vnfInstanceId + " - VNFD ID: " + vnfdId + " - NS Instance ID: " + nsInstanceId);
         ConfigModel body = new ConfigModel();
-        body.setTopic(domain);
-        body.setBusinessID(Integer.parseInt(productId));
-        body.setNetworkID(0);
+        body.setTenantID(domain);
+        body.setTopic(domain + "-in-0");
+        body.setBusinessID(transactionId);
+        body.setReferenceID(productId);
+        body.setResourceID(productId);
+        body.setNetworkID(123);
 
         //TODO
         body.setReferenceID("referenceID");

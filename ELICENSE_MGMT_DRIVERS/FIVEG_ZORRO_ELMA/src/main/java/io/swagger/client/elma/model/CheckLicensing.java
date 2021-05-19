@@ -25,7 +25,7 @@ import java.util.List;
 
 @javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.JavaClientCodegen", date = "2021-03-10T18:02:02.820+01:00[Europe/Rome]")
 public class CheckLicensing {
-  @SerializedName("productID")
+  @SerializedName("productId")
   private String productID = null;
 
   @SerializedName("domains")

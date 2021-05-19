@@ -251,6 +251,9 @@ public class NsMonitoringManager {
         if(nsInfo.getConfigurationParameters()!=null && nsInfo.getConfigurationParameters().containsKey("product_id")){
             performanceMetricGroup.add(nsInfo.getConfigurationParameters().get("product_id"));
         }
+        if(nsInfo.getConfigurationParameters()!=null && nsInfo.getConfigurationParameters().containsKey("transaction_uuid")){
+            performanceMetricGroup.add(nsInfo.getConfigurationParameters().get("transaction_uuid"));
+        }
         CreatePmJobRequest pmJobRequest = new CreatePmJobRequest(null,	//NS selector
                 null, 													//resource selector
                 vnfSelector,											//VNF selector

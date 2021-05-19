@@ -125,6 +125,7 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
                 elicenseMetadata.putAll(request.getAdditionalParamForNs());
                 elicenseMetadata.put("NS_ID", nsInstanceId);
                 elicenseMetadata.put("NSD_ID", nsInfo.getNsdId());
+
                 eLicensingManager.activateElicenseManagement(elicenseMetadata);
             }
 			nsInfo.setFlavourId(request.getFlavourId());

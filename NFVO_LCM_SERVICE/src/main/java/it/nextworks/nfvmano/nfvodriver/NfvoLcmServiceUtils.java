@@ -4,6 +4,7 @@ package it.nextworks.nfvmano.nfvodriver;
 import it.nextworks.nfvmano.nfvodriver.elicensing.DummyElicenseManager;
 import it.nextworks.nfvmano.nfvodriver.elicensing.ElicenseManagementDriver;
 import it.nextworks.nfvmano.nfvodriver.elicensing.ElicenseManagementProviderInterface;
+import it.nextworks.nfvmano.nfvodriver.elicensing.ElicensingService;
 import it.nextworks.nfvmano.nfvodriver.logging.NfvoLcmLoggingDriver;
 import it.nextworks.nfvmano.nfvodriver.monitoring.MonitoringManager;
 import it.nextworks.nfvmano.nfvodriver.monitoring.MonitoringManagerProviderInterface;
@@ -84,6 +85,9 @@ public class NfvoLcmServiceUtils {
     @Autowired
     NfvoCatalogueService nfvoCatalogueService;
 
+    @Autowired
+    private ElicensingService elicensingService;
+
     @PostConstruct
     public void initNfvoLcmDriver() {
         log.debug("Initializing NFVO LCM driver for type:"+ nfvoLcmType);
@@ -93,7 +97,7 @@ public class NfvoLcmServiceUtils {
             if(elicensingType.equals("DUMMY")){
                 eLicenseMgr = new DummyElicenseManager();
             }else if(elicensingType.equals("ELMA")){
-                eLicenseMgr = new ElicenseManagementDriver(elicensingAddress, domainId);
+                eLicenseMgr = new ElicenseManagementDriver(elicensingAddress, domainId, elicensingService);
             }else log.error("Unknown  elicensing type, not configured");
 
         }else  log.debug("NFVO elicensing disabled");

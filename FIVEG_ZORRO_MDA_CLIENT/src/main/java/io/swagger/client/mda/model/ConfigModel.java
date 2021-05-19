@@ -26,7 +26,7 @@ import java.util.List;
 @javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.JavaClientCodegen", date = "2021-03-14T17:12:29.690+01:00[Europe/Rome]")
 public class ConfigModel {
   @SerializedName("businessID")
-  private Integer businessID = null;
+  private String businessID = null;
 
   @SerializedName("topic")
   private String topic = null;
@@ -59,12 +59,12 @@ public class ConfigModel {
   }
 
   @SerializedName("timestampStart")
-  private String timestampStart = "2021-03-12T14:04:47.918735";
+  private String timestampStart = null;
 
   @SerializedName("timestampEnd")
   private String timestampEnd = null;
 
-  public ConfigModel businessID(Integer businessID) {
+  public ConfigModel businessID(String businessID) {
     this.businessID = businessID;
     return this;
   }
@@ -83,11 +83,11 @@ public class ConfigModel {
    * @return businessID
   **/
   @Schema(required = true, description = "")
-  public Integer getBusinessID() {
+  public String getBusinessID() {
     return businessID;
   }
 
-  public void setBusinessID(Integer businessID) {
+  public void setBusinessID(String businessID) {
     this.businessID = businessID;
   }
 

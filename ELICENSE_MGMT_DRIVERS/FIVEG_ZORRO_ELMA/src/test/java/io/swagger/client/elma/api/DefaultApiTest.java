@@ -42,8 +42,9 @@ public class DefaultApiTest {
         CheckLicensing body = new CheckLicensing();
         Domains d = new Domains();
         d.domainDID("did");
-        d.addNsdItem("nsdId");
-        d.setNstId("nstId");
+        //d.addNsdItem("nsdId");
+        //d.setNstId("nstId");
+        d.addNsi("nsdId", "nstId", "nsInstnaceId","tenant");
         body.addDomainsItem(d);
         body.setProductID("productDid");
         api.setApiClient(new ApiClient().setBasePath("http://localhost:8084").setDebugging(true));

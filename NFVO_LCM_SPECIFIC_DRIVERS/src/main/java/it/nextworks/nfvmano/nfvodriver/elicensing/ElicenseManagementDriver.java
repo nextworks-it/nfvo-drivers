@@ -13,6 +13,8 @@ import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class ElicenseManagementDriver implements ElicenseManagementProviderInterface {
 
@@ -21,11 +23,13 @@ public class ElicenseManagementDriver implements ElicenseManagementProviderInter
     private static final Logger log = LoggerFactory.getLogger(ElicenseManagementDriver.class);
     private DefaultApi api = new DefaultApi();
     private String domainId;
+    private ElicensingService service;
 
-    public ElicenseManagementDriver(String elicensingManagerAddress,String domainId){
+    public ElicenseManagementDriver(String elicensingManagerAddress,String domainId, ElicensingService service){
         this.elicensingManagerAddress=elicensingManagerAddress;
         api.setApiClient(new ApiClient().setBasePath(elicensingManagerAddress).setDebugging(true));
         this.domainId=domainId;
+        this.service= service;
 
     }
 
@@ -35,13 +39,21 @@ public class ElicenseManagementDriver implements ElicenseManagementProviderInter
         CheckLicensing body = new CheckLicensing();
         Domains d = new Domains();
         d.domainDID(domainId);
-        d.addNsdItem(metadata.get("NSD_ID"));
-        d.setNstId(metadata.get("NS_ID"));
+        d.addNsi(metadata.get("NSD_ID"), "nst",  metadata.get("NS_ID"), "tenant");
         body.addDomainsItem(d);
         body.setProductID(metadata.get("product_id"));
         try {
             RegistrationResponse response = api.elicensemanagercoreElmcFrontOperationsCheckLicensing(body);
+            CompletableFuture<ElicensingOperationResponse> elicensingResponse = new CompletableFuture();
+            service.registerPendingResponse(metadata.get("product_id"), elicensingResponse);
+            elicensingResponse.get();
         } catch (ApiException e) {
+            log.error("Error activating license",e);
+            throw new FailedOperationException(e);
+        } catch (InterruptedException e) {
+            log.error("Error activating license",e);
+            throw new FailedOperationException(e);
+        } catch (ExecutionException e) {
             log.error("Error activating license",e);
             throw new FailedOperationException(e);
         }

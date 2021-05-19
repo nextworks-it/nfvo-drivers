@@ -28,71 +28,20 @@ public class Domains {
   @SerializedName("domainDID")
   private String domainDID = null;
 
-  @SerializedName("nst_id")
-  private String nstId = null;
 
-  @SerializedName("nsd")
-  private List<String> nsd = new ArrayList<String>();
+  @SerializedName("ns")
+  private List<NetworkServiceInstance> nsi = new ArrayList<>();
+
 
   public Domains domainDID(String domainDID) {
     this.domainDID = domainDID;
     return this;
   }
 
-   /**
-   * Get domainDID
-   * @return domainDID
-  **/
-  @Schema(required = true, description = "")
-  public String getDomainDID() {
-    return domainDID;
-  }
 
-  public void setDomainDID(String domainDID) {
-    this.domainDID = domainDID;
+  public void addNsi(String nsdId,  String nstId, String nsInstanceId, String tenant ){
+    nsi.add(new NetworkServiceInstance(nsInstanceId, nsdId, tenant));
   }
-
-  public Domains nstId(String nstId) {
-    this.nstId = nstId;
-    return this;
-  }
-
-   /**
-   * Get nstId
-   * @return nstId
-  **/
-  @Schema(required = true, description = "")
-  public String getNstId() {
-    return nstId;
-  }
-
-  public void setNstId(String nstId) {
-    this.nstId = nstId;
-  }
-
-  public Domains nsd(List<String> nsd) {
-    this.nsd = nsd;
-    return this;
-  }
-
-  public Domains addNsdItem(String nsdItem) {
-    this.nsd.add(nsdItem);
-    return this;
-  }
-
-   /**
-   * list of Network Service Descriptors which are bound by the PO
-   * @return nsd
-  **/
-  @Schema(required = true, description = "list of Network Service Descriptors which are bound by the PO")
-  public List<String> getNsd() {
-    return nsd;
-  }
-
-  public void setNsd(List<String> nsd) {
-    this.nsd = nsd;
-  }
-
 
   @Override
   public boolean equals(java.lang.Object o) {
@@ -103,14 +52,12 @@ public class Domains {
       return false;
     }
     Domains domains = (Domains) o;
-    return Objects.equals(this.domainDID, domains.domainDID) &&
-        Objects.equals(this.nstId, domains.nstId) &&
-        Objects.equals(this.nsd, domains.nsd);
+    return Objects.equals(this.domainDID, domains.domainDID);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(domainDID, nstId, nsd);
+    return Objects.hash(domainDID);
   }
 
 
@@ -120,8 +67,6 @@ public class Domains {
     sb.append("class Domains {\n");
     
     sb.append("    domainDID: ").append(toIndentedString(domainDID)).append("\n");
-    sb.append("    nstId: ").append(toIndentedString(nstId)).append("\n");
-    sb.append("    nsd: ").append(toIndentedString(nsd)).append("\n");
     sb.append("}");
     return sb.toString();
   }

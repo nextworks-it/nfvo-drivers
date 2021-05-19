@@ -32,7 +32,7 @@ public class MetricModel {
   @SerializedName("aggregationMethod")
   private String aggregationMethod = null;
 
-  @SerializedName("timestampStep")
+  @SerializedName("step")
   private String timestampStep = null;
 
   public MetricModel metricName(String metricName) {
