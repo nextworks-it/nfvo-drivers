@@ -78,6 +78,7 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         body.setResourceID(productId);
         body.setNetworkID(123);
 
+
         List<MetricModel> metrics = new ArrayList<>();
         MetricModel metricModel = new MetricModel();
         //metricModel.setMetricType(mot.toString());
@@ -88,8 +89,8 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         if(params.containsKey("aggregationMethod")){
             metricModel.setAggregationMethod(params.get("aggregationMethod"));
         }
-        if(params.containsKey("timestampStep")){
-            metricModel.setTimestampStep(params.get("timestampStep"));
+        if(params.containsKey("step")){
+            metricModel.setTimestampStep(params.get("step"));
         }
 
         metrics.add(metricModel);
