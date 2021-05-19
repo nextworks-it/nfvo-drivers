@@ -243,7 +243,8 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 				eLicensingManager.terminateElicenseManagement();
 			}
 			if(monitoringManager!=null){
-				monitoringManager.deactivateNsMonitoring(request.getNsInstanceId());
+				log.debug("Deactivating monitoring for instance");
+				monitoringManager.deactivateNsMonitoring(nsInstances.get(nsInstanceId).getNsInstanceId());
 			}
 
 			return operationId;
