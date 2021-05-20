@@ -37,7 +37,7 @@ public class ResponseConfigModel {
   private String updatedAt = null;
 
   @SerializedName("businessID")
-  private Integer businessID = null;
+  private String businessID = null;
 
   @SerializedName("topic")
   private String topic = null;
@@ -111,7 +111,7 @@ public class ResponseConfigModel {
     this.updatedAt = updatedAt;
   }
 
-  public ResponseConfigModel businessID(Integer businessID) {
+  public ResponseConfigModel businessID(String businessID) {
     this.businessID = businessID;
     return this;
   }
@@ -121,11 +121,11 @@ public class ResponseConfigModel {
    * @return businessID
   **/
   @Schema(required = true, description = "")
-  public Integer getBusinessID() {
+  public String getBusinessID() {
     return businessID;
   }
 
-  public void setBusinessID(Integer businessID) {
+  public void setBusinessID(String businessID) {
     this.businessID = businessID;
   }
 
