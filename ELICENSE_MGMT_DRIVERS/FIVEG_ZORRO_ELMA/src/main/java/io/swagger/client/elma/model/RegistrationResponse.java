@@ -26,6 +26,71 @@ public class RegistrationResponse {
   @SerializedName("id")
   private String id = null;
 
+  @SerializedName("description")
+  private String description =null;
+
+  @SerializedName("productId")
+  private String productId = null;
+  @SerializedName("operationId")
+  private String operationId = null;
+
+  public String getProductId() {
+    return productId;
+  }
+
+  public void setProductId(String productId) {
+    this.productId = productId;
+  }
+
+  @SerializedName("responseType")
+  private String responseType = null;
+
+  @SerializedName("details")
+  private String details = null;
+
+  @SerializedName("statusCode")
+  private int statusCode;
+
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
+  public String getOperationId() {
+    return operationId;
+  }
+
+  public void setOperationId(String operationId) {
+    this.operationId = operationId;
+  }
+
+  public String getResponseType() {
+    return responseType;
+  }
+
+  public void setResponseType(String responseType) {
+    this.responseType = responseType;
+  }
+
+  public String getDetails() {
+    return details;
+  }
+
+  public void setDetails(String details) {
+    this.details = details;
+  }
+
+  public int getStatusCode() {
+    return statusCode;
+  }
+
+  public void setStatusCode(int statusCode) {
+    this.statusCode = statusCode;
+  }
+
   public RegistrationResponse id(String id) {
     this.id = id;
     return this;

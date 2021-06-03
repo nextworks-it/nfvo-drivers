@@ -16,10 +16,6 @@ import com.squareup.okhttp.*;
 import com.squareup.okhttp.internal.http.HttpMethod;
 import com.squareup.okhttp.logging.HttpLoggingInterceptor;
 import com.squareup.okhttp.logging.HttpLoggingInterceptor.Level;
-import io.swagger.client.mda.auth.ApiKeyAuth;
-import io.swagger.client.mda.auth.Authentication;
-import io.swagger.client.mda.auth.HttpBasicAuth;
-import io.swagger.client.mda.auth.OAuth;
 import okio.BufferedSink;
 import okio.Okio;
 import org.threeten.bp.LocalDate;
@@ -49,6 +45,11 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import io.swagger.client.mda.auth.Authentication;
+import io.swagger.client.mda.auth.HttpBasicAuth;
+import io.swagger.client.mda.auth.ApiKeyAuth;
+import io.swagger.client.mda.auth.OAuth;
 
 public class ApiClient {
 
@@ -85,7 +86,7 @@ public class ApiClient {
         json = new JSON();
 
         // Set default User-Agent.
-        setUserAgent("Swagger-Codegen/1.0.0/java");
+        setUserAgent("Swagger-Codegen/1.4/java");
 
         // Setup authentications (key: authentication name, value: authentication).
         authentications = new HashMap<String, Authentication>();

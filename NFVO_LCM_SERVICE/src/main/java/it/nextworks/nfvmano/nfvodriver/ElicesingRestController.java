@@ -1,6 +1,7 @@
 package it.nextworks.nfvmano.nfvodriver;
 
-import it.nextworks.nfvmano.nfvodriver.elicensing.ElicensingOperationResponse;
+
+import io.swagger.client.elma.model.RegistrationResponse;
 import it.nextworks.nfvmano.nfvodriver.elicensing.ElicensingService;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.annotations.Api;
@@ -29,7 +30,7 @@ public class ElicesingRestController {
     })
     @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = "", method = RequestMethod.POST)
-    public ResponseEntity<?> receiveElicensingOperationResponse(@RequestBody ElicensingOperationResponse response) {
+    public ResponseEntity<?> receiveElicensingOperationResponse(@RequestBody RegistrationResponse response) {
 
         elicensingService.processPendingResponse(response.getProductId(), response);
         return new ResponseEntity<String>(response.getProductId(),HttpStatus.CREATED);

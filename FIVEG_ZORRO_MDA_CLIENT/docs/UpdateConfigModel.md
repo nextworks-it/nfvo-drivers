@@ -3,6 +3,5 @@
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**timestampStart** | **String** |  |  [optional]
-**timestampEnd** | **String** |  |  [optional]
+**timestampEnd** | [**OffsetDateTime**](OffsetDateTime.md) |  |  [optional]
 **metrics** | [**List&lt;MetricModel&gt;**](MetricModel.md) |  |  [optional]

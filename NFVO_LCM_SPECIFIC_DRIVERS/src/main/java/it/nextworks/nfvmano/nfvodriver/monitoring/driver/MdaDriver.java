@@ -4,6 +4,7 @@ import io.swagger.client.mda.ApiClient;
 import io.swagger.client.mda.ApiException;
 import io.swagger.client.mda.api.DefaultApi;
 import io.swagger.client.mda.model.ConfigModel;
+import io.swagger.client.mda.model.ContextModel;
 import io.swagger.client.mda.model.MetricModel;
 import io.swagger.client.mda.model.ResponseConfigModel;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
@@ -51,10 +52,12 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         String nsInstanceId = request.getPerformanceMetricGroup().get(1);
         String productId = null;
         String transactionId = null;
+        String networkSliceId = null;
         // assuming productId and transactionId are always set in this order
-        if(request.getPerformanceMetricGroup().size()>=4){
+        if(request.getPerformanceMetricGroup().size()>=5){
             productId = request.getPerformanceMetricGroup().get(2);
             transactionId = request.getPerformanceMetricGroup().get(3);
+            networkSliceId = request.getPerformanceMetricGroup().get(4);
         }
 
         //Config Model:
@@ -71,12 +74,16 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         //
         log.debug("PM job parameters - Metric type: " + metricType + " - Monitoring object type: " + mot + " - VNF ID: " + vnfInstanceId + " - VNFD ID: " + vnfdId + " - NS Instance ID: " + nsInstanceId);
         ConfigModel body = new ConfigModel();
-        body.setTenantID(domain);
+        //body.setTenantID(domain);
         body.setTopic(domain + "-in-0");
-        body.setBusinessID(transactionId);
-        body.setReferenceID(productId);
-        body.setResourceID(productId);
-        body.setNetworkID(123);
+        body.setBusinessId(transactionId);
+        body.setReferenceId(productId);
+
+        ContextModel cm = new ContextModel();
+        cm.setNetworkSliceId(networkSliceId);
+        cm.setResourceId(productId);
+
+
 
 
         List<MetricModel> metrics = new ArrayList<>();
@@ -90,7 +97,7 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
             metricModel.setAggregationMethod(params.get("aggregationMethod"));
         }
         if(params.containsKey("step")){
-            metricModel.setTimestampStep(params.get("step"));
+            metricModel.setStep(params.get("step"));
         }
 
         metrics.add(metricModel);

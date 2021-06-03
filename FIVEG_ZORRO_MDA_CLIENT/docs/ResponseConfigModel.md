@@ -6,10 +6,13 @@ Name | Type | Description | Notes
 **id** | [**UUID**](UUID.md) |  | 
 **createdAt** | [**OffsetDateTime**](OffsetDateTime.md) |  | 
 **updatedAt** | [**OffsetDateTime**](OffsetDateTime.md) |  | 
-**businessID** | **Integer** |  | 
+**businessID** | **String** |  |  [optional]
 **topic** | **String** |  | 
-**networkID** | **Integer** |  | 
-**timestampStart** | [**OffsetDateTime**](OffsetDateTime.md) |  | 
-**timestampEnd** | [**OffsetDateTime**](OffsetDateTime.md) |  | 
-**metrics** | [**List&lt;MetricModel&gt;**](MetricModel.md) |  | 
+**networkID** | **Integer** |  |  [optional]
+**timestampStart** | [**OffsetDateTime**](OffsetDateTime.md) |  |  [optional]
+**timestampEnd** | [**OffsetDateTime**](OffsetDateTime.md) |  |  [optional]
+**metrics** | [**List&lt;ResponseMetricModel&gt;**](ResponseMetricModel.md) |  | 
 **status** | **Integer** |  | 
+**tenantID** | **String** |  |  [optional]
+**resourceID** | **String** |  |  [optional]
+**referenceID** | **String** |  |  [optional]

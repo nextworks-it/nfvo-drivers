@@ -21,28 +21,35 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.IOException;
+import org.threeten.bp.OffsetDateTime;
 /**
- * MetricModel
+ * ResponseMetricModel
  */
 
 @javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.JavaClientCodegen", date = "2021-06-03T17:13:21.498+02:00[Europe/Rome]")
-public class MetricModel {
-  @SerializedName("metric_name")
+public class ResponseMetricModel {
+  @SerializedName("metricName")
   private String metricName = null;
 
-  @SerializedName("metric_type")
+  @SerializedName("metricType")
   private String metricType = null;
 
   @SerializedName("step")
   private String step = null;
 
-  @SerializedName("aggregation_method")
+  @SerializedName("aggregationMethod")
   private String aggregationMethod = null;
 
   @SerializedName("step_aggregation")
   private String stepAggregation = null;
 
-  public MetricModel metricName(String metricName) {
+  @SerializedName("next_run_at")
+  private OffsetDateTime nextRunAt = null;
+
+  @SerializedName("next_aggregation")
+  private OffsetDateTime nextAggregation = null;
+
+  public ResponseMetricModel metricName(String metricName) {
     this.metricName = metricName;
     return this;
   }
@@ -60,7 +67,7 @@ public class MetricModel {
     this.metricName = metricName;
   }
 
-  public MetricModel metricType(String metricType) {
+  public ResponseMetricModel metricType(String metricType) {
     this.metricType = metricType;
     return this;
   }
@@ -78,7 +85,7 @@ public class MetricModel {
     this.metricType = metricType;
   }
 
-  public MetricModel step(String step) {
+  public ResponseMetricModel step(String step) {
     this.step = step;
     return this;
   }
@@ -96,7 +103,7 @@ public class MetricModel {
     this.step = step;
   }
 
-  public MetricModel aggregationMethod(String aggregationMethod) {
+  public ResponseMetricModel aggregationMethod(String aggregationMethod) {
     this.aggregationMethod = aggregationMethod;
     return this;
   }
@@ -114,7 +121,7 @@ public class MetricModel {
     this.aggregationMethod = aggregationMethod;
   }
 
-  public MetricModel stepAggregation(String stepAggregation) {
+  public ResponseMetricModel stepAggregation(String stepAggregation) {
     this.stepAggregation = stepAggregation;
     return this;
   }
@@ -132,6 +139,42 @@ public class MetricModel {
     this.stepAggregation = stepAggregation;
   }
 
+  public ResponseMetricModel nextRunAt(OffsetDateTime nextRunAt) {
+    this.nextRunAt = nextRunAt;
+    return this;
+  }
+
+   /**
+   * Get nextRunAt
+   * @return nextRunAt
+  **/
+  @Schema(required = true, description = "")
+  public OffsetDateTime getNextRunAt() {
+    return nextRunAt;
+  }
+
+  public void setNextRunAt(OffsetDateTime nextRunAt) {
+    this.nextRunAt = nextRunAt;
+  }
+
+  public ResponseMetricModel nextAggregation(OffsetDateTime nextAggregation) {
+    this.nextAggregation = nextAggregation;
+    return this;
+  }
+
+   /**
+   * Get nextAggregation
+   * @return nextAggregation
+  **/
+  @Schema(description = "")
+  public OffsetDateTime getNextAggregation() {
+    return nextAggregation;
+  }
+
+  public void setNextAggregation(OffsetDateTime nextAggregation) {
+    this.nextAggregation = nextAggregation;
+  }
+
 
   @Override
   public boolean equals(java.lang.Object o) {
@@ -141,30 +184,34 @@ public class MetricModel {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MetricModel metricModel = (MetricModel) o;
-    return Objects.equals(this.metricName, metricModel.metricName) &&
-        Objects.equals(this.metricType, metricModel.metricType) &&
-        Objects.equals(this.step, metricModel.step) &&
-        Objects.equals(this.aggregationMethod, metricModel.aggregationMethod) &&
-        Objects.equals(this.stepAggregation, metricModel.stepAggregation);
+    ResponseMetricModel responseMetricModel = (ResponseMetricModel) o;
+    return Objects.equals(this.metricName, responseMetricModel.metricName) &&
+        Objects.equals(this.metricType, responseMetricModel.metricType) &&
+        Objects.equals(this.step, responseMetricModel.step) &&
+        Objects.equals(this.aggregationMethod, responseMetricModel.aggregationMethod) &&
+        Objects.equals(this.stepAggregation, responseMetricModel.stepAggregation) &&
+        Objects.equals(this.nextRunAt, responseMetricModel.nextRunAt) &&
+        Objects.equals(this.nextAggregation, responseMetricModel.nextAggregation);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(metricName, metricType, step, aggregationMethod, stepAggregation);
+    return Objects.hash(metricName, metricType, step, aggregationMethod, stepAggregation, nextRunAt, nextAggregation);
   }
 
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class MetricModel {\n");
+    sb.append("class ResponseMetricModel {\n");
     
     sb.append("    metricName: ").append(toIndentedString(metricName)).append("\n");
     sb.append("    metricType: ").append(toIndentedString(metricType)).append("\n");
     sb.append("    step: ").append(toIndentedString(step)).append("\n");
     sb.append("    aggregationMethod: ").append(toIndentedString(aggregationMethod)).append("\n");
     sb.append("    stepAggregation: ").append(toIndentedString(stepAggregation)).append("\n");
+    sb.append("    nextRunAt: ").append(toIndentedString(nextRunAt)).append("\n");
+    sb.append("    nextAggregation: ").append(toIndentedString(nextAggregation)).append("\n");
     sb.append("}");
     return sb.toString();
   }

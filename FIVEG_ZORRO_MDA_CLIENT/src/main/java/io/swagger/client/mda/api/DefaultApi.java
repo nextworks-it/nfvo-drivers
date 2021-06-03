@@ -27,7 +27,9 @@ import java.io.IOException;
 
 
 import io.swagger.client.mda.model.ConfigModel;
+import io.swagger.client.mda.model.HTTPValidationError;
 import io.swagger.client.mda.model.ResponseConfigModel;
+import io.swagger.client.mda.model.ResponseErrorModel;
 import io.swagger.client.mda.model.UpdateConfigModel;
 
 import java.lang.reflect.Type;

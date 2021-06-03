@@ -5,9 +5,9 @@
   <artifactId>mda-client</artifactId>
   <packaging>jar</packaging>
   <name>mda-client</name>
-  <version>1.0.0</version>
+  <version>1.4</version>
   <url>https://github.com/swagger-api/swagger-codegen</url>
-  <description>5GZORRO MDA Client</description>
+  <description>Swagger Java</description>
   <scm>
     <connection>scm:git:git@github.com:swagger-api/swagger-codegen.git</connection>
     <developerConnection>scm:git:git@github.com:swagger-api/swagger-codegen.git</developerConnection>

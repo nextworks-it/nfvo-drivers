@@ -13,46 +13,31 @@
 package io.swagger.client.mda.model;
 
 import java.util.Objects;
-
+import java.util.Arrays;
+import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import io.swagger.client.mda.model.MetricModel;
 import io.swagger.v3.oas.annotations.media.Schema;
-
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.threeten.bp.OffsetDateTime;
 /**
  * UpdateConfigModel
  */
 
-@javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.JavaClientCodegen", date = "2021-03-14T17:12:29.690+01:00[Europe/Rome]")
+@javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.JavaClientCodegen", date = "2021-06-03T17:13:21.498+02:00[Europe/Rome]")
 public class UpdateConfigModel {
-  @SerializedName("timestampStart")
-  private String timestampStart = null;
-
   @SerializedName("timestampEnd")
-  private String timestampEnd = null;
+  private OffsetDateTime timestampEnd = null;
 
   @SerializedName("metrics")
   private List<MetricModel> metrics = null;
 
-  public UpdateConfigModel timestampStart(String timestampStart) {
-    this.timestampStart = timestampStart;
-    return this;
-  }
-
-   /**
-   * Get timestampStart
-   * @return timestampStart
-  **/
-  @Schema(description = "")
-  public String getTimestampStart() {
-    return timestampStart;
-  }
-
-  public void setTimestampStart(String timestampStart) {
-    this.timestampStart = timestampStart;
-  }
-
-  public UpdateConfigModel timestampEnd(String timestampEnd) {
+  public UpdateConfigModel timestampEnd(OffsetDateTime timestampEnd) {
     this.timestampEnd = timestampEnd;
     return this;
   }
@@ -62,11 +47,11 @@ public class UpdateConfigModel {
    * @return timestampEnd
   **/
   @Schema(description = "")
-  public String getTimestampEnd() {
+  public OffsetDateTime getTimestampEnd() {
     return timestampEnd;
   }
 
-  public void setTimestampEnd(String timestampEnd) {
+  public void setTimestampEnd(OffsetDateTime timestampEnd) {
     this.timestampEnd = timestampEnd;
   }
 
@@ -106,14 +91,13 @@ public class UpdateConfigModel {
       return false;
     }
     UpdateConfigModel updateConfigModel = (UpdateConfigModel) o;
-    return Objects.equals(this.timestampStart, updateConfigModel.timestampStart) &&
-        Objects.equals(this.timestampEnd, updateConfigModel.timestampEnd) &&
+    return Objects.equals(this.timestampEnd, updateConfigModel.timestampEnd) &&
         Objects.equals(this.metrics, updateConfigModel.metrics);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(timestampStart, timestampEnd, metrics);
+    return Objects.hash(timestampEnd, metrics);
   }
 
 
@@ -122,7 +106,6 @@ public class UpdateConfigModel {
     StringBuilder sb = new StringBuilder();
     sb.append("class UpdateConfigModel {\n");
     
-    sb.append("    timestampStart: ").append(toIndentedString(timestampStart)).append("\n");
     sb.append("    timestampEnd: ").append(toIndentedString(timestampEnd)).append("\n");
     sb.append("    metrics: ").append(toIndentedString(metrics)).append("\n");
     sb.append("}");

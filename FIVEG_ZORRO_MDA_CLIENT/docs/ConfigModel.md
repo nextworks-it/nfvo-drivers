@@ -3,9 +3,13 @@
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**businessID** | **Integer** |  | 
+**businessId** | **String** |  | 
 **topic** | **String** |  | 
-**networkID** | **Integer** |  | 
+**monitoringEndpoint** | **String** |  |  [optional]
+**networkSliceId** | **String** |  |  [optional]
+**tenantId** | **String** |  |  [optional]
+**referenceId** | **String** |  |  [optional]
 **metrics** | [**List&lt;MetricModel&gt;**](MetricModel.md) |  | 
-**timestampStart** | **String** |  |  [optional]
-**timestampEnd** | **String** |  |  [optional]
+**contextIds** | [**List&lt;ContextModel&gt;**](ContextModel.md) |  |  [optional]
+**timestampStart** | [**OffsetDateTime**](OffsetDateTime.md) |  |  [optional]
+**timestampEnd** | [**OffsetDateTime**](OffsetDateTime.md) |  |  [optional]

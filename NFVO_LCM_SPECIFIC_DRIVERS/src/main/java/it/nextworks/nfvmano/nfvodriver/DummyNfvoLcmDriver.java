@@ -51,7 +51,7 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 	private NfvoLcmOperationPollingManager nfvoOperationPollingManager;
 	Map<String, List<VnfInfo>> nsVnfInfos = new HashMap<>();
 	private static final Logger log = LoggerFactory.getLogger(DummyNfvoLcmDriver.class);
-
+	private Map<String, String> nfvNsToNsMap = new HashMap<>();
 
 	public DummyNfvoLcmDriver(String nfvoAddress,
 							  NfvoLcmNotificationInterface nfvoNotificationManager,
@@ -157,6 +157,8 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 			nsVnfInfos.put(nsInstanceId,currentVnfInfos);
 					nfvoOperationPollingManager.addOperation(operationId, OperationStatus.SUCCESSFULLY_DONE, request.getNsInstanceId(), "NS_INSTANTIATION");
 			log.debug("Added polling task for NFVO operation " + operationId);
+			if(request.getAdditionalParamForNs()!=null && request.getAdditionalParamForNs().containsKey("NSI_ID"))
+				nfvNsToNsMap.put(nsInstanceId, request.getAdditionalParamForNs().get("NSI_ID"));
 			return operationId;
 		} else {
 			log.error("NS instance "+ nsInstanceId + " not found");

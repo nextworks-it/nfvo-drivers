@@ -21,8 +21,8 @@ Delete Config Id
 ### Example
 ```java
 // Import classes:
-//import ApiException;
-//import DefaultApi;
+//import io.swagger.client.mda.ApiException;
+//import io.swagger.client.mda.api.DefaultApi;
 
 
 DefaultApi apiInstance = new DefaultApi();
@@ -63,8 +63,8 @@ Disable Config Id
 ### Example
 ```java
 // Import classes:
-//import ApiException;
-//import DefaultApi;
+//import io.swagger.client.mda.ApiException;
+//import io.swagger.client.mda.api.DefaultApi;
 
 
 DefaultApi apiInstance = new DefaultApi();
@@ -106,8 +106,8 @@ Enable Config Id
 ### Example
 ```java
 // Import classes:
-//import ApiException;
-//import DefaultApi;
+//import io.swagger.client.mda.ApiException;
+//import io.swagger.client.mda.api.DefaultApi;
 
 
 DefaultApi apiInstance = new DefaultApi();
@@ -149,8 +149,8 @@ Get All Configs
 ### Example
 ```java
 // Import classes:
-//import ApiException;
-//import DefaultApi;
+//import io.swagger.client.mda.ApiException;
+//import io.swagger.client.mda.api.DefaultApi;
 
 
 DefaultApi apiInstance = new DefaultApi();
@@ -188,8 +188,8 @@ Get Config Id
 ### Example
 ```java
 // Import classes:
-//import ApiException;
-//import DefaultApi;
+//import io.swagger.client.mda.ApiException;
+//import io.swagger.client.mda.api.DefaultApi;
 
 
 DefaultApi apiInstance = new DefaultApi();
@@ -231,8 +231,8 @@ Set Param
 ### Example
 ```java
 // Import classes:
-//import ApiException;
-//import DefaultApi;
+//import io.swagger.client.mda.ApiException;
+//import io.swagger.client.mda.api.DefaultApi;
 
 
 DefaultApi apiInstance = new DefaultApi();
@@ -274,8 +274,8 @@ Update Config Id
 ### Example
 ```java
 // Import classes:
-//import ApiException;
-//import DefaultApi;
+//import io.swagger.client.mda.ApiException;
+//import io.swagger.client.mda.api.DefaultApi;
 
 
 DefaultApi apiInstance = new DefaultApi();

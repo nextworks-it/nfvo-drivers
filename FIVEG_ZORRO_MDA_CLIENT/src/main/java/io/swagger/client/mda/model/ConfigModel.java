@@ -13,82 +13,71 @@
 package io.swagger.client.mda.model;
 
 import java.util.Objects;
-
+import java.util.Arrays;
+import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import io.swagger.client.mda.model.ContextModel;
+import io.swagger.client.mda.model.MetricModel;
 import io.swagger.v3.oas.annotations.media.Schema;
-
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.threeten.bp.OffsetDateTime;
 /**
  * ConfigModel
  */
 
-@javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.JavaClientCodegen", date = "2021-03-14T17:12:29.690+01:00[Europe/Rome]")
+@javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.JavaClientCodegen", date = "2021-06-03T17:13:21.498+02:00[Europe/Rome]")
 public class ConfigModel {
-  @SerializedName("businessID")
-  private String businessID = null;
+  @SerializedName("business_id")
+  private String businessId = null;
 
   @SerializedName("topic")
   private String topic = null;
 
-  @SerializedName("networkID")
-  private Integer networkID = null;
+  @SerializedName("monitoring_endpoint")
+  private String monitoringEndpoint = null;
 
+  @SerializedName("network_slice_id")
+  private String networkSliceId = null;
 
-  @SerializedName("context_ids")
-  List<ContextModel> contextModels = null;
+  @SerializedName("tenant_id")
+  private String tenantId = null;
 
-  @SerializedName("resourceID")
-  private String resourceID = null;
-
-  @SerializedName("tenantID")
-  private String tenantID = null;
-
-  @SerializedName("referenceID")
-  private String referenceID = null;
+  @SerializedName("reference_id")
+  private String referenceId = null;
 
   @SerializedName("metrics")
   private List<MetricModel> metrics = new ArrayList<MetricModel>();
 
-  public String getTenantID() {
-    return tenantID;
-  }
+  @SerializedName("context_ids")
+  private List<ContextModel> contextIds = null;
 
-  public void setTenantID(String tenantID) {
-    this.tenantID = tenantID;
-  }
+  @SerializedName("timestamp_start")
+  private OffsetDateTime timestampStart = null;
 
-  @SerializedName("timestampStart")
-  private String timestampStart = null;
+  @SerializedName("timestamp_end")
+  private OffsetDateTime timestampEnd = null;
 
-  @SerializedName("timestampEnd")
-  private String timestampEnd = null;
-
-  public ConfigModel businessID(String businessID) {
-    this.businessID = businessID;
+  public ConfigModel businessId(String businessId) {
+    this.businessId = businessId;
     return this;
   }
 
-
-  public List<ContextModel> getContextModels() {
-    return contextModels;
-  }
-
-  public void setContextModels(List<ContextModel> contextModels) {
-    this.contextModels = contextModels;
-  }
-
-  /**
-   * Get businessID
-   * @return businessID
+   /**
+   * Get businessId
+   * @return businessId
   **/
   @Schema(required = true, description = "")
-  public String getBusinessID() {
-    return businessID;
+  public String getBusinessId() {
+    return businessId;
   }
 
-  public void setBusinessID(String businessID) {
-    this.businessID = businessID;
+  public void setBusinessId(String businessId) {
+    this.businessId = businessId;
   }
 
   public ConfigModel topic(String topic) {
@@ -109,22 +98,76 @@ public class ConfigModel {
     this.topic = topic;
   }
 
-  public ConfigModel networkID(Integer networkID) {
-    this.networkID = networkID;
+  public ConfigModel monitoringEndpoint(String monitoringEndpoint) {
+    this.monitoringEndpoint = monitoringEndpoint;
     return this;
   }
 
    /**
-   * Get networkID
-   * @return networkID
+   * Get monitoringEndpoint
+   * @return monitoringEndpoint
   **/
-  @Schema(required = true, description = "")
-  public Integer getNetworkID() {
-    return networkID;
+  @Schema(description = "")
+  public String getMonitoringEndpoint() {
+    return monitoringEndpoint;
   }
 
-  public void setNetworkID(Integer networkID) {
-    this.networkID = networkID;
+  public void setMonitoringEndpoint(String monitoringEndpoint) {
+    this.monitoringEndpoint = monitoringEndpoint;
+  }
+
+  public ConfigModel networkSliceId(String networkSliceId) {
+    this.networkSliceId = networkSliceId;
+    return this;
+  }
+
+   /**
+   * Get networkSliceId
+   * @return networkSliceId
+  **/
+  @Schema(description = "")
+  public String getNetworkSliceId() {
+    return networkSliceId;
+  }
+
+  public void setNetworkSliceId(String networkSliceId) {
+    this.networkSliceId = networkSliceId;
+  }
+
+  public ConfigModel tenantId(String tenantId) {
+    this.tenantId = tenantId;
+    return this;
+  }
+
+   /**
+   * Get tenantId
+   * @return tenantId
+  **/
+  @Schema(description = "")
+  public String getTenantId() {
+    return tenantId;
+  }
+
+  public void setTenantId(String tenantId) {
+    this.tenantId = tenantId;
+  }
+
+  public ConfigModel referenceId(String referenceId) {
+    this.referenceId = referenceId;
+    return this;
+  }
+
+   /**
+   * Get referenceId
+   * @return referenceId
+  **/
+  @Schema(description = "")
+  public String getReferenceId() {
+    return referenceId;
+  }
+
+  public void setReferenceId(String referenceId) {
+    this.referenceId = referenceId;
   }
 
   public ConfigModel metrics(List<MetricModel> metrics) {
@@ -150,7 +193,33 @@ public class ConfigModel {
     this.metrics = metrics;
   }
 
-  public ConfigModel timestampStart(String timestampStart) {
+  public ConfigModel contextIds(List<ContextModel> contextIds) {
+    this.contextIds = contextIds;
+    return this;
+  }
+
+  public ConfigModel addContextIdsItem(ContextModel contextIdsItem) {
+    if (this.contextIds == null) {
+      this.contextIds = new ArrayList<ContextModel>();
+    }
+    this.contextIds.add(contextIdsItem);
+    return this;
+  }
+
+   /**
+   * Get contextIds
+   * @return contextIds
+  **/
+  @Schema(description = "")
+  public List<ContextModel> getContextIds() {
+    return contextIds;
+  }
+
+  public void setContextIds(List<ContextModel> contextIds) {
+    this.contextIds = contextIds;
+  }
+
+  public ConfigModel timestampStart(OffsetDateTime timestampStart) {
     this.timestampStart = timestampStart;
     return this;
   }
@@ -160,15 +229,15 @@ public class ConfigModel {
    * @return timestampStart
   **/
   @Schema(description = "")
-  public String getTimestampStart() {
+  public OffsetDateTime getTimestampStart() {
     return timestampStart;
   }
 
-  public void setTimestampStart(String timestampStart) {
+  public void setTimestampStart(OffsetDateTime timestampStart) {
     this.timestampStart = timestampStart;
   }
 
-  public ConfigModel timestampEnd(String timestampEnd) {
+  public ConfigModel timestampEnd(OffsetDateTime timestampEnd) {
     this.timestampEnd = timestampEnd;
     return this;
   }
@@ -178,30 +247,14 @@ public class ConfigModel {
    * @return timestampEnd
   **/
   @Schema(description = "")
-  public String getTimestampEnd() {
+  public OffsetDateTime getTimestampEnd() {
     return timestampEnd;
   }
 
-  public void setTimestampEnd(String timestampEnd) {
+  public void setTimestampEnd(OffsetDateTime timestampEnd) {
     this.timestampEnd = timestampEnd;
   }
 
-
-  public String getResourceID() {
-    return resourceID;
-  }
-
-  public void setResourceID(String resourceID) {
-    this.resourceID = resourceID;
-  }
-
-  public String getReferenceID() {
-    return referenceID;
-  }
-
-  public void setReferenceID(String referenceID) {
-    this.referenceID = referenceID;
-  }
 
   @Override
   public boolean equals(java.lang.Object o) {
@@ -212,17 +265,21 @@ public class ConfigModel {
       return false;
     }
     ConfigModel configModel = (ConfigModel) o;
-    return Objects.equals(this.businessID, configModel.businessID) &&
+    return Objects.equals(this.businessId, configModel.businessId) &&
         Objects.equals(this.topic, configModel.topic) &&
-        Objects.equals(this.networkID, configModel.networkID) &&
+        Objects.equals(this.monitoringEndpoint, configModel.monitoringEndpoint) &&
+        Objects.equals(this.networkSliceId, configModel.networkSliceId) &&
+        Objects.equals(this.tenantId, configModel.tenantId) &&
+        Objects.equals(this.referenceId, configModel.referenceId) &&
         Objects.equals(this.metrics, configModel.metrics) &&
+        Objects.equals(this.contextIds, configModel.contextIds) &&
         Objects.equals(this.timestampStart, configModel.timestampStart) &&
         Objects.equals(this.timestampEnd, configModel.timestampEnd);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(businessID, topic, networkID, metrics, timestampStart, timestampEnd);
+    return Objects.hash(businessId, topic, monitoringEndpoint, networkSliceId, tenantId, referenceId, metrics, contextIds, timestampStart, timestampEnd);
   }
 
 
@@ -231,10 +288,14 @@ public class ConfigModel {
     StringBuilder sb = new StringBuilder();
     sb.append("class ConfigModel {\n");
     
-    sb.append("    businessID: ").append(toIndentedString(businessID)).append("\n");
+    sb.append("    businessId: ").append(toIndentedString(businessId)).append("\n");
     sb.append("    topic: ").append(toIndentedString(topic)).append("\n");
-    sb.append("    networkID: ").append(toIndentedString(networkID)).append("\n");
+    sb.append("    monitoringEndpoint: ").append(toIndentedString(monitoringEndpoint)).append("\n");
+    sb.append("    networkSliceId: ").append(toIndentedString(networkSliceId)).append("\n");
+    sb.append("    tenantId: ").append(toIndentedString(tenantId)).append("\n");
+    sb.append("    referenceId: ").append(toIndentedString(referenceId)).append("\n");
     sb.append("    metrics: ").append(toIndentedString(metrics)).append("\n");
+    sb.append("    contextIds: ").append(toIndentedString(contextIds)).append("\n");
     sb.append("    timestampStart: ").append(toIndentedString(timestampStart)).append("\n");
     sb.append("    timestampEnd: ").append(toIndentedString(timestampEnd)).append("\n");
     sb.append("}");

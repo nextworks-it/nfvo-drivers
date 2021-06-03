@@ -45,16 +45,21 @@ public class ElicenseManagementDriver implements ElicenseManagementProviderInter
         body.setProductID(metadata.get("product_id"));
         try {
             RegistrationResponse response = api.elicensemanagercoreElmcFrontOperationsCheckLicensing(body);
-            CompletableFuture<ElicensingOperationResponse> elicensingResponse = new CompletableFuture();
+            CompletableFuture<RegistrationResponse> elicensingResponse = new CompletableFuture();
 
-            service.registerPendingResponse(metadata.get("product_id"), elicensingResponse);
-            log.debug("WAITING FOR ELICENSE VERIFICATiON");
-            ElicensingOperationResponse operationResponse = elicensingResponse.get();
-            if(operationResponse.getStatusCode()==HttpStatus.OK){
-                log.debug("Correctly verified elicense.");
+            if(response.getStatusCode()==200){
+                service.registerPendingResponse(metadata.get("product_id"), elicensingResponse);
+                log.debug("WAITING FOR ELICENSE VERIFICATiON");
+                RegistrationResponse operationResponse = elicensingResponse.get();
+                if(operationResponse.getStatusCode()==200){
+                    log.debug("Correctly verified elicense.");
+                }else{
+                    throw new FailedOperationException("Elicense verification failed:"+operationResponse.getDetails());
+                }
             }else{
-                throw new FailedOperationException("Elicense verification failed:"+operationResponse.getDetails());
+                throw new FailedOperationException("Failed while registering elicense"+response.getDescription());
             }
+
         } catch (ApiException e) {
             log.error("Error activating license",e);
             throw new FailedOperationException(e);

@@ -13,10 +13,15 @@
 package io.swagger.client.mda.model;
 
 import java.util.Objects;
-
+import java.util.Arrays;
+import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import io.swagger.client.mda.model.ResponseMetricModel;
 import io.swagger.v3.oas.annotations.media.Schema;
-
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -25,16 +30,16 @@ import org.threeten.bp.OffsetDateTime;
  * ResponseConfigModel
  */
 
-@javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.JavaClientCodegen", date = "2021-03-14T17:12:29.690+01:00[Europe/Rome]")
+@javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.JavaClientCodegen", date = "2021-06-03T17:13:21.498+02:00[Europe/Rome]")
 public class ResponseConfigModel {
   @SerializedName("id")
   private UUID id = null;
 
   @SerializedName("created_at")
-  private String createdAt = null;
+  private OffsetDateTime createdAt = null;
 
   @SerializedName("updated_at")
-  private String updatedAt = null;
+  private OffsetDateTime updatedAt = null;
 
   @SerializedName("businessID")
   private String businessID = null;
@@ -46,16 +51,25 @@ public class ResponseConfigModel {
   private Integer networkID = null;
 
   @SerializedName("timestampStart")
-  private String timestampStart = null;
+  private OffsetDateTime timestampStart = null;
 
   @SerializedName("timestampEnd")
-  private String timestampEnd = null;
+  private OffsetDateTime timestampEnd = null;
 
   @SerializedName("metrics")
-  private List<MetricModel> metrics = new ArrayList<MetricModel>();
+  private List<ResponseMetricModel> metrics = new ArrayList<ResponseMetricModel>();
 
   @SerializedName("status")
   private Integer status = null;
+
+  @SerializedName("tenantID")
+  private String tenantID = null;
+
+  @SerializedName("resourceID")
+  private String resourceID = null;
+
+  @SerializedName("referenceID")
+  private String referenceID = null;
 
   public ResponseConfigModel id(UUID id) {
     this.id = id;
@@ -75,7 +89,7 @@ public class ResponseConfigModel {
     this.id = id;
   }
 
-  public ResponseConfigModel createdAt(String createdAt) {
+  public ResponseConfigModel createdAt(OffsetDateTime createdAt) {
     this.createdAt = createdAt;
     return this;
   }
@@ -85,15 +99,15 @@ public class ResponseConfigModel {
    * @return createdAt
   **/
   @Schema(required = true, description = "")
-  public String getCreatedAt() {
+  public OffsetDateTime getCreatedAt() {
     return createdAt;
   }
 
-  public void setCreatedAt(String createdAt) {
+  public void setCreatedAt(OffsetDateTime createdAt) {
     this.createdAt = createdAt;
   }
 
-  public ResponseConfigModel updatedAt(String updatedAt) {
+  public ResponseConfigModel updatedAt(OffsetDateTime updatedAt) {
     this.updatedAt = updatedAt;
     return this;
   }
@@ -103,11 +117,11 @@ public class ResponseConfigModel {
    * @return updatedAt
   **/
   @Schema(required = true, description = "")
-  public String getUpdatedAt() {
+  public OffsetDateTime getUpdatedAt() {
     return updatedAt;
   }
 
-  public void setUpdatedAt(String updatedAt) {
+  public void setUpdatedAt(OffsetDateTime updatedAt) {
     this.updatedAt = updatedAt;
   }
 
@@ -120,7 +134,7 @@ public class ResponseConfigModel {
    * Get businessID
    * @return businessID
   **/
-  @Schema(required = true, description = "")
+  @Schema(description = "")
   public String getBusinessID() {
     return businessID;
   }
@@ -156,7 +170,7 @@ public class ResponseConfigModel {
    * Get networkID
    * @return networkID
   **/
-  @Schema(required = true, description = "")
+  @Schema(description = "")
   public Integer getNetworkID() {
     return networkID;
   }
@@ -165,7 +179,7 @@ public class ResponseConfigModel {
     this.networkID = networkID;
   }
 
-  public ResponseConfigModel timestampStart(String timestampStart) {
+  public ResponseConfigModel timestampStart(OffsetDateTime timestampStart) {
     this.timestampStart = timestampStart;
     return this;
   }
@@ -174,16 +188,16 @@ public class ResponseConfigModel {
    * Get timestampStart
    * @return timestampStart
   **/
-  @Schema(required = true, description = "")
-  public String getTimestampStart() {
+  @Schema(description = "")
+  public OffsetDateTime getTimestampStart() {
     return timestampStart;
   }
 
-  public void setTimestampStart(String timestampStart) {
+  public void setTimestampStart(OffsetDateTime timestampStart) {
     this.timestampStart = timestampStart;
   }
 
-  public ResponseConfigModel timestampEnd(String timestampEnd) {
+  public ResponseConfigModel timestampEnd(OffsetDateTime timestampEnd) {
     this.timestampEnd = timestampEnd;
     return this;
   }
@@ -192,21 +206,21 @@ public class ResponseConfigModel {
    * Get timestampEnd
    * @return timestampEnd
   **/
-  @Schema(required = true, description = "")
-  public String getTimestampEnd() {
+  @Schema(description = "")
+  public OffsetDateTime getTimestampEnd() {
     return timestampEnd;
   }
 
-  public void setTimestampEnd(String timestampEnd) {
+  public void setTimestampEnd(OffsetDateTime timestampEnd) {
     this.timestampEnd = timestampEnd;
   }
 
-  public ResponseConfigModel metrics(List<MetricModel> metrics) {
+  public ResponseConfigModel metrics(List<ResponseMetricModel> metrics) {
     this.metrics = metrics;
     return this;
   }
 
-  public ResponseConfigModel addMetricsItem(MetricModel metricsItem) {
+  public ResponseConfigModel addMetricsItem(ResponseMetricModel metricsItem) {
     this.metrics.add(metricsItem);
     return this;
   }
@@ -216,11 +230,11 @@ public class ResponseConfigModel {
    * @return metrics
   **/
   @Schema(required = true, description = "")
-  public List<MetricModel> getMetrics() {
+  public List<ResponseMetricModel> getMetrics() {
     return metrics;
   }
 
-  public void setMetrics(List<MetricModel> metrics) {
+  public void setMetrics(List<ResponseMetricModel> metrics) {
     this.metrics = metrics;
   }
 
@@ -242,6 +256,60 @@ public class ResponseConfigModel {
     this.status = status;
   }
 
+  public ResponseConfigModel tenantID(String tenantID) {
+    this.tenantID = tenantID;
+    return this;
+  }
+
+   /**
+   * Get tenantID
+   * @return tenantID
+  **/
+  @Schema(description = "")
+  public String getTenantID() {
+    return tenantID;
+  }
+
+  public void setTenantID(String tenantID) {
+    this.tenantID = tenantID;
+  }
+
+  public ResponseConfigModel resourceID(String resourceID) {
+    this.resourceID = resourceID;
+    return this;
+  }
+
+   /**
+   * Get resourceID
+   * @return resourceID
+  **/
+  @Schema(description = "")
+  public String getResourceID() {
+    return resourceID;
+  }
+
+  public void setResourceID(String resourceID) {
+    this.resourceID = resourceID;
+  }
+
+  public ResponseConfigModel referenceID(String referenceID) {
+    this.referenceID = referenceID;
+    return this;
+  }
+
+   /**
+   * Get referenceID
+   * @return referenceID
+  **/
+  @Schema(description = "")
+  public String getReferenceID() {
+    return referenceID;
+  }
+
+  public void setReferenceID(String referenceID) {
+    this.referenceID = referenceID;
+  }
+
 
   @Override
   public boolean equals(java.lang.Object o) {
@@ -261,12 +329,15 @@ public class ResponseConfigModel {
         Objects.equals(this.timestampStart, responseConfigModel.timestampStart) &&
         Objects.equals(this.timestampEnd, responseConfigModel.timestampEnd) &&
         Objects.equals(this.metrics, responseConfigModel.metrics) &&
-        Objects.equals(this.status, responseConfigModel.status);
+        Objects.equals(this.status, responseConfigModel.status) &&
+        Objects.equals(this.tenantID, responseConfigModel.tenantID) &&
+        Objects.equals(this.resourceID, responseConfigModel.resourceID) &&
+        Objects.equals(this.referenceID, responseConfigModel.referenceID);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, createdAt, updatedAt, businessID, topic, networkID, timestampStart, timestampEnd, metrics, status);
+    return Objects.hash(id, createdAt, updatedAt, businessID, topic, networkID, timestampStart, timestampEnd, metrics, status, tenantID, resourceID, referenceID);
   }
 
 
@@ -285,6 +356,9 @@ public class ResponseConfigModel {
     sb.append("    timestampEnd: ").append(toIndentedString(timestampEnd)).append("\n");
     sb.append("    metrics: ").append(toIndentedString(metrics)).append("\n");
     sb.append("    status: ").append(toIndentedString(status)).append("\n");
+    sb.append("    tenantID: ").append(toIndentedString(tenantID)).append("\n");
+    sb.append("    resourceID: ").append(toIndentedString(resourceID)).append("\n");
+    sb.append("    referenceID: ").append(toIndentedString(referenceID)).append("\n");
     sb.append("}");
     return sb.toString();
   }

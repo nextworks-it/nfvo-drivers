@@ -1,4 +1,4 @@
-# MetricModel
+# ResponseMetricModel
 
 ## Properties
 Name | Type | Description | Notes
@@ -8,3 +8,5 @@ Name | Type | Description | Notes
 **step** | **String** |  | 
 **aggregationMethod** | **String** |  |  [optional]
 **stepAggregation** | **String** |  |  [optional]
+**nextRunAt** | [**OffsetDateTime**](OffsetDateTime.md) |  | 
+**nextAggregation** | [**OffsetDateTime**](OffsetDateTime.md) |  |  [optional]

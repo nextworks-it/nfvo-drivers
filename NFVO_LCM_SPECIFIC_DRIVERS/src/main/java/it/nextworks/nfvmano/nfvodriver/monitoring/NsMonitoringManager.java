@@ -36,6 +36,7 @@ public class NsMonitoringManager {
 
     private final String nsInstanceId;
 
+
     private final String tenantId;
 
     private final Nsd nsd;
@@ -67,6 +68,7 @@ public class NsMonitoringManager {
         this.vnfInfoList = vnfInfoList;
         this.prometheusDriver = prometheusDriver;
         this.tenantId = tenantId;
+
     }
 
     public String createPmJob(CreatePmJobRequest request, VnfInfo vnfInfo)
@@ -252,6 +254,9 @@ public class NsMonitoringManager {
             performanceMetricGroup.add(nsInfo.getConfigurationParameters().get("product_id"));
         }
         if(nsInfo.getConfigurationParameters()!=null && nsInfo.getConfigurationParameters().containsKey("transaction_uuid")){
+            performanceMetricGroup.add(nsInfo.getConfigurationParameters().get("transaction_uuid"));
+        }
+        if(nsInfo.getConfigurationParameters()!=null && nsInfo.getConfigurationParameters().containsKey("nsi_id")){
             performanceMetricGroup.add(nsInfo.getConfigurationParameters().get("transaction_uuid"));
         }
         CreatePmJobRequest pmJobRequest = new CreatePmJobRequest(null,	//NS selector
