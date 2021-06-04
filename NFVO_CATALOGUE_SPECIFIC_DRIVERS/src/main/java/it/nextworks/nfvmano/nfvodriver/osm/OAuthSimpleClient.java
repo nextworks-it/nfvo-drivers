@@ -3,6 +3,7 @@ package it.nextworks.nfvmano.nfvodriver.osm;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.nextworks.nfvmano.libs.fivegcatalogueclient.invoker.management.auth.OAuth;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import javax.net.ssl.*;
 import java.io.BufferedInputStream;
@@ -17,6 +18,8 @@ import java.security.cert.CertificateFactory;
 import java.util.HashMap;
 import java.util.Map;
 import com.squareup.okhttp.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OAuthSimpleClient {
 
@@ -24,7 +27,7 @@ public class OAuthSimpleClient {
     private String username;
     private String password;
     private String project;
-
+    private static final Logger log = LoggerFactory.getLogger(OAuthSimpleClient.class);
     public OAuthSimpleClient(String basePath, String username, String password, String project){
         this.basePath= basePath;
         this.username=username;
@@ -47,7 +50,8 @@ public class OAuthSimpleClient {
         } catch (JsonProcessingException e) {
             throw new FailedOperationException(e.getMessage());
         }
-
+        log.debug("Sending request to:"+basePath);
+        log.debug("Sending request:"+bodyData);
         Request request = new Request.Builder()
                 .url(basePath)
                 .post(body)
@@ -58,6 +62,7 @@ public class OAuthSimpleClient {
             response = client.newCall(request).execute();
             ResponseBody respBody = response.body();
             String json = respBody.string();
+            log.debug(json);
             JsonNode map = mapper.readTree(json);
             String token = map.get("id").textValue();
             return token;
@@ -121,6 +126,7 @@ public class OAuthSimpleClient {
         OkHttpClient client = new OkHttpClient()
                 .setSslSocketFactory(sc.getSocketFactory())
                 .setHostnameVerifier(hv);
+
         return client;
     }
 }
