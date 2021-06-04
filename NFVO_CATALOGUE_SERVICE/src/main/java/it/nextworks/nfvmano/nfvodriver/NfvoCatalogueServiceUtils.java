@@ -63,6 +63,11 @@ public class NfvoCatalogueServiceUtils {
     @Value("${nfvo.catalogue.nsdStorage.enabled:false}")
     private boolean nsdFileStorageEnabled;
 
+    @Value("${nfvo.catalogue.osm.use_flavor:false}")
+    private boolean osmUseFlavorInVnfdId;
+
+
+
 
     @Autowired
     NfvoCatalogueService nfvoCatalogueService;
@@ -88,7 +93,7 @@ public class NfvoCatalogueServiceUtils {
             nfvoCatalogueService.setNfvoCatalogueDriver(new DummyNfvoCatalogueDriver(nfvoCatalogueAddress, tmpDir));
         } else if(nfvoCatalogueType.equals("OSM")){
             log.debug("Configured for type:" + nfvoCatalogueType);
-            nfvoCatalogueService.setNfvoCatalogueDriver(new OsmCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null, nsdFileRegistryService, vnfdFileRegistryService));
+            nfvoCatalogueService.setNfvoCatalogueDriver(new OsmCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null, nsdFileRegistryService, vnfdFileRegistryService, osmUseFlavorInVnfdId));
         } else if(nfvoCatalogueType.equals("SOL_005")) {
             log.debug("Configured for type:" + nfvoCatalogueType);
             nfvoCatalogueService.setNfvoCatalogueDriver(new SolCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, nfvoCatalogueId, null));

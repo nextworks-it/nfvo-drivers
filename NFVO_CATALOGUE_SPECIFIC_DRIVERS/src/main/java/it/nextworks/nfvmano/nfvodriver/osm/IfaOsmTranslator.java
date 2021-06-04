@@ -39,7 +39,7 @@ public class IfaOsmTranslator {
      * @param nsDf
      * @return NSDescriptor
      */
-    private static NSDescriptor translateIfaToOsmNsd(Nsd nsd, NsDf nsDf, HashMap<String, Boolean> useTemplateVNFDs) {
+    private static NSDescriptor translateIfaToOsmNsd(Nsd nsd, NsDf nsDf, HashMap<String, Boolean> useTemplateVNFDs, boolean useFlavorInVnfdId) {
 
         NSDescriptor nsDescriptor = new NSDescriptor();
 
@@ -74,21 +74,15 @@ public class IfaOsmTranslator {
             //mapping for conssituentVNFD
             ConstituentVNFD constituentVNFD = new ConstituentVNFD();
             //take the flavour id of this vnf, in order to know which vnf of the mappedVnfs to use
-            String vnfdIdWithFlavour = null;
+            String osmVnfdId = null;
             try {
-                if(useTemplateVNFDs.containsKey(vnfdId)){
-                    vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
-                }else{
-                    //TODO: Verify with Francesco
-                    //vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId) + "_" + nsDescriptor.getId();
-                    vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
-                }
-                constituentVNFD.setVnfdIdentifierReference(vnfdIdWithFlavour);
+                osmVnfdId=getOsmVnfdId(vnfdId,nsd.getNsDf().get(0), useFlavorInVnfdId );
+                constituentVNFD.setVnfdIdentifierReference(osmVnfdId);
                 constituentVNFD.setMemberVNFIndex(indexOfVnf);
                 constituentVNFDList.add(constituentVNFD);
-                vnfdIdToPosition.put(vnfdIdWithFlavour,indexOfVnf);
+                vnfdIdToPosition.put(osmVnfdId,indexOfVnf);
                 indexOfVnf++;
-                mappedVnfds.put(vnfdId, vnfdIdWithFlavour);
+                mappedVnfds.put(vnfdId, osmVnfdId);
             } catch (NotExistingEntityException e) {
                 log.debug("No vnf profile id for vnfdId: " + vnfdId +" found in this DF");
                 e.printStackTrace();
@@ -459,8 +453,8 @@ public class IfaOsmTranslator {
      * @param nsDf
      * @return String
      */
-    public static File createPackageForNsd(Nsd nsd, NsDf nsDf, HashMap<String,Boolean> useTemplateVNFDs) {
-        nsdOsm = translateIfaToOsmNsd(nsd,nsDf,useTemplateVNFDs);
+    public static File createPackageForNsd(Nsd nsd, NsDf nsDf, HashMap<String,Boolean> useTemplateVNFDs, boolean useFlavorInVnfdId) {
+        nsdOsm = translateIfaToOsmNsd(nsd,nsDf,useTemplateVNFDs, useFlavorInVnfdId);
 
         List<NSDescriptor> nsDescriptorList = new ArrayList<>();
         nsDescriptorList.add(nsdOsm);
@@ -481,6 +475,12 @@ public class IfaOsmTranslator {
         return tarNsdFile;
     }
 
+
+    public static String getOsmVnfdId(String vnfdIdIfa, NsDf nsDf, boolean useFlavor) throws NotExistingEntityException {
+        if(useFlavor){
+            return vnfdIdIfa+"_"+getFlavourFromVnfdId(nsDf, vnfdIdIfa);
+        }else return vnfdIdIfa;
+    }
     public static NSDescriptor getGeneratedOsmNsd(){
         return nsdOsm;
     }

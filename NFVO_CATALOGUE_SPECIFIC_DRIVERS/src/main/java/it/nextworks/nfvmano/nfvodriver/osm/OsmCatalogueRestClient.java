@@ -68,6 +68,7 @@ public class OsmCatalogueRestClient {
     private final Map<Nsd,List<UUID>> NsdIfaIdToNsdInfoIds;
     private final Map<UUID,String> NsdInfoIdToOsmNsdId;
 
+    private boolean useFlavorInVnfdId = false;
     //this map the osm vnfd id to the osm vnfd UUID
     private final Map<String,UUID> vnfdIdToVnfdUUID;
     //to be deleted
@@ -76,7 +77,7 @@ public class OsmCatalogueRestClient {
 
     public OsmCatalogueRestClient(String nfvoAddress, String username, String password, OAuthSimpleClient oAuthSimpleClient,
                                   NsdFileRegistryService nsdFileRegistryService,
-                                  VnfdFileRegistryService vnfdFileRegistryService){
+                                  VnfdFileRegistryService vnfdFileRegistryService, boolean useFlavorInVnfdId){
         this.oAuthSimpleClient = oAuthSimpleClient;
         this.nfvoAddress = nfvoAddress;
         this.username = username;
@@ -98,6 +99,7 @@ public class OsmCatalogueRestClient {
 
         this.vnfdIdToVnfdUUID = new HashMap<>();
         this.vnfdIdToOsmVnfd = new HashMap<>();
+        this.useFlavorInVnfdId=useFlavorInVnfdId;
     }
 
 
@@ -137,7 +139,7 @@ public class OsmCatalogueRestClient {
                 }
                 // Now create and onboard NSD
                 //call the translation process that return nsd tar file
-                File compressFilePath = IfaOsmTranslator.createPackageForNsd(nsd, df, useTemplateVNFDs);
+                File compressFilePath = IfaOsmTranslator.createPackageForNsd(nsd, df, useTemplateVNFDs,useFlavorInVnfdId );
                 NSDescriptor nsdOsm = IfaOsmTranslator.getGeneratedOsmNsd(); //TODO validate if this could change (maybe no more useful)
                 UUID nsdInfoId;
                 //this post request create a new ns descriptor resource

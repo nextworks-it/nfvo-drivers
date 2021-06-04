@@ -51,7 +51,8 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 							  String project,
 							  UUID vimId,
 							  NsdFileRegistryService nsdFileRegistryService,
-							  VnfdFileRegistryService vnfdFileRegistryService) {
+							  VnfdFileRegistryService vnfdFileRegistryService,
+							  boolean useFlavorInVnfdID) {
 
 		super(NfvoCatalogueDriverType.OSM, nfvoAddress, null);
 		this.username = username;
@@ -60,7 +61,7 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 		this.oAuthSimpleClient = new OAuthSimpleClient(nfvoAddress+"/osm/admin/v1/tokens", username, password, project);
 		this.vnfdFileRegistryService = vnfdFileRegistryService;
 		this.nsdFileRegistryService = nsdFileRegistryService;
-		this.osmCatalogueRestClient = new OsmCatalogueRestClient(nfvoAddress, username, password, oAuthSimpleClient, nsdFileRegistryService, vnfdFileRegistryService);
+		this.osmCatalogueRestClient = new OsmCatalogueRestClient(nfvoAddress, username, password, oAuthSimpleClient, nsdFileRegistryService, vnfdFileRegistryService, useFlavorInVnfdID);
 	}
 
 	@Override
