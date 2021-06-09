@@ -112,7 +112,7 @@ public class NfvoLcmServiceUtils {
                         externalMonitoringAddress+":3000",nfvoLcmAddress));
             }else if(externalMonitoringType.equals("MDA")){
                 monitoringMgr = new MonitoringManager(new MdaDriver(
-                        externalMonitoringAddress, domainId));
+                        externalMonitoringAddress, domainId, nfvoLcmAddress));
             }else log.error("Unknown  external monitoring type, not configured");
         }
 

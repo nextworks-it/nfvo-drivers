@@ -3,10 +3,7 @@ package it.nextworks.nfvmano.nfvodriver.monitoring.driver;
 import io.swagger.client.mda.ApiClient;
 import io.swagger.client.mda.ApiException;
 import io.swagger.client.mda.api.DefaultApi;
-import io.swagger.client.mda.model.ConfigModel;
-import io.swagger.client.mda.model.ContextModel;
-import io.swagger.client.mda.model.MetricModel;
-import io.swagger.client.mda.model.ResponseConfigModel;
+import io.swagger.client.mda.model.*;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
@@ -19,6 +16,8 @@ import it.nextworks.nfvmano.libs.ifa.records.vnfinfo.VnfInfo;
 import it.nextworks.nfvmano.nfvodriver.monitoring.MonitoringDriverProviderInterface;
 import it.nextworks.nfvmano.nfvodriver.monitoring.elements.MonitoringGui;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,12 +28,14 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
     private static final Logger log = LoggerFactory.getLogger(MdaDriver.class);
     private final String domain;
     private DefaultApi defaultApi;
+    private String nfvoAddress;
 
 
-    public MdaDriver(String baseAddress, String domain){
+    public MdaDriver(String baseAddress, String domain, String nfvoAddress){
         this.domain = domain;
         defaultApi = new DefaultApi();
         defaultApi.setApiClient(new ApiClient().setDebugging(true).setBasePath(baseAddress));
+        this.nfvoAddress=nfvoAddress;
 
     }
     @Override
@@ -78,10 +79,11 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         body.setTopic(domain + "-in-0");
         body.setBusinessId(transactionId);
         body.setReferenceId(productId);
-
+        body.setDataSourceType(DataSourceType.OSM);
         ContextModel cm = new ContextModel();
         cm.setNetworkSliceId(networkSliceId);
         cm.setResourceId(productId);
+
 
 
 
@@ -102,6 +104,16 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
 
         metrics.add(metricModel);
         body.setMetrics(metrics);
+        if(body.getDataSourceType().equals(DataSourceType.OSM)){
+            try {
+                URL url = new URL(nfvoAddress);
+                URL newurl = new URL(url.getProtocol(), url.getHost(), 9091, url.getFile());
+                body.setMonitoringEndpoint(newurl.toString());
+            } catch (MalformedURLException e) {
+                throw  new FailedOperationException(e);
+            }
+
+        }
         try {
             ResponseConfigModel response= defaultApi.setParamSettingsPost(body);
             return response.getId().toString();

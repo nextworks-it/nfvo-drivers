@@ -62,6 +62,10 @@ public class ConfigModel {
   @SerializedName("timestamp_end")
   private OffsetDateTime timestampEnd = null;
 
+
+  @SerializedName("data_source_type")
+  private DataSourceType dataSourceType = null;
+
   public ConfigModel businessId(String businessId) {
     this.businessId = businessId;
     return this;
@@ -150,6 +154,19 @@ public class ConfigModel {
 
   public void setTenantId(String tenantId) {
     this.tenantId = tenantId;
+  }
+
+  /**
+   * Get dataSourceType
+   * @return dataSourceType
+   **/
+  @Schema(description = "")
+  public DataSourceType getDataSourceType() {
+    return dataSourceType;
+  }
+
+  public void setDataSourceType(DataSourceType dataSourceType) {
+    this.dataSourceType = dataSourceType;
   }
 
   public ConfigModel referenceId(String referenceId) {
