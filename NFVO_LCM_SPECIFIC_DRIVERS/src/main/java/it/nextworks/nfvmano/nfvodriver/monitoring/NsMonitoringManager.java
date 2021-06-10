@@ -257,7 +257,11 @@ public class NsMonitoringManager {
             performanceMetricGroup.add(nsInfo.getConfigurationParameters().get("transaction_uuid"));
         }
         if(nsInfo.getConfigurationParameters()!=null && nsInfo.getConfigurationParameters().containsKey("nsi_id")){
-            performanceMetricGroup.add(nsInfo.getConfigurationParameters().get("transaction_uuid"));
+            performanceMetricGroup.add(nsInfo.getConfigurationParameters().get("nsi_id"));
+        }
+
+        if(nsInfo.getConfigurationParameters()!=null && nsInfo.getConfigurationParameters().containsKey("tenant_id")){
+            performanceMetricGroup.add(nsInfo.getConfigurationParameters().get("tenant_id"));
         }
         CreatePmJobRequest pmJobRequest = new CreatePmJobRequest(null,	//NS selector
                 null, 													//resource selector

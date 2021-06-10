@@ -54,11 +54,14 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         String productId = null;
         String transactionId = null;
         String networkSliceId = null;
+        String tenantId = null;
         // assuming productId and transactionId are always set in this order
-        if(request.getPerformanceMetricGroup().size()>=5){
+        log.debug("PerformanceMetricGroups:"+request.getPerformanceMetricGroup());
+        if(request.getPerformanceMetricGroup().size()>=6){
             productId = request.getPerformanceMetricGroup().get(2);
             transactionId = request.getPerformanceMetricGroup().get(3);
             networkSliceId = request.getPerformanceMetricGroup().get(4);
+            tenantId = request.getPerformanceMetricGroup().get(5);
         }
 
         //Config Model:
@@ -75,7 +78,7 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         //
         log.debug("PM job parameters - Metric type: " + metricType + " - Monitoring object type: " + mot + " - VNF ID: " + vnfInstanceId + " - VNFD ID: " + vnfdId + " - NS Instance ID: " + nsInstanceId);
         ConfigModel body = new ConfigModel();
-        //body.setTenantID(domain);
+        body.setTenantId(tenantId);
         body.setTopic(domain + "-in-0");
         body.setBusinessId(transactionId);
         body.setReferenceId(productId);
@@ -83,7 +86,9 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         ContextModel cm = new ContextModel();
         cm.setNetworkSliceId(networkSliceId);
         cm.setResourceId(productId);
-
+        List<ContextModel> cms = new ArrayList<>();
+        cms.add(cm);
+        body.setContextIds(cms);
 
 
 
