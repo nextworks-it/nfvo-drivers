@@ -36,10 +36,10 @@ public class ResponseConfigModel {
   private UUID id = null;
 
   @SerializedName("created_at")
-  private OffsetDateTime createdAt = null;
+  private String createdAt = null;
 
   @SerializedName("updated_at")
-  private OffsetDateTime updatedAt = null;
+  private String updatedAt = null;
 
   @SerializedName("businessID")
   private String businessID = null;
@@ -51,10 +51,10 @@ public class ResponseConfigModel {
   private Integer networkID = null;
 
   @SerializedName("timestampStart")
-  private OffsetDateTime timestampStart = null;
+  private String timestampStart = null;
 
   @SerializedName("timestampEnd")
-  private OffsetDateTime timestampEnd = null;
+  private String timestampEnd = null;
 
   @SerializedName("metrics")
   private List<ResponseMetricModel> metrics = new ArrayList<ResponseMetricModel>();
@@ -89,7 +89,7 @@ public class ResponseConfigModel {
     this.id = id;
   }
 
-  public ResponseConfigModel createdAt(OffsetDateTime createdAt) {
+  public ResponseConfigModel createdAt(String createdAt) {
     this.createdAt = createdAt;
     return this;
   }
@@ -99,15 +99,15 @@ public class ResponseConfigModel {
    * @return createdAt
   **/
   @Schema(required = true, description = "")
-  public OffsetDateTime getCreatedAt() {
+  public String getCreatedAt() {
     return createdAt;
   }
 
-  public void setCreatedAt(OffsetDateTime createdAt) {
+  public void setCreatedAt(String createdAt) {
     this.createdAt = createdAt;
   }
 
-  public ResponseConfigModel updatedAt(OffsetDateTime updatedAt) {
+  public ResponseConfigModel updatedAt(String updatedAt) {
     this.updatedAt = updatedAt;
     return this;
   }
@@ -117,11 +117,11 @@ public class ResponseConfigModel {
    * @return updatedAt
   **/
   @Schema(required = true, description = "")
-  public OffsetDateTime getUpdatedAt() {
+  public String getUpdatedAt() {
     return updatedAt;
   }
 
-  public void setUpdatedAt(OffsetDateTime updatedAt) {
+  public void setUpdatedAt(String updatedAt) {
     this.updatedAt = updatedAt;
   }
 
@@ -179,7 +179,7 @@ public class ResponseConfigModel {
     this.networkID = networkID;
   }
 
-  public ResponseConfigModel timestampStart(OffsetDateTime timestampStart) {
+  public ResponseConfigModel timestampStart(String timestampStart) {
     this.timestampStart = timestampStart;
     return this;
   }
@@ -189,15 +189,15 @@ public class ResponseConfigModel {
    * @return timestampStart
   **/
   @Schema(description = "")
-  public OffsetDateTime getTimestampStart() {
+  public String getTimestampStart() {
     return timestampStart;
   }
 
-  public void setTimestampStart(OffsetDateTime timestampStart) {
+  public void setTimestampStart(String timestampStart) {
     this.timestampStart = timestampStart;
   }
 
-  public ResponseConfigModel timestampEnd(OffsetDateTime timestampEnd) {
+  public ResponseConfigModel timestampEnd(String timestampEnd) {
     this.timestampEnd = timestampEnd;
     return this;
   }
@@ -207,11 +207,11 @@ public class ResponseConfigModel {
    * @return timestampEnd
   **/
   @Schema(description = "")
-  public OffsetDateTime getTimestampEnd() {
+  public String getTimestampEnd() {
     return timestampEnd;
   }
 
-  public void setTimestampEnd(OffsetDateTime timestampEnd) {
+  public void setTimestampEnd(String timestampEnd) {
     this.timestampEnd = timestampEnd;
   }
 

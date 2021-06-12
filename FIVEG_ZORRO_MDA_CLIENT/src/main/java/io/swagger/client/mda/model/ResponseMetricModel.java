@@ -44,10 +44,10 @@ public class ResponseMetricModel {
   private String stepAggregation = null;
 
   @SerializedName("next_run_at")
-  private OffsetDateTime nextRunAt = null;
+  private String nextRunAt = null;
 
   @SerializedName("next_aggregation")
-  private OffsetDateTime nextAggregation = null;
+  private String nextAggregation = null;
 
   public ResponseMetricModel metricName(String metricName) {
     this.metricName = metricName;
@@ -139,7 +139,7 @@ public class ResponseMetricModel {
     this.stepAggregation = stepAggregation;
   }
 
-  public ResponseMetricModel nextRunAt(OffsetDateTime nextRunAt) {
+  public ResponseMetricModel nextRunAt(String nextRunAt) {
     this.nextRunAt = nextRunAt;
     return this;
   }
@@ -149,15 +149,15 @@ public class ResponseMetricModel {
    * @return nextRunAt
   **/
   @Schema(required = true, description = "")
-  public OffsetDateTime getNextRunAt() {
+  public String getNextRunAt() {
     return nextRunAt;
   }
 
-  public void setNextRunAt(OffsetDateTime nextRunAt) {
+  public void setNextRunAt(String nextRunAt) {
     this.nextRunAt = nextRunAt;
   }
 
-  public ResponseMetricModel nextAggregation(OffsetDateTime nextAggregation) {
+  public ResponseMetricModel nextAggregation(String nextAggregation) {
     this.nextAggregation = nextAggregation;
     return this;
   }
@@ -167,11 +167,11 @@ public class ResponseMetricModel {
    * @return nextAggregation
   **/
   @Schema(description = "")
-  public OffsetDateTime getNextAggregation() {
+  public String getNextAggregation() {
     return nextAggregation;
   }
 
-  public void setNextAggregation(OffsetDateTime nextAggregation) {
+  public void setNextAggregation(String nextAggregation) {
     this.nextAggregation = nextAggregation;
   }
 
