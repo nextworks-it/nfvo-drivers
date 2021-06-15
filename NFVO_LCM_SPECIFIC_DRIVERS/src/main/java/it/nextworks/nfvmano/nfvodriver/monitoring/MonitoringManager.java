@@ -39,7 +39,7 @@ public class MonitoringManager implements MonitoringManagerProviderInterface {
         prometheusDriver =driver;
     }
 
-    public void activateNsMonitoring(NsInfo nsInfo, Nsd nsd, List<VnfInfo> vnfInfoList)
+    public void activateNsMonitoring(NsInfo nsInfo, Nsd nsd, List<VnfInfo> vnfInfoList, Map<String, String> metadata)
             throws MethodNotImplementedException, AlreadyExistingEntityException, NotExistingEntityException, FailedOperationException,
             MalformattedElementException {
         if ((nsInfo == null) || (nsd==null)) throw new MalformattedElementException("Received activate NS request with null parameters");
@@ -68,7 +68,8 @@ public class MonitoringManager implements MonitoringManagerProviderInterface {
                 nsInfo.getTenantId(),
                 nsd,
                 vnfInfoList,
-                prometheusDriver);
+                prometheusDriver,
+                metadata);
         log.debug("Instantiated new NS Monitoring Manager for NS instance " + nsInstanceId);
         nsMonitoringManager.activateNsMonitoring(nsInfo);
         this.nsMonitoringManagers.put(nsInstanceId,nsMonitoringManager);

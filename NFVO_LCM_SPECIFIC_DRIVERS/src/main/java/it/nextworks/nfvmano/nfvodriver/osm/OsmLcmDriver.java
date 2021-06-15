@@ -385,7 +385,8 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 			if(monitoringManager!=null){
 				monitoringManager.activateNsMonitoring(nsInstancesIdToNsInfo.get(nsInstanceId),
 						queryNsdResponse.getQueryResult().get(0).getNsd(),
-						vnfInfoList);
+						vnfInfoList,
+						nsInstancesIdToNsInfo.get(nsInstanceId).getConfigurationParameters());
 			}
 
 		} catch (Exception e) {

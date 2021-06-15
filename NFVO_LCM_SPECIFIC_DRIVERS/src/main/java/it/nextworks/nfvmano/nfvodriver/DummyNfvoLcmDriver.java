@@ -210,7 +210,7 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 			queryNsResult.add(nsInstances.get(nsId));
 			if(monitoringManager!=null){
 				try {
-					monitoringManager.activateNsMonitoring(nsInstances.get(nsId),retrieveNSD(nsInstances.get(nsId).getNsdId()),nsVnfInfos.get(nsId));
+					monitoringManager.activateNsMonitoring(nsInstances.get(nsId),retrieveNSD(nsInstances.get(nsId).getNsdId()),nsVnfInfos.get(nsId), nsInstances.get(nsId).getConfigurationParameters());
 
 				} catch (AlreadyExistingEntityException e) {
 					log.error("", e);

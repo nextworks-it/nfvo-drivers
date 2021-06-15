@@ -58,6 +58,8 @@ public class NsMonitoringManager {
 
     private MonitoringGui monitoringGui;
 
+    private Map<String, String> monitoringMetadata = new HashMap<>();
+
     public NsMonitoringManager(String nsInstanceId,
                                String tenantId,
                                Nsd nsd,
@@ -70,6 +72,20 @@ public class NsMonitoringManager {
         this.tenantId = tenantId;
 
     }
+    public NsMonitoringManager(String nsInstanceId,
+                               String tenantId,
+                               Nsd nsd,
+                               List<VnfInfo> vnfInfoList,
+                               MonitoringDriverProviderInterface prometheusDriver, Map<String, String> monitoringMetadata){
+        this.nsInstanceId = nsInstanceId;
+        this.nsd = nsd;
+        this.vnfInfoList = vnfInfoList;
+        this.prometheusDriver = prometheusDriver;
+        this.tenantId = tenantId;
+        if(monitoringMetadata!=null) this.monitoringMetadata = monitoringMetadata;
+
+    }
+
 
     public String createPmJob(CreatePmJobRequest request, VnfInfo vnfInfo)
             throws MethodNotImplementedException, FailedOperationException, MalformattedElementException {
@@ -250,6 +266,7 @@ public class NsMonitoringManager {
         VnfInfo vnfInfo = getVnfInfoByInfoId(vnfInfoList,vnfInfoId);
         if(vnfInfo != null) performanceMetricGroup.add(vnfInfo.getVnfdId());
         performanceMetricGroup.add(nsInstanceId);
+        /*
         if(nsInfo.getConfigurationParameters()!=null && nsInfo.getConfigurationParameters().containsKey("product_id")){
             performanceMetricGroup.add(nsInfo.getConfigurationParameters().get("product_id"));
         }
@@ -262,7 +279,7 @@ public class NsMonitoringManager {
 
         if(nsInfo.getConfigurationParameters()!=null && nsInfo.getConfigurationParameters().containsKey("tenant_id")){
             performanceMetricGroup.add(nsInfo.getConfigurationParameters().get("tenant_id"));
-        }
+        }*/
         CreatePmJobRequest pmJobRequest = new CreatePmJobRequest(null,	//NS selector
                 null, 													//resource selector
                 vnfSelector,											//VNF selector
@@ -271,7 +288,8 @@ public class NsMonitoringManager {
                 0, 														//collection period
                 0, 														//reporting period
                 null,                                   //reporting boundary
-                mp.getParams());
+                mp.getParams(),
+                monitoringMetadata);
         String pmJobId = createPmJob(pmJobRequest,vnfInfo);
         log.debug("Created PM job with ID " + pmJobId + " for monitoring parameter " + mpId);
         this.pmJobIdToMpIdMap.put(pmJobId, mpId);

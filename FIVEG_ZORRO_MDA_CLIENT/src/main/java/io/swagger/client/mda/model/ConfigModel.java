@@ -32,8 +32,8 @@ import org.threeten.bp.OffsetDateTime;
 
 @javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.JavaClientCodegen", date = "2021-06-03T17:13:21.498+02:00[Europe/Rome]")
 public class ConfigModel {
-  @SerializedName("business_id")
-  private String businessId = null;
+  @SerializedName("transaction_id")
+  private String transactionId = null;
 
   @SerializedName("topic")
   private String topic = null;
@@ -44,11 +44,14 @@ public class ConfigModel {
   @SerializedName("network_slice_id")
   private String networkSliceId = null;
 
+  @SerializedName("instance_id")
+  private String instanceId = null;
+
   @SerializedName("tenant_id")
   private String tenantId = null;
 
-  @SerializedName("reference_id")
-  private String referenceId = null;
+  @SerializedName("product_id")
+  private String productId = null;
 
   @SerializedName("metrics")
   private List<MetricModel> metrics = new ArrayList<MetricModel>();
@@ -66,22 +69,22 @@ public class ConfigModel {
   @SerializedName("data_source_type")
   private DataSourceType dataSourceType = null;
 
-  public ConfigModel businessId(String businessId) {
-    this.businessId = businessId;
+  public ConfigModel transactionId(String transactionId) {
+    this.transactionId = transactionId;
     return this;
   }
 
    /**
-   * Get businessId
-   * @return businessId
+   * Get transactionId
+   * @return transactionId
   **/
   @Schema(required = true, description = "")
-  public String getBusinessId() {
-    return businessId;
+  public String getTransactionId() {
+    return transactionId;
   }
 
-  public void setBusinessId(String businessId) {
-    this.businessId = businessId;
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
   }
 
   public ConfigModel topic(String topic) {
@@ -89,7 +92,16 @@ public class ConfigModel {
     return this;
   }
 
-   /**
+
+  public String getInstanceId() {
+    return instanceId;
+  }
+
+  public void setInstanceId(String instanceId) {
+    this.instanceId = instanceId;
+  }
+
+  /**
    * Get topic
    * @return topic
   **/
@@ -169,22 +181,22 @@ public class ConfigModel {
     this.dataSourceType = dataSourceType;
   }
 
-  public ConfigModel referenceId(String referenceId) {
-    this.referenceId = referenceId;
+  public ConfigModel productId(String productId) {
+    this.productId = productId;
     return this;
   }
 
    /**
-   * Get referenceId
-   * @return referenceId
+   * Get productId
+   * @return productId
   **/
   @Schema(description = "")
-  public String getReferenceId() {
-    return referenceId;
+  public String getProductId() {
+    return productId ;
   }
 
-  public void setReferenceId(String referenceId) {
-    this.referenceId = referenceId;
+  public void setProductId(String productId) {
+    this.productId = productId;
   }
 
   public ConfigModel metrics(List<MetricModel> metrics) {
@@ -282,12 +294,11 @@ public class ConfigModel {
       return false;
     }
     ConfigModel configModel = (ConfigModel) o;
-    return Objects.equals(this.businessId, configModel.businessId) &&
+    return Objects.equals(this.transactionId, configModel.transactionId) &&
         Objects.equals(this.topic, configModel.topic) &&
         Objects.equals(this.monitoringEndpoint, configModel.monitoringEndpoint) &&
         Objects.equals(this.networkSliceId, configModel.networkSliceId) &&
         Objects.equals(this.tenantId, configModel.tenantId) &&
-        Objects.equals(this.referenceId, configModel.referenceId) &&
         Objects.equals(this.metrics, configModel.metrics) &&
         Objects.equals(this.contextIds, configModel.contextIds) &&
         Objects.equals(this.timestampStart, configModel.timestampStart) &&
@@ -296,7 +307,7 @@ public class ConfigModel {
 
   @Override
   public int hashCode() {
-    return Objects.hash(businessId, topic, monitoringEndpoint, networkSliceId, tenantId, referenceId, metrics, contextIds, timestampStart, timestampEnd);
+    return Objects.hash(transactionId, topic, monitoringEndpoint, networkSliceId, tenantId, productId , metrics, contextIds, timestampStart, timestampEnd);
   }
 
 
@@ -305,12 +316,12 @@ public class ConfigModel {
     StringBuilder sb = new StringBuilder();
     sb.append("class ConfigModel {\n");
     
-    sb.append("    businessId: ").append(toIndentedString(businessId)).append("\n");
+    sb.append("    transactionId: ").append(toIndentedString(transactionId)).append("\n");
     sb.append("    topic: ").append(toIndentedString(topic)).append("\n");
     sb.append("    monitoringEndpoint: ").append(toIndentedString(monitoringEndpoint)).append("\n");
     sb.append("    networkSliceId: ").append(toIndentedString(networkSliceId)).append("\n");
     sb.append("    tenantId: ").append(toIndentedString(tenantId)).append("\n");
-    sb.append("    referenceId: ").append(toIndentedString(referenceId)).append("\n");
+    sb.append("    productId: ").append(toIndentedString(productId)).append("\n");
     sb.append("    metrics: ").append(toIndentedString(metrics)).append("\n");
     sb.append("    contextIds: ").append(toIndentedString(contextIds)).append("\n");
     sb.append("    timestampStart: ").append(toIndentedString(timestampStart)).append("\n");

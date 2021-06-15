@@ -41,14 +41,18 @@ public class ResponseConfigModel {
   @SerializedName("updated_at")
   private String updatedAt = null;
 
-  @SerializedName("businessID")
-  private String businessID = null;
+  @SerializedName("transaction_id")
+  private String transactionId = null;
 
   @SerializedName("topic")
   private String topic = null;
 
-  @SerializedName("networkID")
-  private Integer networkID = null;
+  @SerializedName("network_slice_id")
+  private String networkSliceId = null;
+
+
+  @SerializedName("instance_id")
+  private String instance_id = null;
 
   @SerializedName("timestampStart")
   private String timestampStart = null;
@@ -62,14 +66,14 @@ public class ResponseConfigModel {
   @SerializedName("status")
   private Integer status = null;
 
-  @SerializedName("tenantID")
+  @SerializedName("tenant_id")
   private String tenantID = null;
 
-  @SerializedName("resourceID")
+  @SerializedName("resource_id")
   private String resourceID = null;
 
-  @SerializedName("referenceID")
-  private String referenceID = null;
+  @SerializedName("product_id")
+  private String productId = null;
 
   public ResponseConfigModel id(UUID id) {
     this.id = id;
@@ -125,8 +129,8 @@ public class ResponseConfigModel {
     this.updatedAt = updatedAt;
   }
 
-  public ResponseConfigModel businessID(String businessID) {
-    this.businessID = businessID;
+  public ResponseConfigModel transactionId(String transactionId) {
+    this.transactionId = transactionId;
     return this;
   }
 
@@ -135,12 +139,12 @@ public class ResponseConfigModel {
    * @return businessID
   **/
   @Schema(description = "")
-  public String getBusinessID() {
-    return businessID;
+  public String getTransactionId() {
+    return transactionId;
   }
 
-  public void setBusinessID(String businessID) {
-    this.businessID = businessID;
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
   }
 
   public ResponseConfigModel topic(String topic) {
@@ -161,8 +165,8 @@ public class ResponseConfigModel {
     this.topic = topic;
   }
 
-  public ResponseConfigModel networkID(Integer networkID) {
-    this.networkID = networkID;
+  public ResponseConfigModel networkSliceId(String networkSliceId) {
+    this.networkSliceId = networkSliceId;
     return this;
   }
 
@@ -171,12 +175,12 @@ public class ResponseConfigModel {
    * @return networkID
   **/
   @Schema(description = "")
-  public Integer getNetworkID() {
-    return networkID;
+  public String getNetworkSliceId() {
+    return networkSliceId;
   }
 
-  public void setNetworkID(Integer networkID) {
-    this.networkID = networkID;
+  public void setNetworkSliceId(String networkSliceId) {
+    this.networkSliceId = networkSliceId;
   }
 
   public ResponseConfigModel timestampStart(String timestampStart) {
@@ -292,22 +296,22 @@ public class ResponseConfigModel {
     this.resourceID = resourceID;
   }
 
-  public ResponseConfigModel referenceID(String referenceID) {
-    this.referenceID = referenceID;
+  public ResponseConfigModel productId(String productId) {
+    this.productId   = productId;
     return this;
   }
 
    /**
-   * Get referenceID
-   * @return referenceID
+   * Get productId
+   * @return productId
   **/
   @Schema(description = "")
-  public String getReferenceID() {
-    return referenceID;
+  public String getProductId() {
+    return productId;
   }
 
-  public void setReferenceID(String referenceID) {
-    this.referenceID = referenceID;
+  public void setProductId(String productId) {
+    this.productId = productId;
   }
 
 
@@ -323,21 +327,21 @@ public class ResponseConfigModel {
     return Objects.equals(this.id, responseConfigModel.id) &&
         Objects.equals(this.createdAt, responseConfigModel.createdAt) &&
         Objects.equals(this.updatedAt, responseConfigModel.updatedAt) &&
-        Objects.equals(this.businessID, responseConfigModel.businessID) &&
+        Objects.equals(this.transactionId, responseConfigModel.transactionId) &&
         Objects.equals(this.topic, responseConfigModel.topic) &&
-        Objects.equals(this.networkID, responseConfigModel.networkID) &&
+        Objects.equals(this.networkSliceId, responseConfigModel.networkSliceId) &&
         Objects.equals(this.timestampStart, responseConfigModel.timestampStart) &&
         Objects.equals(this.timestampEnd, responseConfigModel.timestampEnd) &&
         Objects.equals(this.metrics, responseConfigModel.metrics) &&
         Objects.equals(this.status, responseConfigModel.status) &&
         Objects.equals(this.tenantID, responseConfigModel.tenantID) &&
         Objects.equals(this.resourceID, responseConfigModel.resourceID) &&
-        Objects.equals(this.referenceID, responseConfigModel.referenceID);
+        Objects.equals(this.productId, responseConfigModel.productId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, createdAt, updatedAt, businessID, topic, networkID, timestampStart, timestampEnd, metrics, status, tenantID, resourceID, referenceID);
+    return Objects.hash(id, createdAt, updatedAt, transactionId, topic, networkSliceId, timestampStart, timestampEnd, metrics, status, tenantID, resourceID, productId);
   }
 
 
@@ -349,16 +353,16 @@ public class ResponseConfigModel {
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
     sb.append("    createdAt: ").append(toIndentedString(createdAt)).append("\n");
     sb.append("    updatedAt: ").append(toIndentedString(updatedAt)).append("\n");
-    sb.append("    businessID: ").append(toIndentedString(businessID)).append("\n");
+    sb.append("    businessID: ").append(toIndentedString(transactionId)).append("\n");
     sb.append("    topic: ").append(toIndentedString(topic)).append("\n");
-    sb.append("    networkID: ").append(toIndentedString(networkID)).append("\n");
+    sb.append("    networkID: ").append(toIndentedString(networkSliceId)).append("\n");
     sb.append("    timestampStart: ").append(toIndentedString(timestampStart)).append("\n");
     sb.append("    timestampEnd: ").append(toIndentedString(timestampEnd)).append("\n");
     sb.append("    metrics: ").append(toIndentedString(metrics)).append("\n");
     sb.append("    status: ").append(toIndentedString(status)).append("\n");
     sb.append("    tenantID: ").append(toIndentedString(tenantID)).append("\n");
     sb.append("    resourceID: ").append(toIndentedString(resourceID)).append("\n");
-    sb.append("    referenceID: ").append(toIndentedString(referenceID)).append("\n");
+    sb.append("    referenceID: ").append(toIndentedString(productId)).append("\n");
     sb.append("}");
     return sb.toString();
   }

@@ -57,12 +57,18 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         String tenantId = null;
         // assuming productId and transactionId are always set in this order
         log.debug("PerformanceMetricGroups:"+request.getPerformanceMetricGroup());
-        if(request.getPerformanceMetricGroup().size()>=6){
+
+        productId = request.getMetricMetadata().get("product_id");
+        transactionId = request.getMetricMetadata().get("transaction_id");
+        networkSliceId = request.getMetricMetadata().get("nsi_id");
+        tenantId = request.getMetricMetadata().get("tenant_id");
+        String instanceId = request.getMetricMetadata().get("vsi_id");
+        /*if(request.getPerformanceMetricGroup().size()>=6){
             productId = request.getPerformanceMetricGroup().get(2);
             transactionId = request.getPerformanceMetricGroup().get(3);
             networkSliceId = request.getPerformanceMetricGroup().get(4);
             tenantId = request.getPerformanceMetricGroup().get(5);
-        }
+        }*/
 
         //Config Model:
         //  bussinessId : product_id provided during VS instantation Request
@@ -80,8 +86,8 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         ConfigModel body = new ConfigModel();
         body.setTenantId(tenantId);
         body.setTopic(domain + "-in-0");
-        body.setBusinessId(transactionId);
-        body.setReferenceId(productId);
+        body.setTransactionId(transactionId);
+        body.setProductId(productId);
         body.setDataSourceType(DataSourceType.OSM);
         ContextModel cm = new ContextModel();
         cm.setNetworkSliceId(networkSliceId);
