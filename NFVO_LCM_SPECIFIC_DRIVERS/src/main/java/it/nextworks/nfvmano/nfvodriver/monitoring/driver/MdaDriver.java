@@ -88,6 +88,7 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         body.setTopic(domain + "-in-0");
         body.setTransactionId(transactionId);
         body.setProductId(productId);
+        body.setInstanceId(instanceId);
         body.setDataSourceType(DataSourceType.OSM);
         ContextModel cm = new ContextModel();
         cm.setNetworkSliceId(networkSliceId);
