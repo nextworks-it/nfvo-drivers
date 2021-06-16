@@ -255,6 +255,13 @@ public class NsMonitoringManager {
             vnfSelector = new ObjectSelection(objectType, null, objectInstanceId);
         } else if (metricType.equals("ByteIncoming")) {
             throw new MethodNotImplementedException("ByteIncoming metric not yet supported");
+        } else if(metricType.equals("availability")){
+            //TODO: 5GZORRO R1 Verify which is the object to be verified
+            List<MonitoringObjectType> objectType = new ArrayList<>();
+            List<String> objectInstanceId = new ArrayList<>();
+            objectType.add(MonitoringObjectType.VNF);
+            objectInstanceId.add(vnfInfoId);
+            vnfSelector = new ObjectSelection(objectType, null, objectInstanceId);
         } else throw new MalformattedElementException(metricType + " not supported");
         log.debug("Built target object to be monitored.");
 
