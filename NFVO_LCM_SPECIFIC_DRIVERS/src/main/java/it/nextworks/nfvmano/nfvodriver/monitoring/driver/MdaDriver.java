@@ -115,6 +115,9 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         if(params.containsKey("step")){
             metricModel.setStep(params.get("step"));
         }
+        if(params.containsKey("stepAggregation")){
+            metricModel.setStepAggregation(params.get("stepAggregation"));
+        }
 
         metrics.add(metricModel);
         body.setMetrics(metrics);
