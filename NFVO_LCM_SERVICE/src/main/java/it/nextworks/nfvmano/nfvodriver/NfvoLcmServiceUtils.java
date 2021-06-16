@@ -53,6 +53,9 @@ public class NfvoLcmServiceUtils {
     private String elicensingAddress;
 
 
+    @Value("${nfvo.lcm.external_monitoring.port:9091}")
+    private String nfvoMonitoringPort;
+
     @Value("${nfvo.lcm.address}")
     private String nfvoLcmAddress;
 
@@ -112,7 +115,7 @@ public class NfvoLcmServiceUtils {
                         externalMonitoringAddress+":3000",nfvoLcmAddress));
             }else if(externalMonitoringType.equals("MDA")){
                 monitoringMgr = new MonitoringManager(new MdaDriver(
-                        externalMonitoringAddress, domainId, nfvoLcmAddress));
+                        externalMonitoringAddress, domainId, nfvoLcmAddress, nfvoMonitoringPort));
             }else log.error("Unknown  external monitoring type, not configured");
         }
 
