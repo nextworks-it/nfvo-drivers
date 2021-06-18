@@ -146,8 +146,12 @@ public class OsmCatalogueRestClient {
                 try {
                     boolean alreadyOnboarded = false;
                     nsPackagesApi.setApiClient(getClient());
+                    String nsdIdOsm = IfaOsmTranslator.getOsmNsdId(nsd, df);
+                    log.debug("Searching if onboarded: "+nsdIdOsm);
                     for( NsdInfo curNsdInfo : nsPackagesApi.getNSDs()){
-                        if(curNsdInfo.getId().equals(IfaOsmTranslator.getOsmNsdId(nsd, df))){
+                        log.debug("Found onboarded: "+curNsdInfo.getId());
+                        if(curNsdInfo.getId().equals(nsdIdOsm)){
+                            log.debug("Found !!, skipping onboarding");
                             alreadyOnboarded=true;
                             nsdInfoId = curNsdInfo.getIdentifier();
                             break;
