@@ -141,29 +141,39 @@ public class OsmCatalogueRestClient {
                 //call the translation process that return nsd tar file
                 File compressFilePath = IfaOsmTranslator.createPackageForNsd(nsd, df, useTemplateVNFDs,useFlavorInVnfdId );
                 NSDescriptor nsdOsm = IfaOsmTranslator.getGeneratedOsmNsd(); //TODO validate if this could change (maybe no more useful)
-                UUID nsdInfoId;
+                UUID nsdInfoId=null;
                 //this post request create a new ns descriptor resource
                 try {
+                    boolean alreadyOnboarded = false;
                     nsPackagesApi.setApiClient(getClient());
+                    for( NsdInfo curNsdInfo : nsPackagesApi.getNSDs()){
+                        if(curNsdInfo.getId().equals(IfaOsmTranslator.getOsmNsdId(nsd, df))){
+                            alreadyOnboarded=true;
+                            nsdInfoId = curNsdInfo.getIdentifier();
+                            break;
+                        }
+                    }
                     //this will create a new NSD resource
-                    ObjectId response = nsPackagesApi.addNSD(new CreateNsdInfoRequest());
-                    nsdInfoId = response.getId();
-                    log.debug("Created NSD resource with UUID: " + nsdInfoId.toString());
+                    if(!alreadyOnboarded){
+                        ObjectId response = nsPackagesApi.addNSD(new CreateNsdInfoRequest());
+                        nsdInfoId = response.getId();
+                        log.debug("Created NSD resource with UUID: " + nsdInfoId.toString());
+                        nsPackagesApi.updateNSDcontent(nsdInfoId.toString(), compressFilePath);
+                        log.debug("Updated the NSD resource with UUID: " + nsdInfoId + "\n  with the NSD of id: " + nsdOsm.getId());
+                    }else{
+                        log.debug("NSD already onboarded: " + nsdInfoId );
+                    }
                     NsdInfoIdToOsmNsdId.put(nsdInfoId, IfaOsmTranslator.getOsmNsdId(nsd, df));
+
                 } catch (ApiException e) {
                     log.error("Creation NSD resource failed", e);
                     log.error("Error during creation of NSD resource!", e.getResponseBody());
+                    if(nsdInfoId!=null){
+                        nsPackagesApi.deleteNSD(nsdInfoId.toString());
+                    }
                     throw new FailedOperationException(e.getMessage());
                 }
-                try {
-                    nsPackagesApi.updateNSDcontent(nsdInfoId.toString(), compressFilePath);
-                    log.debug("Updated the NSD resource with UUID: " + nsdInfoId + "\n  with the NSD of id: " + nsdOsm.getId());
-                } catch (ApiException e) {
-                    //the resource pointed by nsdInfoId has not been modified due to exception, need to delete it
-                    nsPackagesApi.deleteNSD(nsdInfoId.toString());
-                    log.debug("Deleted NSD Resource with UUID: " + nsdInfoId);
-                    throw new FailedOperationException("Error on NSD onboarding!" + e.getResponseBody());
-                }
+
                 nsdInfoIds.add(nsdInfoId);
                 onboarded = true;
             }
