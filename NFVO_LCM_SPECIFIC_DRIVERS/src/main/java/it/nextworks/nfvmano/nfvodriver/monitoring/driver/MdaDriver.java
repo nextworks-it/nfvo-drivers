@@ -29,14 +29,14 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
     private final String domain;
     private DefaultApi defaultApi;
     private String nfvoAddress;
-    private String nfvoMonitoringPort;
+    private String nfvoMonitoringUrl;
 
 
-    public MdaDriver(String baseAddress, String domain, String nfvoAddress, String nfvoMonitoringPort){
+    public MdaDriver(String baseAddress, String domain, String nfvoAddress, String nfvoMonitoringUrl){
         this.domain = domain;
         defaultApi = new DefaultApi();
         defaultApi.setApiClient(new ApiClient().setDebugging(true).setBasePath(baseAddress));
-        this.nfvoMonitoringPort=nfvoMonitoringPort;
+        this.nfvoMonitoringUrl=nfvoMonitoringUrl;
         this.nfvoAddress=nfvoAddress;
 
     }
@@ -122,13 +122,13 @@ public class MdaDriver implements MonitoringDriverProviderInterface {
         metrics.add(metricModel);
         body.setMetrics(metrics);
         if(body.getDataSourceType().equals(DataSourceType.OSM)){
-            try {
-                URL url = new URL(nfvoAddress);
-                URL newurl = new URL(url.getProtocol(), url.getHost(), Integer.parseInt(nfvoMonitoringPort), url.getFile());
-                body.setMonitoringEndpoint(newurl.toString());
-            } catch (MalformedURLException e) {
-                throw  new FailedOperationException(e);
-            }
+            //try {
+                //URL url = new URL(nfvoAddress);
+                //URL newurl = new URL(url.getProtocol(), url.getHost(), Integer.parseInt(nfvoMonitoringPort), url.getFile());
+                body.setMonitoringEndpoint(nfvoMonitoringUrl);
+            //} catch (MalformedURLException e) {
+            //   throw  new FailedOperationException(e);
+            //}
 
         }
         try {
