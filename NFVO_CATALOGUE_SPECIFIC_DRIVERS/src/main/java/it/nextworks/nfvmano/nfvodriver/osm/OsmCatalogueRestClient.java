@@ -653,7 +653,11 @@ public class OsmCatalogueRestClient {
     }
 
     private String getOsmVnfdId(String vnfdId, String flavourId) {
-        return vnfdId +"_"+flavourId;
+
+        //return vnfdId +"_"+flavourId;
+        return vnfdId;
+
+
     }
 
     public QueryOnBoardedVnfPkgInfoResponse queryVnfPackageInfo(GeneralizedQueryRequest request) throws NotExistingEntityException {
