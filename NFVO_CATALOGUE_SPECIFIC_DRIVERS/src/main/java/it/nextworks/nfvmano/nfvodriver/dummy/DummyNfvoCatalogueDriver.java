@@ -17,7 +17,11 @@ package it.nextworks.nfvmano.nfvodriver.dummy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.enums.PnfdFormat;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.OnBoardVnfPackageResponse;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.enums.NsdFormat;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.elements.PnfdInfo;
 import it.nextworks.nfvmano.libs.ifa.common.elements.Filter;
 import it.nextworks.nfvmano.libs.ifa.common.enums.OperationalState;
 import it.nextworks.nfvmano.libs.ifa.common.enums.UsageState;
@@ -26,13 +30,14 @@ import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.NsdManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.VnfPackageManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.*;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.NsdManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.VnfPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
 import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
 import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.Nsd;
+import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.Pnfd;
 import it.nextworks.nfvmano.libs.ifa.descriptors.onboardedvnfpackage.OnboardedVnfPkgInfo;
 import it.nextworks.nfvmano.libs.ifa.descriptors.vnfd.Vnfd;
 import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueAbstractDriver;
@@ -53,6 +58,7 @@ import java.util.stream.Collectors;
 public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 
 	private Map<String, Nsd> nsds = new HashMap<>();
+	private Map<String, Pnfd> pnfds = new HashMap<>();
 	private static final Logger log = LoggerFactory.getLogger(DummyNfvoCatalogueDriver.class);
 	private FileUtilities fileUtilities;
 	private long lastVnfPkgInfoId;
@@ -77,7 +83,7 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 				new ArrayList<String>(),
 				null);
 		try {
-			OnboardNsdRequest request = new OnboardNsdRequest(nsd, new HashMap<>());
+			OnboardNsdRequest request = new OnboardNsdIfaRequest(nsd, new HashMap<>());
 			String uuid = onboardNsd(request);
 			return uuid;
 		}
@@ -216,11 +222,14 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public String onboardNsd(OnboardNsdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
-		
-		String uuid = UUID.randomUUID().toString();
-		nsds.put(uuid, request.getNsd());
-		log.debug("Onboarded Nsd with ID " + request.getNsd().getNsdIdentifier() + " and version " + request.getNsd().getVersion());
-		return uuid;
+
+		if(request.getNsdFormat()==NsdFormat.IFA){
+			String uuid = UUID.randomUUID().toString();
+			nsds.put(uuid, ((OnboardNsdIfaRequest)request).getNsd());
+			log.debug("Onboarded Nsd with ID " + ((OnboardNsdIfaRequest)request).getNsd().getNsdIdentifier() + " and version " + ((OnboardNsdIfaRequest)request).getNsd().getVersion());
+			return uuid;
+		}else throw new MethodNotImplementedException("NSD format not supported");
+
 	}
 
 	@Override
@@ -291,7 +300,7 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 							UsageState.IN_USE,
 							false,
 							new HashMap<>()));
-					QueryNsdResponse response = new QueryNsdResponse(queryResult);
+					QueryNsdResponse response = new QueryNsdIfaResponse(queryResult);
 					return response;
 				}
 			}
@@ -320,7 +329,7 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 
 				}
 			}
-			QueryNsdResponse response = new QueryNsdResponse(queryResult);
+			QueryNsdResponse response = new QueryNsdIfaResponse(queryResult);
 			return response;
 
 		}else if(params.containsKey(p3) ){
@@ -343,7 +352,7 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 						false,
 						new HashMap<>()));
 			}
-			QueryNsdResponse response = new QueryNsdResponse(queryResult);
+			QueryNsdResponse response = new QueryNsdIfaResponse(queryResult);
 			return response;
 		}else{
 			log.debug("FILTER NOT SUPPORTED");
@@ -368,8 +377,22 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public String onboardPnfd(OnboardPnfdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
-		// TODO Auto-generated method stub
-		return null;
+		log.debug("Received request to onboard pnfd: " + ((OnboardPnfdIfaRequest)request).getPnfd().getPnfdId() + " " + ((OnboardPnfdIfaRequest)request).getPnfd().getVersion());
+		if(request.getFormat()!= PnfdFormat.IFA){
+
+		}
+		String uuid = UUID.randomUUID().toString();
+		pnfds.put(uuid, ((OnboardPnfdIfaRequest)request).getPnfd());
+		return uuid;
+	}
+
+
+	public String onboardPnfdIfa(OnboardPnfdRequest request) throws MethodNotImplementedException,
+			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
+		log.debug("Received request to onboard pnfd: " + ((OnboardPnfdIfaRequest)request).getPnfd().getPnfdId() + " " + ((OnboardPnfdIfaRequest)request).getPnfd().getVersion());
+		String uuid = UUID.randomUUID().toString();
+		pnfds.put(uuid, ((OnboardPnfdIfaRequest)request).getPnfd());
+		return uuid;
 	}
 
 	@Override
@@ -383,15 +406,66 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public DeletePnfdResponse deletePnfd(DeletePnfdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
-		// TODO Auto-generated method stub
-		return null;
+		// Assumption pnfdInfoId = pnfdId
+		List<String> keys = new ArrayList<>();
+		DeletePnfdResponse deletePnfdResponse = new DeletePnfdResponse();
+
+		for(String pnfdInfoId : request.getPnfdInfoId()){
+			for (Map.Entry<String, Pnfd> pnfdEntry : pnfds.entrySet()) {
+				Pnfd pnfdElem = pnfdEntry.getValue();
+				if(pnfdElem.getPnfdId().equals(pnfdInfoId)){
+					keys.add(pnfdEntry.getKey());
+					deletePnfdResponse.getDeletedPnfdInfoId().add(pnfdInfoId);
+				}
+			}
+		}
+
+		for(String key : keys) pnfds.remove(key);
+		return deletePnfdResponse;
 	}
 
 	@Override
 	public QueryPnfdResponse queryPnfd(GeneralizedQueryRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
-		// TODO Auto-generated method stub
-		return null;
+		Filter filter = request.getFilter();
+		Map<String, String> params = filter.getParameters();
+		String p1 = "PNFD_ID";
+		String p2 = "PNFD_VERSION";
+
+		List<PnfdInfo> queryResult = new ArrayList<>();
+
+		log.debug("Querying PNFD");
+
+		if (params.containsKey(p1) && params.containsKey(p2)) {
+			String pnfdId = params.get("PNFD_ID");
+			String pnfdVersion = params.get("PNFD_VERSION");
+
+			log.debug("Querying PNFD with ID " + pnfdId + " and version " + pnfdVersion);
+
+			for (Map.Entry<String, Pnfd> pnfdEntry : pnfds.entrySet()) {
+				Pnfd pnfds = pnfdEntry.getValue();
+				if (pnfds.getPnfdId().equals(pnfdId) && pnfds.getVersion().equals(pnfdVersion)) {
+					log.debug("PNFDS found");
+					queryResult.add(new PnfdInfo(
+							pnfdEntry.getKey(),
+							pnfdId, //id
+							pnfdId, //name
+							pnfds.getVersion(),
+							pnfds.getProvider(),
+							pnfds,
+							null,
+							UsageState.IN_USE,
+							false,
+							new HashMap<>()
+							));
+
+					QueryPnfdResponse response = new QueryPnfdResponse(queryResult);
+					return response;
+				}
+			}
+			log.debug("PNFD not found");
+			return null;
+		} else return null;
 	}
 
 	@Override
@@ -437,20 +511,20 @@ public class DummyNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 							pkgInfo.getVnfSoftwareVersion().equals(vnfPackageSwVersion)&&
 							pkgInfo.getVnfProvider().equals(vnfPackageProvider))
 					.collect(Collectors.toList());
-			return new QueryOnBoardedVnfPkgInfoResponse(filtered);
+			return new QueryOnBoardedVnfPkgInfoIfaResponse(filtered);
 		}else if(params.containsKey("VNF_PACKAGE_ID")){
 			String vnfPackageId = params.get("VNF_PACKAGE_ID");
 			List<OnboardedVnfPkgInfo> filtered  = vnfPkgInfos.stream()
 					.filter(pkgInfo -> pkgInfo.getOnboardedVnfPkgInfoId().equals(vnfPackageId)		)
 					.collect(Collectors.toList());
-			return new QueryOnBoardedVnfPkgInfoResponse(filtered);
+			return new QueryOnBoardedVnfPkgInfoIfaResponse(filtered);
 
 		}else if(params.containsKey("VNFD_ID")){
 			String vnfdId = params.get("VNFD_ID");
 			List<OnboardedVnfPkgInfo> filtered  = vnfPkgInfos.stream()
 					.filter(pkgInfo -> pkgInfo.getVnfdId().equals(vnfdId)		)
 					.collect(Collectors.toList());
-			return new QueryOnBoardedVnfPkgInfoResponse(filtered);
+			return new QueryOnBoardedVnfPkgInfoIfaResponse(filtered);
 
 		}else throw  new MalformattedElementException("Unsupported VNF Package filter");
 

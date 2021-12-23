@@ -2,7 +2,7 @@ package it.nextworks.nfvmano.nfvodriver.file;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryNsdResponse;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.QueryNsdResponse;
 import it.nextworks.nfvmano.libs.ifa.common.enums.OperationalState;
 import it.nextworks.nfvmano.libs.ifa.common.enums.UsageState;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.AlreadyExistingEntityException;

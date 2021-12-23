@@ -19,10 +19,13 @@ public enum NfvoLcmDriverType {
 
     TIMEO,
     OSM,
+    OSM10,
+
     CLOUDIFY,
     SOL_5,
     DUMMY,
     LOGGING,
-    EVS_TEST
+    EVS_TEST,
+    AIML
 
 }

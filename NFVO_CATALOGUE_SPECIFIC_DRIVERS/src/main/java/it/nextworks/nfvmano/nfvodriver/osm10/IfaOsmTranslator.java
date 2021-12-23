@@ -1,4 +1,4 @@
-package it.nextworks.nfvmano.nfvodriver.osm;
+package it.nextworks.nfvmano.nfvodriver.osm10;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -79,13 +79,8 @@ public class IfaOsmTranslator {
             //take the flavour id of this vnf, in order to know which vnf of the mappedVnfs to use
             String vnfdIdWithFlavour = null;
             try {
-                if(useTemplateVNFDs.containsKey(vnfdId)){
-                    vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
-                }else{
-                    //TODO: Verify with Francesco
-                    //vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId) + "_" + nsDescriptor.getId();
-                    vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
-                }
+                if(useTemplateVNFDs.get(vnfdId)) vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId);
+                else vnfdIdWithFlavour = vnfdId + "_" + getFlavourFromVnfdId(nsDf,vnfdId) + "_" + nsDescriptor.getId();
                 constituentVNFD.setVnfdIdentifierReference(vnfdIdWithFlavour);
                 constituentVNFD.setMemberVNFIndex(indexOfVnf);
                 constituentVNFDList.add(constituentVNFD);
@@ -713,7 +708,7 @@ public class IfaOsmTranslator {
         }
     } //same of ArchiveBuilder
 
-    private static void makeYml(it.nextworks.nfvmano.libs.descriptors.sol006.OsmNsSol6Package sol6Package, String nsdId, String nsdFolder) {
+    private static void makeYml(OsmNsSol6Package sol6Package, String nsdId, String nsdFolder) {
         String yamlFilePath = nsdFolder + File.separator + nsdId + ".yaml";
 
         ObjectMapper ymlMapper = new ObjectMapper(new YAMLFactory());

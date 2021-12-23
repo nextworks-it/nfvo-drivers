@@ -13,279 +13,268 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package it.nextworks.nfvmano.nfvodriver;
+package it.nextworks.nfvmano.nfvodriver.osm10;
 
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.AlreadyExistingEntityException;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
-import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
-import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.*;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo;
-import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.*;
-import it.nextworks.nfvmano.libs.ifa.common.elements.Filter;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.*;
 import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
 import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
-import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.Nsd;
-
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.NsdManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.VnfPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.*;
+import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueAbstractDriver;
+import it.nextworks.nfvmano.nfvodriver.NfvoCatalogueDriverType;
+import it.nextworks.nfvmano.nfvodriver.file.NsdFileRegistryService;
+import it.nextworks.nfvmano.nfvodriver.file.VnfdFileRegistryService;
+import it.nextworks.osm.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.util.List;
+import java.util.UUID;
 
-
-
-/**
- * This entity handles all the client-server catalogue interaction with the NFVO..
- * It forwards the request to the configured NFVO using the related driver.
- * 
- * @author nextworks
- *
- */
-@Service
-public class NfvoCatalogueService implements MecAppPackageManagementProviderInterface, NsdManagementProviderInterface, VnfPackageManagementProviderInterface {
+public class Osm10CatalogueDriver extends NfvoCatalogueAbstractDriver {
 	
-	private static final Logger log = LoggerFactory.getLogger(NfvoCatalogueService.class);
-	
+	private static final Logger log = LoggerFactory.getLogger(Osm10CatalogueDriver.class);
+	private OAuthSimpleClient oAuthSimpleClient;
+	private String username;
+	private String password;
+	private String project;
+	private UUID vimId;
+	private Osm10CatalogueRestClient osmCatalogueRestClient;
+	private NsdFileRegistryService nsdFileRegistryService;
+	private VnfdFileRegistryService vnfdFileRegistryService;
+	public Osm10CatalogueDriver(String nfvoAddress,
+								String username,
+								String password,
+								String project,
+								UUID vimId,
+								NsdFileRegistryService nsdFileRegistryService,
+								VnfdFileRegistryService vnfdFileRegistryService) {
 
-	private NfvoCatalogueAbstractDriver nfvoDriver;
-	
-	@Autowired
-	NfvoCatalogueNotificationsManager nfvoCatalogueNotificationManager;
-	
-
-	public NfvoCatalogueService() {	}
-
+		super(NfvoCatalogueDriverType.OSM10, nfvoAddress, null);
+		this.username = username;
+		this.password = password;
+		this.project = project;
+		this.oAuthSimpleClient = new OAuthSimpleClient(nfvoAddress+"/osm/admin/v1/tokens", username, password, project);
+		this.vnfdFileRegistryService = vnfdFileRegistryService;
+		this.nsdFileRegistryService = nsdFileRegistryService;
+		this.osmCatalogueRestClient = new Osm10CatalogueRestClient(nfvoAddress, username, password, oAuthSimpleClient, nsdFileRegistryService, vnfdFileRegistryService);
+	}
 
 	@Override
 	public File fetchOnboardedApplicationPackage(String onboardedAppPkgId)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
-		return nfvoDriver.fetchOnboardedApplicationPackage(onboardedAppPkgId);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public QueryOnBoadedAppPkgInfoResponse queryApplicationPackage(GeneralizedQueryRequest request)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
-		return nfvoDriver.queryApplicationPackage(request);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public String subscribeMecAppPackageInfo(SubscribeRequest request,
 			MecAppPackageManagementConsumerInterface consumer)
 			throws MethodNotImplementedException, MalformattedElementException, FailedOperationException {
-		return nfvoDriver.subscribeMecAppPackageInfo(request, nfvoCatalogueNotificationManager);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public void unsubscribeMecAppPackageInfo(String subscriptionId)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
-		nfvoDriver.unsubscribeMecAppPackageInfo(subscriptionId);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public OnboardAppPackageResponse onboardAppPackage(OnboardAppPackageRequest request)
 			throws MethodNotImplementedException, AlreadyExistingEntityException, FailedOperationException,
 			MalformattedElementException {
-		return nfvoDriver.onboardAppPackage(request);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public void enableAppPackage(String onboardedAppPkgId) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		nfvoDriver.enableAppPackage(onboardedAppPkgId);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public void disableAppPackage(String onboardedAppPkgId) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		nfvoDriver.disableAppPackage(onboardedAppPkgId);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public void deleteAppPackage(String onboardedAppPkgId) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		nfvoDriver.deleteAppPackage(onboardedAppPkgId);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public void abortAppPackageDeletion(String onboardedAppPkgId) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		nfvoDriver.abortAppPackageDeletion(onboardedAppPkgId);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public String onboardNsd(OnboardNsdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
+		log.debug("Processig request to onboard a new NSD.");
+		try {
+			return osmCatalogueRestClient.onboardNsd(request);
+		} catch (ApiException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 
-		return nfvoDriver.onboardNsd(request);
+	//for testing purpose
+	public void getNSDs(){
+		osmCatalogueRestClient.getNSDs();
 	}
 
 	@Override
 	public void enableNsd(EnableNsdRequest request) throws MethodNotImplementedException, MalformattedElementException,
 			NotExistingEntityException, FailedOperationException {
-		nfvoDriver.enableNsd(request);
+		log.warn("NSD enabling not supported on OSM.");
 	}
 
 	@Override
 	public void disableNsd(DisableNsdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
-		nfvoDriver.disableNsd(request);
+		log.warn("NSD disabling not supported on OSM.");
 	}
 
 	@Override
 	public String updateNsd(UpdateNsdRequest request)
 			throws MethodNotImplementedException, MalformattedElementException, AlreadyExistingEntityException,
 			NotExistingEntityException, FailedOperationException {
-		return nfvoDriver.updateNsd(request);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public DeleteNsdResponse deleteNsd(DeleteNsdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
-		return nfvoDriver.deleteNsd(request);
+		log.debug("Processig request to delete an NSD.");
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
 	public QueryNsdResponse queryNsd(GeneralizedQueryRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
-		return nfvoDriver.queryNsd(request);
+		log.debug("Building request to query NSD.");
+		return osmCatalogueRestClient.queryNsd(request);
 	}
 
 	@Override
 	public String subscribeNsdInfo(SubscribeRequest request, NsdManagementConsumerInterface consumer)
 			throws MethodNotImplementedException, MalformattedElementException, FailedOperationException {
-		return nfvoDriver.subscribeNsdInfo(request, nfvoCatalogueNotificationManager);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public void unsubscribeNsdInfo(String subscriptionId) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
-		nfvoDriver.unsubscribeNsdInfo(subscriptionId);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public String onboardPnfd(OnboardPnfdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
-		return nfvoDriver.onboardPnfd(request);
+		log.debug("Processing request to onboard a Pnfd");
+		return osmCatalogueRestClient.onboardPnfd(request);
 	}
 
 	@Override
 	public String updatePnfd(UpdatePnfdRequest request)
 			throws MethodNotImplementedException, MalformattedElementException, NotExistingEntityException,
 			AlreadyExistingEntityException, FailedOperationException {
-		return nfvoDriver.updatePnfd(request);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public DeletePnfdResponse deletePnfd(DeletePnfdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
-		return nfvoDriver.deletePnfd(request);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public QueryPnfdResponse queryPnfd(GeneralizedQueryRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, NotExistingEntityException, FailedOperationException {
-		return nfvoDriver.queryPnfd(request);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public OnBoardVnfPackageResponse onBoardVnfPackage(OnBoardVnfPackageRequest request)
 			throws MethodNotImplementedException, AlreadyExistingEntityException, FailedOperationException,
 			MalformattedElementException {
-		return nfvoDriver.onBoardVnfPackage(request);
+		log.debug("Processig request to onboard a new VNFD.");
+		return osmCatalogueRestClient.onboardVnfPackage(request);
 	}
 
 	@Override
 	public void enableVnfPackage(EnableVnfPackageRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		nfvoDriver.enableVnfPackage(request);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public void disableVnfPackage(DisableVnfPackageRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		nfvoDriver.disableVnfPackage(request);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public void deleteVnfPackage(DeleteVnfPackageRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		nfvoDriver.deleteVnfPackage(request);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public QueryOnBoardedVnfPkgInfoResponse queryVnfPackageInfo(GeneralizedQueryRequest request)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
-		return nfvoDriver.queryVnfPackageInfo(request);
+		log.debug("Building request to query VNFD.");
+		return osmCatalogueRestClient.queryVnfPackageInfo(request);
 	}
 
 	@Override
 	public String subscribeVnfPackageInfo(SubscribeRequest request, VnfPackageManagementConsumerInterface consumer)
 			throws MethodNotImplementedException, MalformattedElementException, FailedOperationException {
-		return nfvoDriver.subscribeVnfPackageInfo(request, nfvoCatalogueNotificationManager);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public void unsubscribeVnfPackageInfo(String subscriptionId)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
-		nfvoDriver.unsubscribeVnfPackageInfo(subscriptionId);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public File fetchOnboardedVnfPackage(String onboardedVnfPkgInfoId)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
-		return nfvoDriver.fetchOnboardedVnfPackage(onboardedVnfPkgInfoId);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public List<File> fetchOnboardedVnfPackageArtifacts(FetchOnboardedVnfPackageArtifactsRequest request)
 			throws MethodNotImplementedException, NotExistingEntityException, MalformattedElementException {
-		return nfvoDriver.fetchOnboardedVnfPackageArtifacts(request);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public void abortVnfPackageDeletion(String onboardedVnfPkgInfoId) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		nfvoDriver.abortVnfPackageDeletion(onboardedVnfPkgInfoId);
+		throw new MethodNotImplementedException();
 	}
 
 	@Override
 	public void queryVnfPackageSubscription(GeneralizedQueryRequest request) throws MethodNotImplementedException,
 			NotExistingEntityException, FailedOperationException, MalformattedElementException {
-		nfvoDriver.queryVnfPackageSubscription(request);
+		throw new MethodNotImplementedException();
 	}
-
-	public void setNfvoCatalogueDriver(NfvoCatalogueAbstractDriver driver){
-
-		log.debug("The Vertical Slicer is configured to operate over the "+driver.getNfvoDriverType()+" Catalogue driver");
-
-		this.nfvoDriver=driver;
-		this.nfvoDriver.setNfvoCatalogueNotificationManager(nfvoCatalogueNotificationManager);
-	}
-
-
-
-	/*
-	public  Nsd queryNsdAssumingOne(Filter nsdFilter) throws Exception {
-		//QueryNsdResponse nsdRep = this.queryNsd(new GeneralizedQueryRequest(BlueprintCatalogueUtilities.buildNsdFilter(nsdId, nsdVersion), null));
-		QueryNsdResponse nsdRep = this.queryNsd(new GeneralizedQueryRequest(nsdFilter, null));
-		List<NsdInfo> nsds = nsdRep.getQueryResult();
-		if (nsds.size() == 0) {
-			throw new NotExistingEntityException(
-					String.format("No nsd with the specified Filter:%s", nsdFilter)
-			);
-		}
-		if (nsds.size() > 1) {
-			throw new FailedOperationException(
-					String.format("More than one nsd with the specified filter:%s",nsdFilter)
-			);
-		}
-		return nsdRep.getQueryResult().get(0).getNsd();
-	}
-
-	 */
 
 }

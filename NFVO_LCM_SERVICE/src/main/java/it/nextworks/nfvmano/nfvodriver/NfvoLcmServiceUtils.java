@@ -11,7 +11,9 @@ import it.nextworks.nfvmano.nfvodriver.monitoring.MonitoringManagerProviderInter
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.MdaDriver;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.PrometheusDriver;
 import it.nextworks.nfvmano.nfvodriver.osm.OsmLcmDriver;
+import it.nextworks.nfvmano.nfvodriver.osm10.Osm10LcmDriver;
 import it.nextworks.nfvmano.nfvodriver.sol5.Sol5NfvoLcmDriver;
+import it.nextworks.nfvmano.nfvodriver.test.AimlNfvoLcmDriver;
 import it.nextworks.nfvmano.nfvodriver.test.EvsTestNfvoLcmDriver;
 import it.nextworks.nfvmano.nfvodriver.timeo.TimeoLcmDriver;
 import org.slf4j.Logger;
@@ -143,7 +145,12 @@ public class NfvoLcmServiceUtils {
         }else if(nfvoLcmType.equals("EVS_TEST")){
             log.debug("Configured for type:" + nfvoLcmType);
             nfvoLcmService.setNfvoLcmDriver(new EvsTestNfvoLcmDriver(nfvoLcmAddress, null, nfvoLcmOperationPollingManager));
-
+	} else if(nfvoLcmType.equals("OSM10")){
+                log.debug("Configured for type:" + nfvoLcmType);
+                Osm10LcmDriver osmLcmDriver =
+                        new Osm10LcmDriver(this.nfvoLcmAddress, null, this.nfvoLcmOperationPollingManager, nfvoLcmNotificationUrl,0,
+                                true, nfvoLcmUsername, nfvoLcmPassword, nfvoLcmProject, nfvoLcmVim, nfvoCatalogueService, monitoringMgr, eLicenseMgr);
+                nfvoLcmService.setNfvoLcmDriver(osmLcmDriver);
         } else {
             log.error("NFVO not configured!");
         }

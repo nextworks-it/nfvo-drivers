@@ -21,11 +21,13 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.swagger.client.model.*;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryNsdResponse;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.QueryNsdIfaResponse;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.QueryNsdResponse;
 import it.nextworks.nfvmano.libs.ifa.common.elements.Filter;
 import it.nextworks.nfvmano.libs.ifa.common.enums.InstantiationState;
 import it.nextworks.nfvmano.libs.ifa.common.enums.OperationStatus;
 import it.nextworks.nfvmano.libs.ifa.common.enums.ResponseCode;
+import it.nextworks.nfvmano.nfvodriver.elicensing.ElicenseManagementProviderInterface;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
@@ -366,9 +368,9 @@ public class OsmLcmDriver extends NfvoLcmAbstractDriver {
 		parameters.put("NSD_ID",ifaNsdId);
 		parameters.put("NSD_VERSION",version);
 		GeneralizedQueryRequest generalizedQueryRequest = new GeneralizedQueryRequest(new Filter(parameters),null);
-		QueryNsdResponse queryNsdResponse  = null;
+		QueryNsdIfaResponse queryNsdResponse  = null;
 		try {
-			queryNsdResponse = nfvoCatalogueService.queryNsd(generalizedQueryRequest);
+			queryNsdResponse = (QueryNsdIfaResponse)nfvoCatalogueService.queryNsd(generalizedQueryRequest);
 		} catch (MethodNotImplementedException e) {
 			e.printStackTrace();
 		} catch (MalformattedElementException e) {

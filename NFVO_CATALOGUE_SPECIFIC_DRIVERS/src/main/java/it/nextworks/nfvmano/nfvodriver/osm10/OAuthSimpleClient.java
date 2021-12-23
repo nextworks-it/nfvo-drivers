@@ -1,22 +1,17 @@
-package it.nextworks.nfvmano.nfvodriver.osm;
+package it.nextworks.nfvmano.nfvodriver.osm10;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.squareup.okhttp.*;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
+
 import javax.net.ssl.*;
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.KeyManagementException;
-import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.util.HashMap;
 import java.util.Map;
-import com.squareup.okhttp.*;
 
 public class OAuthSimpleClient {
 

@@ -15,10 +15,10 @@
 */
 package it.nextworks.nfvmano.nfvodriver.logging;
 
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.NsdManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.VnfPackageManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.*;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.NsdManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.VnfPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.AlreadyExistingEntityException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;

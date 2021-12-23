@@ -30,7 +30,8 @@ import it.nextworks.nfvmano.libs.ifa.records.nsinfo.NsInfo;
 import it.nextworks.nfvmano.libs.ifa.records.vnfinfo.VnfInfo;
 import it.nextworks.nfvmano.nfvodriver.elicensing.ElicenseManagementProviderInterface;
 import it.nextworks.nfvmano.nfvodriver.monitoring.MonitoringManager;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryNsdResponse;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.QueryNsdResponse;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.QueryNsdIfaResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -318,7 +319,7 @@ public class DummyNfvoLcmDriver extends NfvoLcmAbstractDriver {
 		QueryNsdResponse queryNsdResponse  = null;
 		try {
 			queryNsdResponse = nfvoCatalogueService.queryNsd(generalizedQueryRequest);
-			return queryNsdResponse.getQueryResult().get(0).getNsd();
+			return ((QueryNsdIfaResponse)queryNsdResponse).getQueryResult().get(0).getNsd();
 		} catch (Exception e) {
 			log.error("",e);
 			throw new FailedOperationException(e);

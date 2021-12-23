@@ -70,18 +70,12 @@ public class EvsTestNfvoLcmDriver extends NfvoLcmAbstractDriver {
         List<String> nestedIds = new ArrayList<>();
 
 		if(request.getNsName().contains("shared")){
-
-
-
 			nsEVSInfoId = generateNsdInfo("nsEVS", request.getTenantId(), vnfPlacement );
 
             nestedIds.add(generateNsdInfo("nsDENMgenerator", request.getTenantId(), null));
             nestedIds.add(generateNsdInfo("nsCIM", request.getTenantId(), null));
-
-
         }else{
             nestedIds.add(generateNsdInfo("nsCIMTest", request.getTenantId(), null));
-
         }
 		nestedIds.add(nsEVSInfoId);
         log.debug("Generated NS identifier " + nsInfoId);
@@ -126,12 +120,13 @@ public class EvsTestNfvoLcmDriver extends NfvoLcmAbstractDriver {
 			operations.put(operationId, OperationStatus.SUCCESSFULLY_DONE);
 			NsInfo nsInfo = nsInstances.get(nsInstanceId);
 			for(String nestedNsi : nsInfo.getNestedNsInfoId()){
+				if(nestedNsi != null) {
+					NsInfo nestedNsInfo = nsInstances.get(nestedNsi);
 
-			    NsInfo nestedNsInfo = nsInstances.get(nestedNsi);
+					nestedNsInfo.setNsState(InstantiationState.INSTANTIATED);
 
-			    nestedNsInfo.setNsState(InstantiationState.INSTANTIATED);
-
-				nsInstances.put(nestedNsi, nestedNsInfo);
+					nsInstances.put(nestedNsi, nestedNsInfo);
+				}
 
 			}
 			nsInfo.setFlavourId(request.getFlavourId());

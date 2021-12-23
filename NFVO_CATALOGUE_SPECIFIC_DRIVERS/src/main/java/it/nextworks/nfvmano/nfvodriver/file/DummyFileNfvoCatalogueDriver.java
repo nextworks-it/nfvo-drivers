@@ -16,11 +16,12 @@
 package it.nextworks.nfvmano.nfvodriver.file;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.NsdManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.VnfPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.NsdManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.VnfPackageManagementConsumerInterface;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.*;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.enums.NsdFormat;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.common.elements.Filter;
 import it.nextworks.nfvmano.libs.ifa.common.enums.OperationalState;
 import it.nextworks.nfvmano.libs.ifa.common.enums.UsageState;
@@ -132,8 +133,9 @@ public class DummyFileNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public String onboardNsd(OnboardNsdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
-		
-		return nsdFileRegistryService.storeNsd(request.getNsd());
+		if(request.getNsdFormat()!= NsdFormat.IFA)
+			throw new MethodNotImplementedException("NSD Format not supported");
+		return nsdFileRegistryService.storeNsd(((OnboardNsdIfaRequest)request).getNsd());
 	}
 
 	@Override
@@ -188,7 +190,7 @@ public class DummyFileNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 			NsdInfo nsdInfo = nsdFileRegistryService.queryNsd(nsdId, nsdVersion);
 			List<NsdInfo> nsdInfos = new ArrayList<>();
 			nsdInfos.add(nsdInfo);
-			return new QueryNsdResponse(nsdInfos);
+			return new QueryNsdIfaResponse(nsdInfos);
 
 
 		} else if(params.size()==1 &&params.containsKey("NSD_INFO_ID")){
@@ -198,7 +200,7 @@ public class DummyFileNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 			NsdInfo nsdInfo = nsdFileRegistryService.queryNsd(nsdInfoId);
 			List<NsdInfo> nsdInfos = new ArrayList<>();
 			nsdInfos.add(nsdInfo);
-			return new QueryNsdResponse(nsdInfos);
+			return new QueryNsdIfaResponse(nsdInfos);
 
 		}else  throw new MalformattedElementException("Only nsdId and nsdVersion or nsdInfoId query implemented");
 	}
@@ -317,13 +319,13 @@ public class DummyFileNfvoCatalogueDriver extends NfvoCatalogueAbstractDriver {
 					parameters.get("VNF_PACKAGE_SW_VERSION"));
 			List<OnboardedVnfPkgInfo> pkgInfos = new ArrayList<>();
 			pkgInfos.add(vnfPkgInfo);
-			return new QueryOnBoardedVnfPkgInfoResponse(pkgInfos);
+			return new QueryOnBoardedVnfPkgInfoIfaResponse(pkgInfos);
 
 		}else if(parameters.size()==1  && parameters.containsKey("VNFD_ID") ){
 			OnboardedVnfPkgInfo vnfPkgInfo = vnfdFileRegistryService.queryVnf(parameters.get("VNFD_ID"));
 			List<OnboardedVnfPkgInfo> pkgInfos = new ArrayList<>();
 			pkgInfos.add(vnfPkgInfo);
-			return new QueryOnBoardedVnfPkgInfoResponse(pkgInfos);
+			return new QueryOnBoardedVnfPkgInfoIfaResponse(pkgInfos);
 		}else{
 			throw new MalformattedElementException("Specified filter params not supported");
 		}

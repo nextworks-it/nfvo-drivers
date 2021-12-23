@@ -20,12 +20,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.AppPackageOnBoardingNotification;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.AppPackageStateChangeNotification;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.NsdChangeNotification;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.NsdOnBoardingNotification;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.VnfPackageChangeNotification;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.VnfPackageOnboardingNotification;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.AppPackageOnBoardingNotification;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.AppPackageStateChangeNotification;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.NsdChangeNotification;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.NsdOnBoardingNotification;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.VnfPackageChangeNotification;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.VnfPackageOnboardingNotification;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
 
 

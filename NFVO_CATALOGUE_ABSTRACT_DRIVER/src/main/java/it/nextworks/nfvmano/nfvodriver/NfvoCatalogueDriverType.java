@@ -19,6 +19,7 @@ public enum NfvoCatalogueDriverType {
 
     TIMEO,
     OSM,
+    OSM10,
     CLOUDIFY,
     DUMMY,
     LOGGING,

@@ -2,24 +2,27 @@ package it.nextworks.nfvmano.nfvodriver.monitoring.driver;
 
 import io.swagger.client.ApiClient;
 import io.swagger.client.ApiException;
+import io.swagger.client.api.AlertApi;
 import io.swagger.client.api.DashboardApi;
 import io.swagger.client.api.ExporterApi;
 import io.swagger.client.model.*;
+import it.nextworks.nfvmano.libs.ifa.common.enums.RelationalOperation;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.FailedOperationException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MethodNotImplementedException;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.NotExistingEntityException;
 import it.nextworks.nfvmano.libs.ifa.monit.interfaces.elements.ObjectSelection;
 import it.nextworks.nfvmano.libs.ifa.monit.interfaces.elements.PmJob;
+import it.nextworks.nfvmano.libs.ifa.monit.interfaces.elements.ThresholdDetails;
 import it.nextworks.nfvmano.libs.ifa.monit.interfaces.enums.MonitoringObjectType;
-import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.CreatePmJobRequest;
-import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.DeletePmJobRequest;
-import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.DeletePmJobResponse;
+import it.nextworks.nfvmano.libs.ifa.monit.interfaces.enums.ThresholdFormat;
+import it.nextworks.nfvmano.libs.ifa.monit.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.records.vnfinfo.VnfInfo;
 import it.nextworks.nfvmano.nfvodriver.monitoring.MonitoringDriverProviderInterface;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus.AbstractExporterInfo;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus.ExporterType;
 import it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus.PrometheusMapper;
+import it.nextworks.nfvmano.nfvodriver.monitoring.driver.prometheus.PrometheusTDetails;
 import it.nextworks.nfvmano.nfvodriver.monitoring.elements.MonitoringGui;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +46,9 @@ public class PrometheusDriver implements MonitoringDriverProviderInterface {
 
 	private String manoDomain;
 
-	//private AlertApi alertApi;
+	private final String dummyAlgorithmEndPoint;
+
+	private final AlertApi alertApi;
 
 	//key: ID of the VNF instance; Value: ID of the node exporter created for that VNF instance
 	private final Map<String, String> vnfInstanceToNodeExporterMap = new HashMap<>();
@@ -78,7 +83,7 @@ public class PrometheusDriver implements MonitoringDriverProviderInterface {
 							String manoDomain){
     	exporterApi = new ExporterApi();
 		dashboardApi = new DashboardApi();
-		//alertApi = new AlertApi();
+		alertApi = new AlertApi();
 
 		ApiClient apiClient = new ApiClient();
 		// url of the monitoring platform http://<ADDRESS>:8989/prom-manager/
@@ -86,11 +91,13 @@ public class PrometheusDriver implements MonitoringDriverProviderInterface {
 		exporterApi.setApiClient(apiClient);
 
 		dashboardApi.setApiClient(apiClient);
-		//alertApi.setApiClient(apiClient);
+		alertApi.setApiClient(apiClient);
 		this.grafanaUrl=grafanaUrl;
 
 		// timeo.domain=http://localhost:8081/
 		this.manoDomain = manoDomain;
+		//Maybe in application properties need to configure the output of the alert
+		dummyAlgorithmEndPoint = "http://localhost:8083/nfvodriver/alerts";
 	}
 
 	public MonitoringGui buildMonitoringGui(List<String> pmJobIds, String tenantId, Map<String, String> metadata) throws MethodNotImplementedException,
@@ -289,7 +296,7 @@ public class PrometheusDriver implements MonitoringDriverProviderInterface {
 		exporterDescription.setEndpoint(eps);
 		exporterDescription.setNsId(nsId);
 		exporterDescription.setVnfdId(vnfdId);
-		exporterDescription.setCollectionPeriod(1);
+		exporterDescription.setCollectionPeriod(5);
 		try {
 			Exporter exporter = exporterApi.postExporter(exporterDescription);
 			log.debug("Returned exporter: " + exporter.toString());
@@ -356,8 +363,6 @@ public class PrometheusDriver implements MonitoringDriverProviderInterface {
 		return new DeletePmJobResponse(removed);
 	}
 
-
-	/*
 	private static AlertDescription.KindEnum translateRelation(RelationalOperation op) {
 		switch (op) {
 			case LT:
@@ -395,19 +400,24 @@ public class PrometheusDriver implements MonitoringDriverProviderInterface {
 					details.getFormat()
 			));
 		}
+		KVP kvp = new KVP();
+		//in order to get the value of the metric in the alarm
+		kvp.setKey("Description");
+		kvp.setValue("{{ $value }}");
+		List<KVP> kvpList = new ArrayList<>();
+		kvpList.add(kvp);
 		PrometheusTDetails promDetails = (PrometheusTDetails) details;
 		return new AlertDescription()
 				.alertName(UUID.randomUUID().toString())  // TODO more meaningful name?
 				._for(promDetails.getThresholdTime() + "s") // javascript concatenation of int and string
 				.kind(translateRelation(promDetails.getRelationalOperation()))
-				// .labels() TODO decide what to put here (if anything)
+				.labels(kvpList)
 				.query(makeAlertQuery(request.getPerformanceMetric(), promDetails))
 				.severity(AlertDescription.SeverityEnum.WARNING)
-				.target(timeoDomain + MON_PATH)
+				.target(dummyAlgorithmEndPoint)
 				.value(promDetails.getValue());
 	}
 
-	@Override
 	public String createThreshold(CreateThresholdRequest request)
 			throws MethodNotImplementedException, FailedOperationException, MalformattedElementException {
 
@@ -421,7 +431,6 @@ public class PrometheusDriver implements MonitoringDriverProviderInterface {
 		return response.getAlertId();
 	}
 
-	@Override
 	public DeleteThresholdsResponse deleteThreshold(DeleteThresholdsRequest request)
 			throws MethodNotImplementedException, NotExistingEntityException, FailedOperationException,
 			MalformattedElementException {
@@ -440,5 +449,4 @@ public class PrometheusDriver implements MonitoringDriverProviderInterface {
 				deleted
 		);
 	}
-	 */
 }

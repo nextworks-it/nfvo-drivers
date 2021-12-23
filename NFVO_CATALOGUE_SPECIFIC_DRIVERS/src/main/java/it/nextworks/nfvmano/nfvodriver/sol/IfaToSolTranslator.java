@@ -23,8 +23,10 @@ import it.nextworks.nfvmano.libs.descriptors.pnfd.nodes.PNF.PNFRequirements;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.vnfpackagemanagement.elements.PackageUsageStateType;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.vnfpackagemanagement.elements.VnfPkgInfo;
 import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.elements.NsdInfo;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryNsdResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryOnBoardedVnfPkgInfoResponse;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.QueryNsdIfaResponse;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.QueryNsdResponse;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.QueryOnBoardedVnfPkgInfoIfaResponse;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.QueryOnBoardedVnfPkgInfoResponse;
 import it.nextworks.nfvmano.libs.ifa.common.elements.Filter;
 import it.nextworks.nfvmano.libs.ifa.common.elements.KeyValuePair;
 import it.nextworks.nfvmano.libs.ifa.common.enums.LcmEventType;
@@ -265,7 +267,7 @@ public class IfaToSolTranslator {
 				filterParams.put("NS_IL", nestedNsIl);
 				GeneralizedQueryRequest query = new GeneralizedQueryRequest(new Filter(filterParams), new ArrayList<>());
 				try {
-					QueryNsdResponse response = driver.queryNsd(query);
+					QueryNsdIfaResponse response = (QueryNsdIfaResponse) driver.queryNsd(query);
 					if(response!=null && !response.getQueryResult().isEmpty()){
 						String nestedNsdDesigner = response.getQueryResult().get(0).getDesigner();
 						String nestedNsdName = response.getQueryResult().get(0).getName();
@@ -393,7 +395,7 @@ public class IfaToSolTranslator {
 		filterParams.put("VNFD_ID", vnfdId);
 		GeneralizedQueryRequest query = new GeneralizedQueryRequest(new Filter(filterParams), new ArrayList<>());
 		try {
-			QueryOnBoardedVnfPkgInfoResponse response = driver.queryVnfPackageInfo(query);
+			QueryOnBoardedVnfPkgInfoIfaResponse response = (QueryOnBoardedVnfPkgInfoIfaResponse)driver.queryVnfPackageInfo(query);
 			if(!response.getQueryResult().isEmpty()){
 				double maxVersion = 0.0;
 				for(OnboardedVnfPkgInfo pkgInfo : response.getQueryResult()){
@@ -862,7 +864,7 @@ public class IfaToSolTranslator {
 					vnfPkgInfo.getVnfProvider(), vnfPkgInfo.getVnfProductName(), vnfPkgInfo.getVnfSoftwareVersion(), vnfPkgInfo.getVnfdVersion(),"",null, null,
 					 null, OperationalState.ENABLED, state, false, null ));
 		}
-		QueryOnBoardedVnfPkgInfoResponse response = new QueryOnBoardedVnfPkgInfoResponse(pkgInfos);
+		QueryOnBoardedVnfPkgInfoResponse response = new QueryOnBoardedVnfPkgInfoIfaResponse(pkgInfos);
 		return response;
 	}
 
@@ -886,7 +888,7 @@ public class IfaToSolTranslator {
 			nsdInfoList.add(ifaNsdInfo);
 		}
 
-		QueryNsdResponse response = new QueryNsdResponse(nsdInfoList);
+		QueryNsdResponse response = new QueryNsdIfaResponse(nsdInfoList);
 		return response;
 	}
 

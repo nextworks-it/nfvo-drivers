@@ -35,36 +35,16 @@ import it.nextworks.nfvmano.libs.fivegcatalogueclient.FiveGCatalogueClient;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.nsdmanagement.elements.KeyValuePairs;
 import it.nextworks.nfvmano.libs.fivegcatalogueclient.sol005.vnfpackagemanagement.elements.VnfPkgInfo;
 import it.nextworks.nfvmano.libs.ifa.common.elements.KeyValuePair;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.enums.NsdFormat;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.NsdManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.VnfPackageManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeleteNsdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeleteNsdResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeletePnfdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeletePnfdResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DeleteVnfPackageRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DisableNsdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.DisableVnfPackageRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.EnableNsdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.EnableVnfPackageRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.FetchOnboardedVnfPackageArtifactsRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnBoardVnfPackageRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnBoardVnfPackageResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardAppPackageRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardAppPackageResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardNsdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.OnboardPnfdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryNsdResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryOnBoadedAppPkgInfoResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryOnBoardedVnfPkgInfoResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.QueryPnfdResponse;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.UpdateNsdRequest;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.UpdatePnfdRequest;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.NsdManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.VnfPackageManagementConsumerInterface;
 
 
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
@@ -185,12 +165,14 @@ public class SolCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public String onboardNsd(OnboardNsdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
-		log.debug("Processig request to onboard a new NSD.");
+		log.debug("Processing request to onboard a new NSD.");
+		if(request.getNsdFormat()!= NsdFormat.IFA)
+			throw new MethodNotImplementedException("NSD Format not supported");
 		String contentType = "multipart/form-data";
 		KeyValuePairs keyValuePair = new KeyValuePairs();
 		keyValuePair.putAll(request.getUserDefinedData());
 		String authorization = null;
-		Nsd nsd = request.getNsd();
+		Nsd nsd = ((OnboardNsdIfaRequest) request).getNsd();
 		if (nsd == null) throw new MalformattedElementException("NSD for onboarding is null");
 		ArrayList<NsdDfIlKey> nsdDfIlKeys = new ArrayList<>();
 		for (NsDf df : nsd.getNsDf()) { // need to generate a sol nsd for each ns Profile in ifa descriptor

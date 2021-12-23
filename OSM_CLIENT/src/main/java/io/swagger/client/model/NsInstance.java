@@ -40,6 +40,26 @@ public class NsInstance {
 
   @SerializedName("description")
   private String description = null;
+  @SerializedName("nsStatus")
+  private NsStatus nsStatus = null;
+  @SerializedName("nsd")
+  private NsdInfo nsd = null;
+
+  public NsdInfo getNsd() {
+    return nsd;
+  }
+
+  public NsStatus getNsStatus() {
+    return nsStatus;
+  }
+
+  public void setNsStatus(NsStatus nsStatus) {
+    this.nsStatus = nsStatus;
+  }
+
+  public void setNsd(NsdInfo nsd) {
+    this.nsd = nsd;
+  }
 
   public NsInstance _id(UUID _id) {
     this._id = _id;

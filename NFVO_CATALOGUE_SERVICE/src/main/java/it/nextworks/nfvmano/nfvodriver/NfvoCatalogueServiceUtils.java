@@ -22,6 +22,7 @@ import it.nextworks.nfvmano.nfvodriver.file.NsdFileRegistryService;
 import it.nextworks.nfvmano.nfvodriver.file.VnfdFileRegistryService;
 import it.nextworks.nfvmano.nfvodriver.logging.NfvoCatalogueLoggingDriver;
 import it.nextworks.nfvmano.nfvodriver.osm.OsmCatalogueDriver;
+import it.nextworks.nfvmano.nfvodriver.osm10.Osm10CatalogueDriver;
 import it.nextworks.nfvmano.nfvodriver.sol.SolCatalogueDriver;
 import it.nextworks.nfvmano.nfvodriver.timeo.TimeoCatalogueDriver;
 import it.nextworks.nfvmano.nfvodriver.dummy.DummyNfvoCatalogueDriver;
@@ -36,7 +37,7 @@ import javax.annotation.PostConstruct;
 @Component
 public class NfvoCatalogueServiceUtils {
 
-    private static final Logger log = LoggerFactory.getLogger(NfvoCatalogueService.class);
+    private static final Logger log = LoggerFactory.getLogger(NfvoCatalogueServiceUtils.class);
 
     @Value("${nfvo.catalogue.type}")
     private String nfvoCatalogueType;
@@ -92,8 +93,9 @@ public class NfvoCatalogueServiceUtils {
             log.debug("Configured for type:" + nfvoCatalogueType);
             nfvoCatalogueService.setNfvoCatalogueDriver(new DummyNfvoCatalogueDriver(nfvoCatalogueAddress, tmpDir));
         } else if(nfvoCatalogueType.equals("OSM")){
-            log.debug("Configured for type:" + nfvoCatalogueType);
-            nfvoCatalogueService.setNfvoCatalogueDriver(new OsmCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null, nsdFileRegistryService, vnfdFileRegistryService, osmUseFlavorInVnfdId));
+            log.debug("Configured for type:" + nfvoCatalogueType + ", with address: " + nfvoCatalogueAddress);
+            log.debug("Configured with credentials:" + nfvoCatalogueUsername + ", " + nfvoCataloguePassword + ", " + nfvoCatalogueProject);
+            nfvoCatalogueService.setNfvoCatalogueDriver(new OsmCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null, nsdFileRegistryService, vnfdFileRegistryService));
         } else if(nfvoCatalogueType.equals("SOL_005")) {
             log.debug("Configured for type:" + nfvoCatalogueType);
             nfvoCatalogueService.setNfvoCatalogueDriver(new SolCatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, nfvoCatalogueId, null));
@@ -101,6 +103,10 @@ public class NfvoCatalogueServiceUtils {
             //only used for test purposes
             log.debug("Configured for type:" + nfvoCatalogueType);
             nfvoCatalogueService.setNfvoCatalogueDriver(new DummyFileNfvoCatalogueDriver(nsdFileRegistryService, vnfdFileRegistryService, tmpDir));
+        } else if(nfvoCatalogueType.equals("OSM10")){
+            log.debug("Configured for type:" + nfvoCatalogueType + ", with address: " + nfvoCatalogueAddress);
+            log.debug("Configured with credentials:" + nfvoCatalogueUsername + ", " + nfvoCataloguePassword + ", " + nfvoCatalogueProject);
+            nfvoCatalogueService.setNfvoCatalogueDriver(new Osm10CatalogueDriver(nfvoCatalogueAddress, nfvoCatalogueUsername, nfvoCataloguePassword, nfvoCatalogueProject, null, nsdFileRegistryService, vnfdFileRegistryService));
         } else {
             log.error("NFVO not configured!");
         }

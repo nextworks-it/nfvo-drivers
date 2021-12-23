@@ -15,10 +15,10 @@
 */
 package it.nextworks.nfvmano.nfvodriver.osm;
 
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.NsdManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.VnfPackageManagementConsumerInterface;
-import it.nextworks.nfvmano.libs.ifa.catalogues.interfaces.messages.*;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.MecAppPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.NsdManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.VnfPackageManagementConsumerInterface;
+import it.nextworks.nfvmano.libs.ifasol.catalogues.interfaces.messages.*;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.*;
 import it.nextworks.nfvmano.libs.ifa.common.messages.GeneralizedQueryRequest;
 import it.nextworks.nfvmano.libs.ifa.common.messages.SubscribeRequest;
@@ -51,8 +51,7 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 							  String project,
 							  UUID vimId,
 							  NsdFileRegistryService nsdFileRegistryService,
-							  VnfdFileRegistryService vnfdFileRegistryService,
-							  boolean useFlavorInVnfdID) {
+							  VnfdFileRegistryService vnfdFileRegistryService) {
 
 		super(NfvoCatalogueDriverType.OSM, nfvoAddress, null);
 		this.username = username;
@@ -61,7 +60,7 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 		this.oAuthSimpleClient = new OAuthSimpleClient(nfvoAddress+"/osm/admin/v1/tokens", username, password, project);
 		this.vnfdFileRegistryService = vnfdFileRegistryService;
 		this.nsdFileRegistryService = nsdFileRegistryService;
-		this.osmCatalogueRestClient = new OsmCatalogueRestClient(nfvoAddress, username, password, oAuthSimpleClient, nsdFileRegistryService, vnfdFileRegistryService, useFlavorInVnfdID);
+		this.osmCatalogueRestClient = new OsmCatalogueRestClient(nfvoAddress, username, password, oAuthSimpleClient, nsdFileRegistryService, vnfdFileRegistryService);
 	}
 
 	@Override
@@ -186,7 +185,8 @@ public class OsmCatalogueDriver extends NfvoCatalogueAbstractDriver {
 	@Override
 	public String onboardPnfd(OnboardPnfdRequest request) throws MethodNotImplementedException,
 			MalformattedElementException, AlreadyExistingEntityException, FailedOperationException {
-		throw new MethodNotImplementedException();
+		log.debug("Processing request to onboard a Pnfd");
+		return osmCatalogueRestClient.onboardPnfd(request);
 	}
 
 	@Override
